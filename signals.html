@@ -1,0 +1,220 @@
+<html>
+
+<head>
+<link rel="stylesheet"
+href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet"
+href="https://code.getmdl.io/1.2.0/material.indigo-pink.min.css">
+<script defer src="https://code.getmdl.io/1.2.0/material.min.js"></script>
+<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+
+</head>
+
+<body>
+<!-- Numeric Textfield -->
+<!-- Simple header with fixed tabs. -->
+<div class="mdl-layout mdl-js-layout mdl-layout--fixed-header
+            mdl-layout--fixed-tabs">
+  <header class="mdl-layout__header">
+    <div class="mdl-layout__header-row">
+      <!-- Title -->
+      <span class="mdl-layout-title">Signals</span>
+    </div>
+    <!-- Tabs -->
+    <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
+      <a href="#fixed-tab-1" class="mdl-layout__tab is-active">What are signals</a>
+      <a href="#fixed-tab-2" class="mdl-layout__tab">How do signals look like</a>
+      <a href="#fixed-tab-3" class="mdl-layout__tab">Try</a>
+      <a href="#fixed-tab-4" class="mdl-layout__tab">About</a>
+    </div>
+  </header>
+  <div class="mdl-layout__drawer">
+    <span class="mdl-layout-title">Signals</span>
+  </div>
+  <main class="mdl-layout__content">
+    <section class="mdl-layout__tab-panel is-active" id="fixed-tab-1">
+        <div class="page-content">
+        <!-- Your content goes here -->
+      Signals are used to encode data so that they can be tramsmitted across a
+transmission medium. Sound is an example of a signal. When you speak a word, the
+vocal cords vibrate to produce the sound that corresponds to the word. Signals
+are represented as waves.
+        </div>
+    </section>
+    <section class="mdl-layout__tab-panel" id="fixed-tab-2">
+        <div class="page-content">
+        <!-- Your content goes here -->
+            <form action="#">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input" type="text"pattern="-?[0-9]*(\.[0-9]+)?" id="amplitude" value="1">
+                    <label class="mdl-textfield__label" for="amplitude">Amplitude</label>
+                    <span class="mdl-textfield__error">Input is not a number!</span>
+                    <span for="amplitude" class="mdl-tooltip">Input the strength of the signal(max is 3)</span>
+                </div>
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="frequency" value="1">
+                    <label class="mdl-textfield__label" for="frequency">Frequency</label>
+                    <span class="mdl-textfield__error">Input is not a number!</span>
+                    <span for="frequency" class="mdl-tooltip">Input the frequency</span>
+                </div>
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="phase" value="0">
+                    <label class="mdl-textfield__label" for="phase">Phase</label>
+                    <span class="mdl-textfield__error">Input is not a number!</span>
+                    <span for="phase" class="mdl-tooltip">Input the phase angle in degrees</span>
+                </div>
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input"type="text"pattern="-?[0-9]*(\.[0-9]+)?" id="fcomponents" value="0">
+                    <label class="mdl-textfield__label" for="fcomponents">Frequency Component</label>
+                    <span class="mdl-textfield__error">Input is not a number!</span>
+                    <span for="fcomponents" class="mdl-tooltip">Input the number of frequency components to show</span>
+                </div><br/>
+                <!-- Raised button with ripple -->
+                <div>
+                <button class="mdl-button mdl-js-button mdl-button--raisedmdl-js-ripple-effect mdl-button--accent" onclick="plotSignal();">
+                    Plot
+                </button>
+                </div>
+                <div>
+                <button class="mdl-button mdl-js-button mdl-button--raisedmdl-js-ripple-effect mdl-button--accent" onclick="clearCanvas();">
+                    Clear
+                </button>
+                </div>
+                <div>
+                <canvas id="myCanvas" width="640" height="480" style="border:1px solid #000000;"></canvas> 
+                </div>
+            </form>
+        </div>
+    </section>
+    <section class="mdl-layout__tab-panel" id="fixed-tab-3">
+      <div class="page-content"><!-- Your content goes here --></div>
+    </section>
+    <section class="mdl-layout__tab-panel" id="fixed-tab-4">
+        <div class="page-content">
+            <!-- Your content goes here -->
+            To be funded by the UPLB Faculty Grant for ILO.
+            <ul>
+            <li>Ivy, ICS-UPLB</li>
+            <li>Joman, ICS-UPLB</li>
+            <li>JACH(consultant), ICS-UPLB</li>
+            </ul>
+        </div>
+    </section>
+  </main>
+</div>
+
+
+<script>
+
+function clearCanvas(){
+    var c = document.getElementById("myCanvas");
+    var ctx = c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
+    location.reload();
+}
+
+
+function drawLine(x1,y1,x2,y2,color){
+    var c = document.getElementById("myCanvas");
+    var ctx = c.getContext("2d");
+    ctx.strokeStyle = color;
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2,y2);
+    ctx.stroke();
+}
+
+
+function drawString(text,x,y){
+    var c = document.getElementById("myCanvas");
+    var ctx = c.getContext("2d");
+    ctx.font = "9px Arial";
+    ctx.fillText(text,x,y);
+
+}
+
+function toRadians(deg){
+    return (deg*(Math.PI/180));
+}
+
+
+function plotSignal(){
+    var c = document.getElementById("myCanvas");
+    var ctx = c.getContext("2d");
+    ctx.fillStyle = "#FF0000";
+    //ctx.fillRect(0,0,c.width,c.height);
+    ctx.clearRect(0,0,c.width,c.height);
+
+
+    var xmax=640;
+    var ymax=480;
+
+    var amplitude=document.getElementById("amplitude").value;
+    var frequency=document.getElementById("frequency").value;
+    var phase=document.getElementById("phase").value;
+    var components=document.getElementById("fcomponents").value;
+
+    var xBase=30;
+    var top=40;
+    var yScale=50;
+    var xAxis=360;
+
+    var yBase=top+yScale * 3;
+    var x,y,k;
+    var oldx=xBase,oldy=-1;
+    var sum;
+
+    // first draw the axis
+    //drawLine(0,ymax/2,xmax,ymax/2);
+    drawLine( xBase, top, xBase, top + 2*yScale*3,'#000000');
+    drawLine( xBase, yBase, xBase + xAxis, yBase,'#000000' );
+
+    for (k=0;k<=6;k++){
+        drawLine(xBase, top+(k*yScale), xBase+5, top+(k*yScale),'#0000FF'); 
+        drawString((3-k), xBase-10, 3+top+(k*yScale));
+    }
+
+    for (k=0;k<=360;k+=90){
+        drawLine(xBase+k, yBase-4, xBase+k, yBase+4,'#0000FF');
+        drawString(k, xBase+k-2, yBase+15);
+    }
+
+
+    var showComp=false;
+
+
+    for(i=0; i < xAxis; i++ ){   
+            sum=0;
+            x = xBase + i;
+
+            if (components == 0){
+                k=1;
+                sum = Math.sin(toRadians(i)*frequency*k+toRadians(phase));
+            }else{
+                for (k=1;k<components;k+=2){
+                    sum += (Math.sin(toRadians(i)*frequency*k+toRadians(phase)))/k;
+                } 
+                
+            }
+        
+            //console.log(sum);
+            
+            y = ( yBase - sum * yScale * amplitude);
+           
+            //console.log(x +","+y);
+ 
+            if (oldy==-1)
+                drawLine( oldx, y, x, y );
+            else
+                drawLine( oldx, oldy, x, y );
+            oldx=x;
+            oldy=y;
+
+        }
+}
+
+</script>
+
+</body>
+
+
+
