@@ -1,0 +1,221 @@
+<!doctype html>
+<!--
+  Material Design Lite
+  Copyright 2015 Google Inc. All rights reserved.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License
+-->
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+  <title>NETWORK ADDRESSING</title>
+  <link rel="stylesheet" href="./node_modules/material-design-lite/material.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="./node_modules/material-design-lite/material.min.js"></script>
+  <script src="./node_modules/jquery/dist/jquery.min.js"></script>
+  <script src="network_address.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
+<body>
+  <!-- Simple header with fixed tabs. -->
+<div class="mdl-layout mdl-js-layout mdl-layout--fixed-header
+            mdl-layout--fixed-tabs">
+  <header class="mdl-layout__header">
+    <div class="mdl-layout__header-row">
+      <!-- Title -->
+      <span class="mdl-layout-title">Sub Network Calculator</span>
+    </div>
+    <!-- Tabs -->
+    <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
+      <a href="#fixed-tab-0" class="mdl-layout__tab is-active">Network Address</a>
+      <a href="#fixed-tab-1" class="mdl-layout__tab">Class Selection</a>
+      <a href="#fixed-tab-2" class="mdl-layout__tab">Subnet Calculator</a>
+      <a href="#fixed-tab-3" class="mdl-layout__tab">Computer Network Diagram</a>
+    </div>
+  </header>
+  <div class="mdl-layout__drawer">
+    <span class="mdl-layout-title">Subnet Calculator</span>
+  </div>
+  <main class="mdl-layout__content mdl-color--grey-100">
+    <section class="mdl-layout__tab-panel is-active" id="fixed-tab-0">
+      <div class="page-content"><!-- Your content goes here -->
+        <h2 class="">Network Address Identifier</h2>
+        <div class="demo-card-square mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__title mdl-card--expand">
+            <h2 class="mdl-card__title-text">Enter Host 1 details:</h2>
+          </div>
+          <div class="mdl-card__supporting-text">
+            
+            IP Address:<br>
+            <div class="mdl-textfield mdl-js-textfield octets">
+              <input class="mdl-textfield__input net_ad_input" disable="disabled" type="text" name="ip_address"  maxlength="15" size="15"  pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" id="ip_address"></span>
+              <label class="mdl-textfield__label" for="ip_address">192.168.0.1</label>
+              <span class="mdl-textfield__error">Error!</span>
+            </div>
+            <br>
+            Network Mask/Subnet Mask:<br>
+            <div class="mdl-textfield mdl-js-textfield octets">
+              <input class="mdl-textfield__input net_ad_input" type="text" name="net_mask"  maxlength="15" size="15"  pattern="-?[0-9,.]*(\.[0-9,.]+)?" id="net_mask"></span>
+              <label class="mdl-textfield__label" for="net_mask">255.255.255.0</label>
+              <span class="mdl-textfield__error">Error!</span>
+            </div>
+          </div>
+          <div class="mdl-card__actions mdl-card--border">
+            <button id="net_add_button" class="mdl-button mdl-button--accent mdl-js-button mdl-js-ripple-effect">
+                Compute Network Address
+              </button>
+          </div>
+        </div>
+        <div class="demo-card-square demo-card-wide mdl-card mdl-shadow--2dp">
+          <div class="mdl-card__title mdl-card--expand">
+            <h2 class="mdl-card__title-text">Result:</h2>
+          </div>
+          <div class="mdl-card__supporting-text">
+            <span id="netad_stat"></span>
+            <table id="netadd_result">
+            <tr id="ip_address_bin">
+              <td>
+                IP address
+              </td>
+              
+            </tr>
+            <tr id="net_mask_bin">
+              <td>
+                Network mask
+              </td>
+            </tr>
+            </table>
+           
+          </div>
+          
+        
+        </div>
+       
+      </div>
+    </section>
+    <section class="mdl-layout__tab-panel" id="fixed-tab-1">
+      <div class="page-content"><!-- Your content goes here -->
+        <div class="demo-card-square mdl-card mdl-shadow--2dp form_card">
+          <div class="mdl-card__title mdl-card--expand">
+            <h2 class="mdl-card__title-text">Classful Networking</h2>
+          </div>
+          <div class="mdl-card__supporting-text">
+            IP address class identifier
+            <br>
+            IP Address:
+            <div class="mdl-textfield mdl-js-textfield octets">
+                <input class="mdl-textfield__input" type="text" name="octet1"  maxlength="15" size="15"  pattern="-?[0-9,.]*(\.[0-9,.]+)?" id="octet1"></span>
+                <label class="mdl-textfield__label" for="octet1">IP Address</label>
+                <span class="mdl-textfield__error">Error!</span>
+              </div>
+          </div>
+        </div>
+       
+      </div>
+    </section>
+    <section class="mdl-layout__tab-panel" id="fixed-tab-2">
+      <div class="page-content"><!-- Your content goes here -->
+          <div class="demo-card-square mdl-card mdl-shadow--2dp form_card">
+          <div class="mdl-card__title mdl-card--expand">
+            <h2 class="mdl-card__title-text">Subnet Calculation Form</h2>
+          </div>
+
+          
+
+            
+          <div class="mdl-card__supporting-text ipaddress_octet">
+             <form action="#">
+              
+            <h3>Select Given Data</h3>
+            <text>Given an <b>IP address</b> and subnetmask or masked bits, we can determine the maximum number of addressable hosts on the network.</text>
+            <table class="group_switch">
+              <tr>
+                <td>
+                  <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch-1">
+                    <input type="checkbox" disabled="true" id="switch-1" class="mdl-switch__input" checked />
+                    <span class="mdl-switch__label">IP address</span>
+                  </label>
+                </td>
+                <td>
+                  <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch-2">
+                    <input type="checkbox" id="switch-2" class="mdl-switch__input" />
+                    <span class="mdl-switch__label">Subnet Mask</span>
+                  </label>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch-3">
+                    <input type="checkbox" id="switch-3" class="mdl-switch__input" />
+                    <span class="mdl-switch__label">SUBNET Bits</span>
+                  </label>
+                </td>
+                <td>
+                  <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch-4">
+                    <input type="checkbox" id="switch-4" class="mdl-switch__input" />
+                    <span class="mdl-switch__label">SUBNET Bits</span>
+                  </label>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch-5">
+                    <input type="checkbox" id="switch-5" class="mdl-switch__input" />
+                    <span class="mdl-switch__label">MASKED Bits</span>
+                  </label>
+                </td>
+                <td>
+                  <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch-6">
+                    <input type="checkbox" id="switch-6" class="mdl-switch__input" />
+                    <span class="mdl-switch__label">Hosts Per Subnet</span>
+                  </label>
+                </td>
+              </tr>
+            </table>
+            <div class="group_switch">  
+            <hr>
+          </div>
+              <div class="mdl-textfield mdl-js-textfield octets">
+                <input class="mdl-textfield__input" type="text" name="octet1"  maxlength="15" size="15"  pattern="-?[0-9,.]*(\.[0-9,.]+)?" id="octet1"></span>
+                <label class="mdl-textfield__label" for="octet1">IP Address</label>
+                <span class="mdl-textfield__error">Error!</span>
+              </div>
+             <br/>
+          
+        
+            <div class="mdl-select mdl-js-select ">
+              
+        <select class="mdl-select__input" id="subnet_mask" name="subnet_mask" onchange="valueChange('1');">
+                <option value="">Subnet Mask</option>  
+                <option value="0">255.255.255.0</option>      
+                <option value="1">255.255.255.128</option>
+                <option value="2">255.255.255.192</option>
+                <option value="3">255.255.255.224</option>
+                <option value="4">255.255.255.240</option>
+                <option value="5">255.255.255.248</option>
+                <option value="6">255.255.255.252</option>  
+              </select>
+            </div>
+          </div>
+              <a href="#fixed-tab-2" class="mdl-layout__tab">Next</a>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="mdl-layout__tab-panel" id="fixed-tab-3">
+      <div class="page-content"><!-- Your content goes here --></div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
