@@ -1,565 +1,278 @@
+<!DOCTYPE html>
+
 <html>
-
+<title>KROWNET - Signals</title>
 <head>
-<link rel="stylesheet"
-href="https://fonts.googleapis.com/icon?family=Material+Icons">
-<link rel="stylesheet"
-href="https://code.getmdl.io/1.2.0/material.indigo-pink.min.css">
-<script defer src="https://code.getmdl.io/1.2.0/material.min.js"></script>
-<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+  <style>
+    .section-card {
+      margin-top: 48px !important;
+    }
 
+    .page-section {
+      width: 780px;
+      margin: 48px auto !important;
+    }
+
+    .data-table {
+      width: 100%;
+    }
+
+    .no-data-cell {
+      text-align: center !important;
+    }  
+  </style>
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://code.getmdl.io/1.2.0/material.indigo-pink.min.css">
+  <script defer src="https://code.getmdl.io/1.2.0/material.min.js"></script>
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
 </head>
 
 <body class="mdl-demo mdl-color--grey-100 mdl-color-text--grey-700 mdl-base">
-<!-- Numeric Textfield -->
-<!-- Simple header with fixed tabs. -->
-<div class="mdl-layout mdl-js-layout mdl-layout--fixed-header
-            mdl-layout--fixed-tabs">
-  <header class="mdl-layout__header">
-    <div class="mdl-layout__header-row">
-      <!-- Title -->
+  <!-- Numeric Textfield -->
+  <!-- Simple header with fixed tabs. -->
+  <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header
+      mdl-layout--fixed-tabs">
+    <header class="mdl-layout__header">
+      <div class="mdl-layout__header-row">
+        <!-- Title -->
+        <span class="mdl-layout-title">Signals</span>
+      </div>
+      <!-- Tabs -->
+      <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
+        <a href="#fixed-tab-1" class="mdl-layout__tab is-active">What are signals</a>
+        <a href="#fixed-tab-2" class="mdl-layout__tab">How do signals look like</a>
+        <a href="#fixed-tab-3" class="mdl-layout__tab">About</a>
+      </div>
+    </header>
+    <div class="mdl-layout__drawer">
       <span class="mdl-layout-title">Signals</span>
     </div>
-    <!-- Tabs -->
-    <div class="mdl-layout__tab-bar mdl-js-ripple-effect">
-      <a href="#fixed-tab-1" class="mdl-layout__tab is-active">What are signals</a>
-      <a href="#fixed-tab-2" class="mdl-layout__tab">How do signals look like</a>
-      <a href="#fixed-tab-3" class="mdl-layout__tab">About</a>
-    </div>
-  </header>
-  <div class="mdl-layout__drawer">
-    <span class="mdl-layout-title">Signals</span>
-  </div>
-  <main class="mdl-layout__content">
-	<section class="mdl-layout__tab-panel is-active" id="fixed-tab-1">
-		<section class=" section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp"  style="width: 780px; margin-bottom: 48px;margin-top: 48px;">
-			<!-- Your content goes here -->
-			<div class="mdl-card mdl-cell mdl-cell--12-col">
-				<div class="mdl-card__supporting-text">
-					<h4>Definition</h4>
-					Signals are used to encode data so that they can be tramsmitted across a
-					transmission medium. Sound is an example of a signal. When you speak a word, the
-					vocal cords vibrate to produce the sound that corresponds to the word. Signals
-					are represented as waves.
-				</div>
-			</div>
-		</section>
-		
-		<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp"  style="width: 780px; margin-bottom: 48px;">
-			<div class="mdl-card mdl-cell mdl-cell--12-col">
-				<div class="mdl-card__supporting-text">
-					<h4>Types of Signal</h4>
-					<ul class="demo-list-three mdl-list">
-						<li class="mdl-list__item mdl-list__item--three-line">
-							<span class="mdl-list__item-primary-content">
-								<span>Analog Signal</span>
-								<span class="mdl-list__item-text-body">
-									Infinitely many levels of intensity of over a period of time
-								</span>
-							</span>
-							<img src="http://www.technologyuk.net/telecommunications/telecom-principles/images/analogue_signal.gif" width="200px" height="50px"/>
-						</li>
-						<li class="mdl-list__item mdl-list__item--three-line">
-							<span class="mdl-list__item-primary-content">
-								<span>Digital Signal</span>
-								<span class="mdl-list__item-text-body">
-									Have a limited number of defined values (1 or 0)
-							  </span>
-							</span>
-							<img src="http://www.technologyuk.net/telecommunications/telecom-principles/images/digital_signal02.gif" width="200px" height="50px"/>
-						</li>
-						<li class="mdl-list__item mdl-list__item--three-line">
-							<span class="mdl-list__item-primary-content">
-								<span>Periodic Signal</span>
-								<span class="mdl-list__item-text-body">
-									Completes a pattern within a measurable time frame (period)
-								</span>
-							</span>
-							<img src="https://learn.digilentinc.com/Documents/Topics/Periodic_Signals/PeriodicSignals_1.png" width="220px" height="50px"/>
-						</li>
-						<li class="mdl-list__item mdl-list__item--three-line">
-							<span class="mdl-list__item-primary-content">
-								<span>Periodic Composite Signal</span>
-								<span class="mdl-list__item-text-body">
-									Signals with discrete frequencies
-								</span>
-							</span>
-							<img src="https://2.bp.blogspot.com/-lJcJcIULtjk/WHQaEqxfU6I/AAAAAAAACVw/JcXObI0SeuUgsoiP4V3EsFEnse0EjJEOACLcB/s640/A%2Bcomposite%2Bperiodic%2Bsignal.JPG" width="200px" height="50px"/>
-						</li>
-						<li class="mdl-list__item mdl-list__item--three-line ">
-							<span class="mdl-list__item-primary-content">
-								<span>Non-periodic Signal</span>
-								<span class="mdl-list__item-text-body">
-									Signals with continuous frequencies
-								</span>
-							</span>
-							<img src="https://i.stack.imgur.com/fKznF.jpg" width="200px" height="50px"/>
-						</li>
-					</ul>
-				</div>
-			</div>
-		</section>
-		<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp"  style="width: 780px; margin-bottom: 48px;">
-			<div class="mdl-card mdl-cell mdl-cell--12-col">
-				<div class="mdl-card__supporting-text">
-					<h4>Forms and Parts of Periodic Analog Signal</h4>
-					<div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-						<h5>Sine Wave</h5>
-						Most fundamental form of a periodic analog
-					</div>
-					<div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-						<h5>Peak amplitude</h5>
-						Absolute value of signal's highest intensity, proportional to the energy it carries
-					</div>
-					<div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-						<h5>Period (T)</h5>
-						Amount of time in seconds to complete a cycle
-					</div>
-					<div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-						<h5>Frequency (f)</h5>
-						Number of period/cycles in 1 sec (hertz/hZ). If signal does not change, f is 0. If signal changes instanteneously, f is infinite
-					</div>
-					<div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-						<h5>Phase</h5>
-						Position of waveform relative to time 0
-					</div>
-					<div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
-						<h5>Wavelength (&lambda;)</h5>
-						Binds T or f of a simple sine wave to the propagation speed of the medium.
-						&lambda; - cT = c/f<br/>
-						where c = propagation speed of light = 3 x 10^8 m/s<br/>
-						unit is in micrometers (microns)
-					</div>
-				</div>
-			</div>
-		</section>
-	</section>
-    <section class="mdl-layout__tab-panel" id="fixed-tab-2">
-        <div class="page-content">
-        <!-- Your content goes here -->
-            <form action="#">
-                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                    <input class="mdl-textfield__input" type="text"pattern="-?[0-9]*(\.[0-9]+)?" id="amplitude" value="1">
+    <main class="mdl-layout__content">
+      <section class="mdl-layout__tab-panel is-active" id="fixed-tab-1">
+        <section class=" section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" style="width: 780px; margin-bottom: 48px;margin-top: 48px;">
+          <!-- Your content goes here -->
+          <div class="mdl-card mdl-cell mdl-cell--12-col">
+            <div class="mdl-card__supporting-text">
+              <h4>Definition</h4>
+              Signals are used to encode data so that they can be tramsmitted across a transmission medium. Sound is an example of a signal.
+              When you speak a word, the vocal cords vibrate to produce the sound that corresponds to the word.
+              Signals are represented as waves.
+            </div>
+          </div>
+        </section>
+
+        <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" style="width: 780px; margin-bottom: 48px;">
+          <div class="mdl-card mdl-cell mdl-cell--12-col">
+            <div class="mdl-card__supporting-text">
+              <h4>Types of Signal</h4>
+              <ul class="demo-list-three mdl-list">
+                <li class="mdl-list__item mdl-list__item--three-line">
+                  <span class="mdl-list__item-primary-content">
+                    <span>Analog Signal</span>
+                    <span class="mdl-list__item-text-body">
+                      Infinitely many levels of intensity of over a period of time
+                    </span>
+                  </span>
+                  <img src="http://www.technologyuk.net/telecommunications/telecom-principles/images/analogue_signal.gif" width="200px" height="50px"
+                  />
+                </li>
+                <li class="mdl-list__item mdl-list__item--three-line">
+                  <span class="mdl-list__item-primary-content">
+                    <span>Digital Signal</span>
+                    <span class="mdl-list__item-text-body">
+                      Have a limited number of defined values (1 or 0)
+                    </span>
+                  </span>
+                  <img src="http://www.technologyuk.net/telecommunications/telecom-principles/images/digital_signal02.gif" width="200px" height="50px"
+                  />
+                </li>
+                <li class="mdl-list__item mdl-list__item--three-line">
+                  <span class="mdl-list__item-primary-content">
+                    <span>Periodic Signal</span>
+                    <span class="mdl-list__item-text-body">
+                      Completes a pattern within a measurable time frame (period)
+                    </span>
+                  </span>
+                  <img src="https://learn.digilentinc.com/Documents/Topics/Periodic_Signals/PeriodicSignals_1.png" width="220px" height="50px"
+                  />
+                </li>
+                <li class="mdl-list__item mdl-list__item--three-line">
+                  <span class="mdl-list__item-primary-content">
+                    <span>Periodic Composite Signal</span>
+                    <span class="mdl-list__item-text-body">
+                      Signals with discrete frequencies
+                    </span>
+                  </span>
+                  <img src="https://2.bp.blogspot.com/-lJcJcIULtjk/WHQaEqxfU6I/AAAAAAAACVw/JcXObI0SeuUgsoiP4V3EsFEnse0EjJEOACLcB/s640/A%2Bcomposite%2Bperiodic%2Bsignal.JPG"
+                    width="200px" height="50px" />
+                </li>
+                <li class="mdl-list__item mdl-list__item--three-line ">
+                  <span class="mdl-list__item-primary-content">
+                    <span>Non-periodic Signal</span>
+                    <span class="mdl-list__item-text-body">
+                      Signals with continuous frequencies
+                    </span>
+                  </span>
+                  <img src="https://i.stack.imgur.com/fKznF.jpg" width="200px" height="50px" />
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        <section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" style="width: 780px; margin-bottom: 48px;">
+          <div class="mdl-card mdl-cell mdl-cell--12-col">
+            <div class="mdl-card__supporting-text">
+              <h4>Forms and Parts of Periodic Analog Signal</h4>
+              <div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
+                <h5>Sine Wave</h5>
+                Most fundamental form of a periodic analog
+              </div>
+              <div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
+                <h5>Peak amplitude</h5>
+                Absolute value of signal's highest intensity, proportional to the energy it carries
+              </div>
+              <div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
+                <h5>Period (T)</h5>
+                Amount of time in seconds to complete a cycle
+              </div>
+              <div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
+                <h5>Frequency (f)</h5>
+                Number of period/cycles in 1 sec (hertz/hZ). If signal does not change, f is 0. If signal changes instanteneously, f is infinite
+              </div>
+              <div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
+                <h5>Phase</h5>
+                Position of waveform relative to time 0
+              </div>
+              <div class="section__text mdl-cell mdl-cell--10-col-desktop mdl-cell--6-col-tablet mdl-cell--3-col-phone">
+                <h5>Wavelength (&lambda;)</h5>
+                Binds T or f of a simple sine wave to the propagation speed of the medium. &lambda; - cT = c/f<br/>                                where
+                c = propagation speed of light = 3 x 10^8 m/s<br/> unit is in micrometers (microns)
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- HOW SIGNALS LOOK LIKE -->
+      <section class="mdl-layout__tab-panel" id="fixed-tab-2">
+        <section class="section--center mdl-grid mdl-grid--no-spacing page-section">
+          <div class="mdl-card mdl-cell mdl-cell--12-col mdl-shadow--2dp">
+            <form id="signal_graph" class="mdl-card__supporting-text" style="margin: auto;">
+              <div class="mdl-grid">
+                <div class="mdl-cell mdl-cell--6-col">
+                  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input data-input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="amplitude" value="1">
                     <label class="mdl-textfield__label" for="amplitude">Amplitude</label>
                     <span class="mdl-textfield__error">Input is not a number!</span>
                     <span for="amplitude" class="mdl-tooltip">Input the strength of the signal(max is 3)</span>
+                  </div>
                 </div>
-                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                    <input class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="frequency" value="1">
+                <div class="mdl-cell mdl-cell--6-col">
+                  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input data-input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="frequency" value="1">
                     <label class="mdl-textfield__label" for="frequency">Frequency</label>
                     <span class="mdl-textfield__error">Input is not a number!</span>
                     <span for="frequency" class="mdl-tooltip">Input the frequency</span>
+                  </div>
                 </div>
-                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                    <input class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="phase" value="0">
+                <div class="mdl-cell mdl-cell--6-col">
+                  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input data-input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="phase" value="0">
                     <label class="mdl-textfield__label" for="phase">Phase</label>
                     <span class="mdl-textfield__error">Input is not a number!</span>
                     <span for="phase" class="mdl-tooltip">Input the phase angle in degrees</span>
+                  </div>
                 </div>
-                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                    <input class="mdl-textfield__input"type="text"pattern="-?[0-9]*(\.[0-9]+)?" id="fcomponents" value="0">
+                <div class="mdl-cell mdl-cell--6-col">
+                  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input data-input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="fcomponents" value="0">
                     <label class="mdl-textfield__label" for="fcomponents">Frequency Component</label>
                     <span class="mdl-textfield__error">Input is not a number!</span>
                     <span for="fcomponents" class="mdl-tooltip">Input the number of frequency components to show</span>
+                  </div>
                 </div>
-				<div style="display:inline-block">
-					<div style="position: relative; left: 100">
-						<button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored" id="showtables" onclick="show_tables()" onmouseout="hide_tables()">
-							Show Tables
-						</button>
-						<div id="plotted_signals" style="position: absolute; right: 0; visibility: hidden;"  onmouseover="show_tables()" onmouseout="hide_tables()"></div>
-					</div>
-				</div>
-				<br/>
-                <!-- Raised button with ripple -->
-                <div>
-                <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" onclick="plotSignal();" style="width: 100px;">
-                    Plot
-                </button>
-                <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" onclick="clearCanvas();" style="width: 100px;">
-                    Clear
-                </button>
-				<div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                    <input class="mdl-textfield__input"type="text"pattern="-?[0-9]*(\.[0-9]+)?" id="ftime" value="360">
+                <div class="mdl-cell mdl-cell--6-col">
+                  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                    <input class="mdl-textfield__input" type="text" pattern="-?[0-9]*(\.[0-9]+)?" id="ftime" value="360">
                     <label class="mdl-textfield__label" for="ftime">X Axis</label>
                     <span class="mdl-textfield__error">Input is not a number!</span>
                     <span for="fcomponents" class="mdl-tooltip">Input the number of frequency components to show</span>
+                  </div>
                 </div>
+                <div class="mdl-cell mdl-cell--6-col" style="text-align: center;">
+                  <button
+                    type="submit"
+                    class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+                    style="width: 100px;"
+                  >
+                    Plot
+                  </button>
+                  <button
+                    id="clear_plots"
+                    class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent"
+                    style="width: 100px;"
+                  >
+                    Clear
+                  </button>
                 </div>
-                <div>
-				<canvas id="myCanvas" width="640" height="480" style="border:1px solid #000000;"></canvas>
-                </div>
+              </div>
             </form>
-        </div>
-    </section>
-    <section class="mdl-layout__tab-panel" id="fixed-tab-3">
-        <div class="page-content">
-            <!-- Your content goes here -->
-            This module is part of <a href="https://srg-ics-uplb.github.io/krownet/">KROWNET</a>. 
-            <br/></br/>
-            Contributors:
-            <ul>
-            <li>Joseph Anthony C. Hermocilla</li>
-			<li>Frederick S. Escobar</li>
-            </ul>
-			Resources:
-            <ul>
-            <li>http://www.technologyuk.net/telecommunications/telecom-principles/</li>
-			<li>https://learn.digilentinc.com/Documents/Topics/Periodic_Signals</li>
-			<li>https://datacommandnet.blogspot.com/p/periodic-analog-signals.html</li>
-			<li>https://mathematica.stackexchange.com/questions/65883/crosscorrelation-for-nonperiodic-signals</li>
-            </ul>
-        </div>
-    </section>
-  </main>
-</div>
+          </div>
+
+          <div class="mdl-card mdl-cell mdl-cell--12-col mdl-shadow--2dp section-card">
+            <div class="mdl-card__title">
+              <h4 class="mdl-card__title-text">Signals</h4>
+            </div>
+            <div class="mdl-card__supporting-text" style="margin: auto; text-align: center;">
+              <canvas id="myCanvas" width="500" height="380"></canvas>
+
+              <!-- Table of Values -->
+              <table class="mdl-data-table mdl-js-data-table data-table">
+                <thead>
+                  <tr>
+                    <th>Amplitude</th>
+                    <th>Frequency</th>
+                    <th>Phase</th>
+                    <th>Frequency Component</th>
+                  </tr>
+                </thead>
+                <tbody id="signal_table"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+      
+      <!-- ABOUT -->
+      <section class="mdl-layout__tab-panel" id="fixed-tab-3">
+        <section class="section--center mdl-grid mdl-grid--no-spacing page-section">
+          <div class="mdl-card mdl-cell mdl-cell--12-col mdl-shadow--2dp">
+            <div class="mdl-card__supporting-text">
+              This module is part of <a href="https://srg-ics-uplb.github.io/krownet/">KROWNET</a>.
+              
+              <h5>Contributors:</h5>
+              <ul>
+                <li>Joseph Anthony C. Hermocilla</li>
+                <li>Frederick S. Escobar</li>
+                <li>Ralph Lawrence R. Silaya</li>
+              </ul>
+
+              <h5>Resources:</h5>
+              <ul>
+                <li>http://www.technologyuk.net/telecommunications/telecom-principles/</li>
+                <li>https://learn.digilentinc.com/Documents/Topics/Periodic_Signals</li>
+                <li>https://datacommandnet.blogspot.com/p/periodic-analog-signals.html</li>
+                <li>https://mathematica.stackexchange.com/questions/65883/crosscorrelation-for-nonperiodic-signals</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
 
 
-<script>
-
-function show_tables() {
-	var div_table = document.getElementById("plotted_signals");
-	div_table.style.visibility = "visible";
-}
-
-function hide_tables() {
-	var div_table = document.getElementById("plotted_signals");
-	div_table.style.visibility = "hidden";
-}
-
-function clearCanvas(){
-    var c = document.getElementById("myCanvas");
-    var ctx = c.getContext("2d");
-    ctx.clearRect(0,0,c.width,c.height);
-    location.reload();
-	ctx.beginPath();
-	var div_table = document.getElementById("plotted_signals");
-	div_table.innerHTML = "";
-}
-function drawLine(x1,y1,x2,y2,color){
-    var c = document.getElementById("myCanvas");
-    var ctx = c.getContext("2d");
-    ctx.strokeStyle = color;
-    ctx.moveTo(x1,y1);
-    ctx.lineTo(x2,y2);
-    ctx.stroke();
-}
-function drawString(text,x,y){
-    var c = document.getElementById("myCanvas");
-    var ctx = c.getContext("2d");
-    ctx.font = "9px Arial";
-    ctx.fillText(text,x,y);
-}
-function toRadians(deg){
-    return (deg*(Math.PI/180));
-}
-
-var showtooltip = function() {
-    var tooltip = document.querySelectorAll('[data-mdl-for="' + this.getAttribute("id") + '"]');
-	if (tooltip.length > 0) {
-		tooltip[0].style.top = "auto";
-		tooltip[0].style.left = "auto";
-		tooltip[0].setAttribute("class", "mdl-tooltip is-active");
-	}
-};
-
-var hidetooltip = function() {
-    var tooltip = document.querySelectorAll('[data-mdl-for="' + this.getAttribute("id") + '"]');
-	if (tooltip.length > 0) {
-		tooltip[0].setAttribute("class", "mdl-tooltip");
-	}
-};
-
-var deletegraph = function() {
-	var div_table = document.getElementById("plotted_signals").childNodes[0];
-	if (div_table.childNodes.length <= 2) {
-		document.getElementById("plotted_signals").innerHTML = "";
-	}
-	else {
-		var index = this.getAttribute("id").replace("delete_", "");
-		div_table.removeChild(div_table.childNodes[index]);
-	}
-	plotSignal(1)
-};
-
-var  createUpdateTable = function(amplitude, frequency, phase, components, xAxis) {
-	var div_table = document.getElementById("plotted_signals");
-	
-	if (div_table.innerHTML.trim() == "") {
-		table_element = document.createElement("table");
-		table_element.setAttribute("id", "plot_table");
-		table_element.setAttribute("cellspacing", "0");
-		table_element.setAttribute("cellpadding", "0");
-		table_element.setAttribute("class", "mdl-data-table mdl-js-data-table mdl-data-table--selectable mdl-shadow--2dp")
-
-		var tr_element = document.createElement("tr");
-		var td1_element = document.createElement("th");
-		td1_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-		var td1_text = document.createTextNode("Amplitude");
-		td1_element.appendChild(td1_text);
-		tr_element.appendChild(td1_element);
-		
-		var td2_element = document.createElement("th");
-		var td2_text = document.createTextNode("Frequency");
-		td2_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-		td2_element.appendChild(td2_text);
-		tr_element.appendChild(td2_element);
-		
-		var td3_element = document.createElement("th");
-		var td3_text = document.createTextNode("Phase");
-		td3_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-		td3_element.appendChild(td3_text);
-		tr_element.appendChild(td3_element);
-		
-		var td4_element = document.createElement("th");
-		var td4_text = document.createTextNode("Frequency Component");
-		td4_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-		td4_element.appendChild(td4_text);
-		tr_element.appendChild(td4_element);
-		
-		var td5_element = document.createElement("th");
-		td5_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-		tr_element.appendChild(td5_element);
-		table_element.appendChild(tr_element);
-		
-		div_table.appendChild(table_element);
-	}
-	
-	table_element = document.getElementById("plot_table");
-	var tr_element = document.createElement("tr");
-	tr_element.setAttribute("class", "graph_details")
-	var td1_element = document.createElement("td");
-	td1_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-	var td1_text = document.createTextNode(amplitude);
-	td1_element.appendChild(td1_text);
-	tr_element.appendChild(td1_element);
-		
-	var td2_element = document.createElement("td");
-	var td2_text = document.createTextNode(frequency);
-	td2_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-	td2_element.appendChild(td2_text);
-	tr_element.appendChild(td2_element);
-		
-	var td3_element = document.createElement("td");
-	var td3_text = document.createTextNode(phase);
-	td3_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-	td3_element.appendChild(td3_text);
-	tr_element.appendChild(td3_element);
-		
-	var td4_element = document.createElement("td");
-	var td4_text = document.createTextNode(components);
-	td4_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-	td4_element.appendChild(td4_text);
-	tr_element.appendChild(td4_element);
-		
-	var td5_element = document.createElement("td");
-	td5_element.setAttribute("class", "right");
-	td5_element.setAttribute("class", "mdl-data-table__cell--non-numeric");
-	tr_element.appendChild(td5_element);
-	var delete_button = document.createElement("div");
-	delete_button.setAttribute("class", "icon material-icons deletebutton");
-	delete_button.style.cursor = "pointer";
-	delete_button.setAttribute("id", "delete_" + document.getElementById("plot_table").childElementCount);
-	var delete_button_text = document.createTextNode("delete");
-	delete_button.appendChild(delete_button_text);
-	var delete_button_tooltip = document.createElement("div");
-	var delete_button_tooltip_text = document.createTextNode("Delete");
-	delete_button_tooltip.setAttribute("class", "mdl-tooltip");
-	delete_button_tooltip.setAttribute("data-mdl-for", "delete_" + document.getElementById("plot_table").childElementCount);
-	delete_button_tooltip.appendChild(delete_button_tooltip_text);
-	td5_element.appendChild(delete_button);
-	td5_element.appendChild(delete_button_tooltip);
-	table_element.appendChild(tr_element);
-	div_table.appendChild(table_element);	
-	
-	var deletebuttons = document.getElementsByClassName("deletebutton");
-	var graph_details = document.getElementsByClassName("graph_details");
-	
-	for (var i = 0; i < deletebuttons.length; i++) {
-		deletebuttons[i].addEventListener('mouseover', showtooltip, false);
-		deletebuttons[i].addEventListener('mouseout', hidetooltip, false);
-		deletebuttons[i].addEventListener('click', deletegraph, false);
-		graph_details[i].addEventListener('mouseover', function() {highlight_line(xAxis, this);}, false)
-		graph_details[i].addEventListener('mouseout', function(){plotSignal(1);}, false)
-	}
-}
-
-function highlight_line (xAxis, $this) {
-	var xBase=30;
-    var top=40;
-    var yScale=50;
-	
-	var yBase=top+yScale * 3;
-    var x,y,k;
-    var oldx=xBase,oldy=-1;
-    var sum;
-	var maxamplitude;
-	var c = document.getElementById("myCanvas");
-    var ctx = c.getContext("2d");
-	ctx.beginPath();
-	maxamplitude = amplitude;
-	for (i=1;i<document.getElementById("plot_table").childElementCount;i++) {
-		if (parseInt(amplitude) < parseInt(document.getElementById("plot_table").childNodes[i].childNodes[0].innerHTML)) {
-			amplitude = document.getElementById("plot_table").childNodes[i].childNodes[0].innerHTML;
-			maxamplitude = amplitude;
-		}
-	}
-	
-	amplitude = $this.childNodes[0].innerHTML;
-	frequency = $this.childNodes[1].innerHTML;
-	phase = $this.childNodes[2].innerHTML;
-	components = $this.childNodes[3].innerHTML;
-	oldx=xBase;
-	oldy=-1;
-	for(i=0; i < xAxis; i++ ){   
-        sum=0;
-        x = xBase + i;
-
-        if (components == 0){
-            k=1;
-            sum = Math.sin(toRadians(i)*frequency*k+toRadians(phase));
-        }else{
-            for (k=1;k<components;k+=2){
-                sum += (Math.sin(toRadians(i)*frequency*k+toRadians(phase)))/k;
-            } 
-            
-        }
-        if (maxamplitude < 3) {
-			y = ( yBase - sum * yScale * amplitude);
-		}
-		else {
-			y = ( yBase - sum * yScale * 3 * (amplitude/maxamplitude));
-		}
-        
- 
-        if (oldy==-1)
-            drawLine( oldx, y, x, y, '#FFFF00');
-        else
-            drawLine( oldx, oldy, x, y, '#FFFF00' );
-		oldx=x;
-        oldy=y;
-
-    }
-}
-function plotSignal(replot = 0){
-    var c = document.getElementById("myCanvas");
-    var ctx = c.getContext("2d");
-    ctx.fillStyle = "#FF0000";
-    //ctx.fillRect(0,0,c.width,c.height);
-    ctx.clearRect(0,0,c.width,c.height);
-	ctx.beginPath();
-    var xmax=640;
-    var ymax=480;
-	var table_element;
-    var amplitude=document.getElementById("amplitude").value;
-    var frequency=document.getElementById("frequency").value;
-    var phase=document.getElementById("phase").value;
-    var components=document.getElementById("fcomponents").value;
-	var xAxis=360;
-	if (document.getElementById("ftime").value > 360) {
-		xAxis = document.getElementById("ftime").value
-	}
-	if (xAxis > 600) {
-		c.setAttribute("width", parseInt(xAxis) + 40);
-	}
-	else {
-		c.setAttribute("width", 640);
-	}
-	if (replot == 0) {
-		createUpdateTable(amplitude, frequency, phase, components, xAxis)
-	}
-	else if (replot == 1 && document.getElementById("plotted_signals").innerHTML.trim() == "") {
-		ctx.clearRect(0,0,c.width,c.height);
-		ctx.beginPath();
-		return;
-	}
-    var xBase=30;
-    var top=40;
-    var yScale=50;
-    var yBase=top+yScale * 3;
-    var x,y,k;
-    var oldx=xBase,oldy=-1;
-    var sum;
-	var maxamplitude;
-    // first draw the axis
-    //drawLine(0,ymax/2,xmax,ymax/2);
-    drawLine( xBase, top, xBase, top + 2*yScale*3,'#000000');
-    drawLine( xBase, yBase, xBase + parseInt(xAxis), yBase,'#000000' );
-	maxamplitude = amplitude;
-	for (i=1;i<document.getElementById("plot_table").childElementCount;i++) {
-		if (parseInt(amplitude) < parseInt(document.getElementById("plot_table").childNodes[i].childNodes[0].innerHTML)) {
-			amplitude = document.getElementById("plot_table").childNodes[i].childNodes[0].innerHTML;
-			maxamplitude = amplitude;
-		}
-	}
-    for (k=0;k<=6;k++){
-		if (amplitude > 3 ) {
-			if ((amplitude - ((amplitude/3)*k)) % 1 == 0) {
-				drawString(amplitude - ((amplitude/3)*k), xBase-10, 3+top+(k*yScale));
-				drawLine(xBase, top+(k*yScale), xBase+5, top+(k*yScale),'#0000FF'); 
-			}
-			else {
-				var new_amplitude = Math.round(amplitude - ((amplitude/3)*k))
-				drawString(new_amplitude, xBase-10, 3+top+((((amplitude - new_amplitude)/amplitude)*3)*yScale));
-				drawLine(xBase, top+((((amplitude - new_amplitude)/amplitude)*3)*yScale), xBase+5, top+((((amplitude - new_amplitude)/amplitude)*3)*yScale),'#0000FF'); 
-			}
-		}
-		else {
-			drawString(3 - k, xBase-10, 3+top+(k*yScale));
-			drawLine(xBase, top+(k*yScale), xBase+5, top+(k*yScale),'#0000FF'); 
-		}
-    }
-    for (k=0;k<=xAxis;k+=90){
-        drawLine(xBase+k, yBase-4, xBase+k, yBase+4,'#0000FF');
-        drawString(k, xBase+k-2, yBase+15);
-    }
-	if (xAxis%90 != 0) {
-		drawLine(xBase+parseInt(xAxis), yBase-4, xBase+parseInt(xAxis), yBase+4,'#0000FF');
-        drawString(xAxis, xBase+parseInt(xAxis)-2, yBase+15);
-	}
-	
-    var showComp=false;
-
-	for (j=1;j<document.getElementById("plot_table").childElementCount;j++){
-		amplitude = document.getElementById("plot_table").childNodes[j].childNodes[0].innerHTML;
-		frequency = document.getElementById("plot_table").childNodes[j].childNodes[1].innerHTML;
-		phase = document.getElementById("plot_table").childNodes[j].childNodes[2].innerHTML;
-		components = document.getElementById("plot_table").childNodes[j].childNodes[3].innerHTML;
-		oldx=xBase;
-		oldy=-1;
-		for(i=0; i < xAxis; i++ ){   
-            sum=0;
-            x = xBase + i;
-            if (components == 0){
-                k=1;
-                sum = Math.sin(toRadians(i)*frequency*k+toRadians(phase));
-            }else{
-                for (k=1;k<components;k+=2){
-                    sum += (Math.sin(toRadians(i)*frequency*k+toRadians(phase)))/k;
-                } 
-                
-            }
-        
-            //console.log(sum);
-            
-            if (maxamplitude < 3) {
-				y = ( yBase - sum * yScale * amplitude);
-			}
-			else {
-				y = ( yBase - sum * yScale * 3 * (amplitude/maxamplitude));
-			}
-           
-            //console.log(x +","+y);
- 
-            if (oldy==-1)
-                drawLine( oldx, y, x, y );
-            else
-                drawLine( oldx, oldy, x, y );
-            oldx=x;
-            oldy=y;
-        }
-	}
-}
-</script>
+  <script type="text/javascript" src="./script.js"></script>
 
 </body>
