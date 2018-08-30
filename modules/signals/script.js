@@ -12,25 +12,34 @@ function Graph(canvasId = 'myCanvas') {
   this.clear = function () {
     this.ctx.fillStyle = Color.red;
     this.ctx.clearRect(0, 0, this.c.width, this.c.height);
-    this.ctx.beginPath();
   }
 
   this.drawLine = function (x1, y1, x2, y2, color) {
+    this.ctx.beginPath();
+    
     this.ctx.strokeStyle = color;
     this.ctx.moveTo(x1, y1);
     this.ctx.lineTo(x2, y2);
     this.ctx.stroke();
+
+    this.ctx.closePath();
   }
 
-  this.drawString = function (text, x, y) {
+  this.drawString = function (text, x, y, align = 'center') {
+    this.ctx.beginPath();
+
+    this.ctx.textAlign = align;
     this.ctx.font = '9px Arial';
     this.ctx.fillText(text, x, y);
+
+    this.ctx.closePath();
   }
 }
 
-function SignalGraph() {
+function SignalGraph(colors = []) {
   // Attributes
   this.signals = {};
+  this.colorPalette = colors;
 
   this.top = 40;
   
@@ -67,7 +76,7 @@ function SignalGraph() {
         this.xBase - 5, this.top + (k * this.yScale),
         Color.blue
       );
-      this.graph.drawString(3 - k, this.xBase - 10, 3 + this.top + (k * this.yScale));
+      this.graph.drawString(3 - k, this.xBase - 10, 3 + this.top + (k * this.yScale), 'right');
     }
 
     for (let k = 0; k <= 360; k += 90) {
@@ -76,18 +85,19 @@ function SignalGraph() {
         this.xBase + k, this.yBase + 4,
         Color.blue
       );
-      this.graph.drawString(k, this.xBase + k - 2, this.yBase + 15);
+      this.graph.drawString(k, this.xBase + k - 4, this.yBase + 15);
     }
   }
 
   this.newSignal = function (data) {
     this.signals = { ...this.signals, [uuid()]: data };
-    this.plotSignal(data);
+
+    this.plotSignal(data, this.colorPalette[Object.keys(this.signals).length % this.colorPalette.length]);
 
     return data;
   }
 
-  this.plotSignal = function(data) {
+  this.plotSignal = function(data, color) {
     let { amplitude, frequency, phase, fcomponents } = data;
 
     let oldX = this.xBase;
@@ -108,9 +118,9 @@ function SignalGraph() {
       let y = this.yBase - (sum * this.yScale * amplitude);
 
       if (oldY === -1) {
-        this.graph.drawLine(oldX, y, x, y);
+        this.graph.drawLine(oldX, y, x, y, color);
       } else {
-        this.graph.drawLine(oldX, oldY, x, y);
+        this.graph.drawLine(oldX, oldY, x, y, color);
       }
 
       oldX = x;
@@ -171,7 +181,16 @@ function renderToTable(data, signals) {
 /**
  * Web App Logic
  */
-const signals = new SignalGraph();
+const colors = [
+  '#1A237E',
+  '#b71c1c',
+  '#880E4F',
+  '#263238',
+  '#BF360C',
+  '#006064'
+];
+
+const signals = new SignalGraph(colors);
 signals.initialize();
 
 // Event Handlers
