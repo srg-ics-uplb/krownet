@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line Code Generator (made with Claude AI)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .input-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #binaryInput {
+            font-family: monospace;
+            padding: 8px;
+            font-size: 16px;
+            width: 300px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #errorMessage {
+            color: red;
+            font-weight: bold;
+            min-height: 20px;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+        }
+        .encoding-section {
+            margin-bottom: 30px;
+        }
+        .bit-labels {
+            display: flex;
+            font-family: monospace;
+            margin-top: 5px;
+        }
+        .bit-label {
+            flex: 1;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #999;
+        }
+        .description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Line Code Generator (made with Claude AI)</h1>
+        
+        <div class="input-section">
+            <input type="text" id="binaryInput" placeholder="Enter 16 binary digits (0s and 1s)" maxlength="16">
+            <button id="encodeButton">Encode</button>
+        </div>
+        
+        <div id="errorMessage"></div>
+        
+        <div id="output">
+            <div class="encoding-section">
+                <h2>NRZ (Non-Return-to-Zero)</h2>
+                <div class="description">Signal level determines bit value: high for 1, low for 0.</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #2980b9;"></div>
+                        <span>Signal</span>
+                    </div>
+                </div>
+                <canvas id="nrzCanvas" width="800" height="200"></canvas>
+                <div id="nrzBitLabels" class="bit-labels"></div>
+            </div>
+            
+            <div class="encoding-section">
+                <h2>NRZI (Non-Return-to-Zero Inverted)</h2>
+                <div class="description">Signal changes level for a 1 bit; stays the same for a 0 bit.</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #9b59b6;"></div>
+                        <span>Signal</span>
+                    </div>
+                </div>
+                <canvas id="nrziCanvas" width="800" height="200"></canvas>
+                <div id="nrziBitLabels" class="bit-labels"></div>
+            </div>
+            
+            <div class="encoding-section">
+                <h2>AMI (Alternate Mark Inversion)</h2>
+                <div class="description">0 bits are zero voltage; 1 bits alternate between positive and negative voltages.</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #27ae60;"></div>
+                        <span>Signal</span>
+                    </div>
+                </div>
+                <canvas id="amiCanvas" width="800" height="200"></canvas>
+                <div id="amiBitLabels" class="bit-labels"></div>
+            </div>
+            
+            <div class="encoding-section">
+                <h2>Manchester Encoding</h2>
+                <div class="description">Mid-bit transition direction determines bit value: rising for 1, falling for 0.</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #e74c3c;"></div>
+                        <span>Signal</span>
+                    </div>
+                </div>
+                <canvas id="manchesterCanvas" width="800" height="200"></canvas>
+                <div id="manchesterBitLabels" class="bit-labels"></div>
+            </div>
+            
+            <div class="encoding-section">
+                <h2>Differential Manchester Encoding</h2>
+                <div class="description">Mid-bit transition always occurs; bit value determined by presence/absence of transition at bit boundary.</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #f39c12;"></div>
+                        <span>Signal</span>
+                    </div>
+                </div>
+                <canvas id="diffManchesterCanvas" width="800" height="200"></canvas>
+                <div id="diffManchesterBitLabels" class="bit-labels"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const binaryInput = document.getElementById('binaryInput');
+            const encodeButton = document.getElementById('encodeButton');
+            const errorMessage = document.getElementById('errorMessage');
+            const nrzCanvas = document.getElementById('nrzCanvas');
+            const nrziCanvas = document.getElementById('nrziCanvas');
+            const amiCanvas = document.getElementById('amiCanvas');
+            const manchesterCanvas = document.getElementById('manchesterCanvas');
+            const diffManchesterCanvas = document.getElementById('diffManchesterCanvas');
+            const nrzBitLabels = document.getElementById('nrzBitLabels');
+            const nrziBitLabels = document.getElementById('nrziBitLabels');
+            const amiBitLabels = document.getElementById('amiBitLabels');
+            const manchesterBitLabels = document.getElementById('manchesterBitLabels');
+            const diffManchesterBitLabels = document.getElementById('diffManchesterBitLabels');
+            
+            // Set initial input value
+            binaryInput.value = '0101010111001010';
+            
+            encodeButton.addEventListener('click', () => {
+                const binaryValue = binaryInput.value.trim();
+                
+                // Validate input
+                if (binaryValue.length !== 16) {
+                    errorMessage.textContent = 'Please enter exactly 16 binary digits';
+                    return;
+                }
+                
+                if (!/^[01]+$/.test(binaryValue)) {
+                    errorMessage.textContent = 'Please enter only 0s and 1s';
+                    return;
+                }
+                
+                errorMessage.textContent = '';
+                generateNRZ(binaryValue);
+                generateNRZI(binaryValue);
+                generateAMI(binaryValue);
+                generateManchester(binaryValue);
+                generateDiffManchester(binaryValue);
+            });
+            
+            function generateNRZ(binaryValue) {
+                const ctx = nrzCanvas.getContext('2d');
+                const width = nrzCanvas.width;
+                const height = nrzCanvas.height;
+                const bitCount = binaryValue.length;
+                const bitWidth = width / bitCount;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw x-axis (time)
+                ctx.beginPath();
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Draw vertical time divisions
+                for (let i = 0; i <= bitCount; i++) {
+                    const x = i * bitWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.strokeStyle = '#ddd';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                // Draw NRZ line code
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#2980b9';
+                
+                for (let i = 0; i < bitCount; i++) {
+                    const bit = parseInt(binaryValue[i]);
+                    const x1 = i * bitWidth;
+                    const x2 = (i + 1) * bitWidth;
+                    
+                    // For NRZ, 1 is high voltage, 0 is low voltage
+                    const y = bit === 1 ? height * 0.25 : height * 0.75;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x1, y);
+                    } else {
+                        const prevBit = parseInt(binaryValue[i - 1]);
+                        const prevY = prevBit === 1 ? height * 0.25 : height * 0.75;
+                        
+                        // If there's a transition, draw vertical line
+                        if (prevY !== y) {
+                            ctx.lineTo(x1, prevY);
+                            ctx.lineTo(x1, y);
+                        }
+                    }
+                    
+                    ctx.lineTo(x2, y);
+                }
+                
+                ctx.stroke();
+                
+                // Add labels for each bit
+                nrzBitLabels.innerHTML = '';
+                for (let i = 0; i < bitCount; i++) {
+                    const label = document.createElement('div');
+                    label.className = 'bit-label';
+                    label.textContent = binaryValue[i];
+                    nrzBitLabels.appendChild(label);
+                }
+                
+                // Add bit position indicators
+                for (let i = 0; i < bitCount; i += 4) {
+                    const x = i * bitWidth + bitWidth / 2;
+                    ctx.fillStyle = '#333';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(i, x, height - 5);
+                }
+            }
+            
+            function generateNRZI(binaryValue) {
+                const ctx = nrziCanvas.getContext('2d');
+                const width = nrziCanvas.width;
+                const height = nrziCanvas.height;
+                const bitCount = binaryValue.length;
+                const bitWidth = width / bitCount;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw x-axis (time)
+                ctx.beginPath();
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Draw vertical time divisions
+                for (let i = 0; i <= bitCount; i++) {
+                    const x = i * bitWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.strokeStyle = '#ddd';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                // Draw NRZI line code
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#9b59b6';
+                
+                // For NRZI:
+                // - Binary 1: Signal changes level at the bit boundary
+                // - Binary 0: Signal maintains current level
+                
+                // Start with arbitrary level (high)
+                let currentLevel = height * 0.25;  // Start high
+                
+                // Draw starting point
+                ctx.moveTo(0, currentLevel);
+                
+                for (let i = 0; i < bitCount; i++) {
+                    const bit = parseInt(binaryValue[i]);
+                    const x1 = i * bitWidth;
+                    const x2 = (i + 1) * bitWidth;
+                    
+                    if (i > 0 && bit === 1) {
+                        // For 1, change level
+                        currentLevel = currentLevel === height * 0.25 ? height * 0.75 : height * 0.25;
+                        // Draw vertical transition line
+                        ctx.lineTo(x1, currentLevel === height * 0.25 ? height * 0.75 : height * 0.25);
+                        ctx.lineTo(x1, currentLevel);
+                    }
+                    
+                    // Draw horizontal line for this bit period
+                    ctx.lineTo(x2, currentLevel);
+                }
+                
+                ctx.stroke();
+                
+                // Add labels for each bit
+                nrziBitLabels.innerHTML = '';
+                for (let i = 0; i < bitCount; i++) {
+                    const label = document.createElement('div');
+                    label.className = 'bit-label';
+                    label.textContent = binaryValue[i];
+                    nrziBitLabels.appendChild(label);
+                }
+                
+                // Add bit position indicators
+                for (let i = 0; i < bitCount; i += 4) {
+                    const x = i * bitWidth + bitWidth / 2;
+                    ctx.fillStyle = '#333';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(i, x, height - 5);
+                }
+            }
+            
+            function generateAMI(binaryValue) {
+                const ctx = amiCanvas.getContext('2d');
+                const width = amiCanvas.width;
+                const height = amiCanvas.height;
+                const bitCount = binaryValue.length;
+                const bitWidth = width / bitCount;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw x-axis (time)
+                ctx.beginPath();
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Draw vertical time divisions
+                for (let i = 0; i <= bitCount; i++) {
+                    const x = i * bitWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.strokeStyle = '#ddd';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                // Draw AMI line code
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#27ae60';
+                
+                // For AMI:
+                // - Binary 0: Zero voltage (middle line)
+                // - Binary 1: Alternating between positive and negative voltages
+
+                let lastPolarity = 1; // Start with positive polarity (will alternate)
+                const zeroLevel = height / 2;
+                const highLevel = height * 0.25;
+                const lowLevel = height * 0.75;
+                
+                // Start at zero
+                ctx.moveTo(0, zeroLevel);
+                
+                for (let i = 0; i < bitCount; i++) {
+                    const bit = parseInt(binaryValue[i]);
+                    const x1 = i * bitWidth;
+                    const x2 = (i + 1) * bitWidth;
+                    
+                    if (bit === 0) {
+                        // For 0, stay at zero voltage
+                        ctx.lineTo(x1, zeroLevel);
+                        ctx.lineTo(x2, zeroLevel);
+                    } else {
+                        // For 1, alternate between positive and negative
+                        const currentLevel = lastPolarity > 0 ? highLevel : lowLevel;
+                        
+                        // Draw transition from previous level
+                        if (i === 0 || parseInt(binaryValue[i-1]) === 0) {
+                            ctx.lineTo(x1, zeroLevel);
+                        }
+                        
+                        // Draw vertical transition
+                        ctx.lineTo(x1, currentLevel);
+                        
+                        // Draw horizontal line for this bit period
+                        ctx.lineTo(x2, currentLevel);
+                        
+                        // Alternate polarity for next 1 bit
+                        lastPolarity = -lastPolarity;
+                    }
+                }
+                
+                ctx.stroke();
+                
+                // Add labels for each bit
+                amiBitLabels.innerHTML = '';
+                for (let i = 0; i < bitCount; i++) {
+                    const label = document.createElement('div');
+                    label.className = 'bit-label';
+                    label.textContent = binaryValue[i];
+                    amiBitLabels.appendChild(label);
+                }
+                
+                // Add bit position indicators
+                for (let i = 0; i < bitCount; i += 4) {
+                    const x = i * bitWidth + bitWidth / 2;
+                    ctx.fillStyle = '#333';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(i, x, height - 5);
+                }
+            }
+            
+            function generateManchester(binaryValue) {
+                const ctx = manchesterCanvas.getContext('2d');
+                const width = manchesterCanvas.width;
+                const height = manchesterCanvas.height;
+                const bitCount = binaryValue.length;
+                const bitWidth = width / bitCount;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw x-axis (time)
+                ctx.beginPath();
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Draw vertical time divisions
+                for (let i = 0; i <= bitCount; i++) {
+                    const x = i * bitWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.strokeStyle = '#ddd';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                // Draw mid-bit vertical lines (for Manchester transitions)
+                for (let i = 0; i < bitCount; i++) {
+                    const x = i * bitWidth + bitWidth / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.strokeStyle = '#eee';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                // Draw Manchester line code
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#e74c3c';
+                
+                // In Manchester encoding:
+                // - Binary 0: high-to-low transition in the middle of the bit period
+                // - Binary 1: low-to-high transition in the middle of the bit period
+                
+                for (let i = 0; i < bitCount; i++) {
+                    const bit = parseInt(binaryValue[i]);
+                    const x1 = i * bitWidth;
+                    const xMid = x1 + bitWidth / 2;
+                    const x2 = (i + 1) * bitWidth;
+                    
+                    if (bit === 0) {
+                        // For 0: High in first half, low in second half
+                        if (i === 0) {
+                            ctx.moveTo(x1, height * 0.25);  // High
+                        } else {
+                            // Connect from previous bit
+                            const prevBit = parseInt(binaryValue[i - 1]);
+                            const prevEndY = prevBit === 0 ? height * 0.75 : height * 0.25;
+                            
+                            if (prevEndY !== height * 0.25) {
+                                ctx.lineTo(x1, prevEndY);
+                                ctx.lineTo(x1, height * 0.25);
+                            }
+                        }
+                        
+                        ctx.lineTo(xMid, height * 0.25);  // High until middle
+                        ctx.lineTo(xMid, height * 0.75);  // Transition to low at middle
+                        ctx.lineTo(x2, height * 0.75);    // Low until end of bit
+                    } else {
+                        // For 1: Low in first half, high in second half
+                        if (i === 0) {
+                            ctx.moveTo(x1, height * 0.75);  // Low
+                        } else {
+                            // Connect from previous bit
+                            const prevBit = parseInt(binaryValue[i - 1]);
+                            const prevEndY = prevBit === 0 ? height * 0.75 : height * 0.25;
+                            
+                            if (prevEndY !== height * 0.75) {
+                                ctx.lineTo(x1, prevEndY);
+                                ctx.lineTo(x1, height * 0.75);
+                            }
+                        }
+                        
+                        ctx.lineTo(xMid, height * 0.75);  // Low until middle
+                        ctx.lineTo(xMid, height * 0.25);  // Transition to high at middle
+                        ctx.lineTo(x2, height * 0.25);    // High until end of bit
+                    }
+                }
+                
+                ctx.stroke();
+                
+                // Add labels for each bit
+                manchesterBitLabels.innerHTML = '';
+                for (let i = 0; i < bitCount; i++) {
+                    const label = document.createElement('div');
+                    label.className = 'bit-label';
+                    label.textContent = binaryValue[i];
+                    manchesterBitLabels.appendChild(label);
+                }
+                
+                // Add bit position indicators
+                for (let i = 0; i < bitCount; i += 4) {
+                    const x = i * bitWidth + bitWidth / 2;
+                    ctx.fillStyle = '#333';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(i, x, height - 5);
+                }
+            }
+            
+            function generateDiffManchester(binaryValue) {
+                const ctx = diffManchesterCanvas.getContext('2d');
+                const width = diffManchesterCanvas.width;
+                const height = diffManchesterCanvas.height;
+                const bitCount = binaryValue.length;
+                const bitWidth = width / bitCount;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw x-axis (time)
+                ctx.beginPath();
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Draw vertical time divisions
+                for (let i = 0; i <= bitCount; i++) {
+                    const x = i * bitWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.strokeStyle = '#ddd';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                // Draw mid-bit vertical lines (for transition reference)
+                for (let i = 0; i < bitCount; i++) {
+                    const x = i * bitWidth + bitWidth / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.strokeStyle = '#eee';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                // Draw Differential Manchester line code
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#f39c12';
+                
+                // In Differential Manchester encoding:
+                // - Always transition in the middle of the bit
+                // - Binary 0: transition at the beginning of the bit
+                // - Binary 1: no transition at the beginning of the bit
+                
+                // Start with an arbitrary level (high)
+                let currentLevel = height * 0.25;
+                
+                ctx.moveTo(0, currentLevel);
+                
+                for (let i = 0; i < bitCount; i++) {
+                    const bit = parseInt(binaryValue[i]);
+                    const x1 = i * bitWidth;
+                    const xMid = x1 + bitWidth / 2;
+                    const x2 = (i + 1) * bitWidth;
+                    
+                    // For bit 0, we add a transition at the bit boundary (except for first bit)
+                    if (i > 0 && bit === 0) {
+                        currentLevel = currentLevel === height * 0.25 ? height * 0.75 : height * 0.25;
+                        ctx.lineTo(x1, currentLevel);
+                    }
+                    
+                    // Always have a transition in the middle of the bit
+                    ctx.lineTo(xMid, currentLevel);
+                    currentLevel = currentLevel === height * 0.25 ? height * 0.75 : height * 0.25;
+                    ctx.lineTo(xMid, currentLevel);
+                    
+                    // Continue at current level until end of bit
+                    ctx.lineTo(x2, currentLevel);
+                }
+                
+                ctx.stroke();
+                
+                // Add labels for each bit
+                diffManchesterBitLabels.innerHTML = '';
+                for (let i = 0; i < bitCount; i++) {
+                    const label = document.createElement('div');
+                    label.className = 'bit-label';
+                    label.textContent = binaryValue[i];
+                    diffManchesterBitLabels.appendChild(label);
+                }
+                
+                // Add bit position indicators
+                for (let i = 0; i < bitCount; i += 4) {
+                    const x = i * bitWidth + bitWidth / 2;
+                    ctx.fillStyle = '#333';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(i, x, height - 5);
+                }
+            }
+            
+            // Generate initially with default value
+            generateNRZ(binaryInput.value);
+            generateNRZI(binaryInput.value);
+            generateAMI(binaryInput.value);
+            generateManchester(binaryInput.value);
+            generateDiffManchester(binaryInput.value);
+        });
+    </script>
+</body>
+</html>
