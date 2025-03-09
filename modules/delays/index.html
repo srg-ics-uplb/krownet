@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Delay Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 15px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        .network-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            background-color: #fcfcfc;
+            overflow: hidden;
+        }
+        .node {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .source {
+            background-color: #27ae60;
+            left: 50px;
+            top: 160px;
+        }
+        .router1 {
+            background-color: #e74c3c;
+            left: 320px;
+            top: 160px;
+        }
+        .router2 {
+            background-color: #e74c3c;
+            left: 590px;
+            top: 160px;
+        }
+        .destination {
+            background-color: #f39c12;
+            left: 860px;
+            top: 160px;
+        }
+        .link {
+            position: absolute;
+            height: 5px;
+            background-color: #34495e;
+            top: 200px;
+        }
+        .link1 {
+            left: 130px;
+            width: 190px;
+        }
+        .link2 {
+            left: 400px;
+            width: 190px;
+        }
+        .link3 {
+            left: 670px;
+            width: 190px;
+        }
+        .packet {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background-color: #3498db;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .queue {
+            position: absolute;
+            width: 30px;
+            height: 100px;
+            border: 2px solid #34495e;
+            background-color: rgba(236, 240, 241, 0.8);
+            left: 280px;
+            top: 80px;
+        }
+        .queue2 {
+            left: 550px;
+        }
+        .info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .delay-monitor {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            margin-top: 15px;
+            gap: 10px;
+        }
+        .delay-item {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid;
+            margin-bottom: 10px;
+        }
+        .processing { border-left-color: #9b59b6; }
+        .transmission { border-left-color: #e74c3c; }
+        .propagation { border-left-color: #27ae60; }
+        .queueing { border-left-color: #f39c12; }
+        
+        .highlight-area {
+            position: absolute;
+            border-radius: 5px;
+            opacity: 0.4;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .processing-highlight {
+            background-color: #9b59b6;
+            width: 100px;
+            height: 100px;
+        }
+        .transmission-highlight {
+            background-color: #e74c3c;
+            height: 15px;
+        }
+        .propagation-highlight {
+            background-color: #27ae60;
+            height: 15px;
+        }
+        .queueing-highlight {
+            background-color: #f39c12;
+            width: 40px;
+            height: 110px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Packet-Switched Network Delay Visualization</h1>
+        
+        <div class="controls">
+            <button id="startBtn">Start Simulation</button>
+            <button id="resetBtn">Reset</button>
+            <button id="slowBtn">Slow Motion</button>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #9b59b6;"></div>
+                <span>Processing Delay</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e74c3c;"></div>
+                <span>Transmission Delay</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #27ae60;"></div>
+                <span>Propagation Delay</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f39c12;"></div>
+                <span>Queueing Delay</span>
+            </div>
+        </div>
+        
+        <div class="network-container" id="networkContainer">
+            <!-- Nodes -->
+            <div class="node source">Source</div>
+            <div class="node router1">Router 1</div>
+            <div class="node router2">Router 2</div>
+            <div class="node destination">Destination</div>
+            
+            <!-- Links -->
+            <div class="link link1"></div>
+            <div class="link link2"></div>
+            <div class="link link3"></div>
+            
+            <!-- Queues -->
+            <div class="queue" id="queue1"></div>
+            <div class="queue queue2" id="queue2"></div>
+            
+            <!-- Highlight areas (initially hidden) -->
+            <div class="highlight-area processing-highlight" id="processingHighlight1" style="left: 320px; top: 150px; display: none;"></div>
+            <div class="highlight-area processing-highlight" id="processingHighlight2" style="left: 590px; top: 150px; display: none;"></div>
+            
+            <div class="highlight-area transmission-highlight" id="transmissionHighlight1" style="left: 130px; top: 195px; width: 50px; display: none;"></div>
+            <div class="highlight-area transmission-highlight" id="transmissionHighlight2" style="left: 400px; top: 195px; width: 50px; display: none;"></div>
+            <div class="highlight-area transmission-highlight" id="transmissionHighlight3" style="left: 670px; top: 195px; width: 50px; display: none;"></div>
+            
+            <div class="highlight-area propagation-highlight" id="propagationHighlight1" style="left: 170px; top: 195px; width: 150px; display: none;"></div>
+            <div class="highlight-area propagation-highlight" id="propagationHighlight2" style="left: 440px; top: 195px; width: 150px; display: none;"></div>
+            <div class="highlight-area propagation-highlight" id="propagationHighlight3" style="left: 710px; top: 195px; width: 150px; display: none;"></div>
+            
+            <div class="highlight-area queueing-highlight" id="queueingHighlight1" style="left: 275px; top: 75px; display: none;"></div>
+            <div class="highlight-area queueing-highlight" id="queueingHighlight2" style="left: 545px; top: 75px; display: none;"></div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Current Delay Information:</h3>
+            <div class="delay-monitor">
+                <div class="delay-item processing">
+                    <h4>Processing Delay</h4>
+                    <p id="processingInfo">Examining packet headers, checking for bit errors, and determining output link.</p>
+                </div>
+                <div class="delay-item transmission">
+                    <h4>Transmission Delay</h4>
+                    <p id="transmissionInfo">Time required to push all packet bits into the link (L/R, where L is packet size and R is transmission rate).</p>
+                </div>
+                <div class="delay-item propagation">
+                    <h4>Propagation Delay</h4>
+                    <p id="propagationInfo">Time for a bit to travel from one end of a link to the other (d/s, where d is distance and s is propagation speed).</p>
+                </div>
+                <div class="delay-item queueing">
+                    <h4>Queueing Delay</h4>
+                    <p id="queueingInfo">Time packet waits in buffer before processing; varies depending on network congestion.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const networkContainer = document.getElementById('networkContainer');
+            const startBtn = document.getElementById('startBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const slowBtn = document.getElementById('slowBtn');
+            const queue1 = document.getElementById('queue1');
+            const queue2 = document.getElementById('queue2');
+            
+            // Highlight areas
+            const processingHighlight1 = document.getElementById('processingHighlight1');
+            const processingHighlight2 = document.getElementById('processingHighlight2');
+            const transmissionHighlight1 = document.getElementById('transmissionHighlight1');
+            const transmissionHighlight2 = document.getElementById('transmissionHighlight2');
+            const transmissionHighlight3 = document.getElementById('transmissionHighlight3');
+            const propagationHighlight1 = document.getElementById('propagationHighlight1');
+            const propagationHighlight2 = document.getElementById('propagationHighlight2');
+            const propagationHighlight3 = document.getElementById('propagationHighlight3');
+            const queueingHighlight1 = document.getElementById('queueingHighlight1');
+            const queueingHighlight2 = document.getElementById('queueingHighlight2');
+            
+            // Info panels
+            const processingInfo = document.getElementById('processingInfo');
+            const transmissionInfo = document.getElementById('transmissionInfo');
+            const propagationInfo = document.getElementById('propagationInfo');
+            const queueingInfo = document.getElementById('queueingInfo');
+            
+            let packets = [];
+            let animationSpeed = 1;
+            let isSimulationRunning = false;
+            let animationIds = [];
+            
+            // Create packets
+            function createPackets() {
+                for (let i = 0; i < 8; i++) {
+                    const packet = document.createElement('div');
+                    packet.className = 'packet';
+                    packet.textContent = i + 1;
+                    packet.style.left = '80px';
+                    packet.style.top = `${150 + ((i-4) * 30)}px`;
+                    packet.style.display = 'none';
+                    packet.dataset.state = 'waiting'; // waiting, transmitting, propagating, processing, queuing
+                    packet.dataset.position = 'source';
+                    packet.dataset.id = i;
+                    networkContainer.appendChild(packet);
+                    packets.push(packet);
+                }
+            }
+            
+            function startSimulation() {
+                if (isSimulationRunning) return;
+                isSimulationRunning = true;
+                
+                // Show all packets at the source
+                packets.forEach((packet, index) => {
+                    packet.style.display = 'flex';
+                    packet.style.left = '80px';
+                    packet.style.top = `${160 + ((index-3.5) * 30)}px`;
+                    packet.dataset.state = 'waiting';
+                    packet.dataset.position = 'source';
+                    
+                    // Schedule packet sending with increasing delays
+                    const delay = index * 500 / animationSpeed;
+                    const animationId = setTimeout(() => sendPacket(packet), delay);
+                    animationIds.push(animationId);
+                });
+            }
+            
+            function sendPacket(packet) {
+                // Transmission from source
+                packet.dataset.state = 'transmitting';
+                transmissionHighlight1.style.display = 'block';
+                updateInfoPanel('transmission', 'Active: Packet ' + packet.textContent + ' is being transmitted from Source to Router 1');
+                
+                animatePacket(packet, 130, 200, 300 / animationSpeed, () => {
+                    // Propagation to Router 1
+                    packet.dataset.state = 'propagating';
+                    transmissionHighlight1.style.display = 'none';
+                    propagationHighlight1.style.display = 'block';
+                    updateInfoPanel('propagation', 'Active: Packet ' + packet.textContent + ' is propagating along the link from Source to Router 1');
+                    
+                    animatePacket(packet, 280, 200, 800 / animationSpeed, () => {
+                        propagationHighlight1.style.display = 'none';
+                        
+                        // Check if queue at Router 1 is busy
+                        const queuedPackets = packets.filter(p => p.dataset.position === 'queue1').length;
+                        if (queuedPackets > 0 || isRouterBusy('router1')) {
+                            // Enter queue
+                            packet.dataset.state = 'queuing';
+                            packet.dataset.position = 'queue1';
+                            queueingHighlight1.style.display = 'block';
+                            updateInfoPanel('queueing', 'Active: Packet ' + packet.textContent + ' is waiting in Router 1 queue');
+                            
+                            // Position in queue
+                            packet.style.left = '285px';
+                            packet.style.top = `${170 - (queuedPackets * 25)}px`;
+                            
+                            // Check queue every 100ms
+                            const checkQueueInterval = setInterval(() => {
+                                if (!isRouterBusy('router1') && packets.filter(p => p.dataset.position === 'queue1' && p.dataset.id < packet.dataset.id).length === 0) {
+                                    clearInterval(checkQueueInterval);
+                                    queueingHighlight1.style.display = 'none';
+                                    processAtRouter1(packet);
+                                }
+                            }, 100);
+                            animationIds.push(checkQueueInterval);
+                        } else {
+                            processAtRouter1(packet);
+                        }
+                    });
+                });
+            }
+            
+            function processAtRouter1(packet) {
+                // Processing at Router 1
+                packet.dataset.state = 'processing';
+                packet.dataset.position = 'router1';
+                packet.style.left = '345px';
+                packet.style.top = '200px';
+                
+                processingHighlight1.style.display = 'block';
+                updateInfoPanel('processing', 'Active: Packet ' + packet.textContent + ' is being processed at Router 1');
+                
+                setTimeout(() => {
+                    // Transmission from Router 1
+                    processingHighlight1.style.display = 'none';
+                    packet.dataset.state = 'transmitting';
+                    transmissionHighlight2.style.display = 'block';
+                    updateInfoPanel('transmission', 'Active: Packet ' + packet.textContent + ' is being transmitted from Router 1 to Router 2');
+                    
+                    animatePacket(packet, 400, 200, 300 / animationSpeed, () => {
+                        // Propagation to Router 2
+                        packet.dataset.state = 'propagating';
+                        transmissionHighlight2.style.display = 'none';
+                        propagationHighlight2.style.display = 'block';
+                        updateInfoPanel('propagation', 'Active: Packet ' + packet.textContent + ' is propagating along the link from Router 1 to Router 2');
+                        
+                        animatePacket(packet, 550, 200, 800 / animationSpeed, () => {
+                            propagationHighlight2.style.display = 'none';
+                            
+                            // Check if queue at Router 2 is busy
+                            const queuedPackets = packets.filter(p => p.dataset.position === 'queue2').length;
+                            if (queuedPackets > 0 || isRouterBusy('router2')) {
+                                // Enter queue
+                                packet.dataset.state = 'queuing';
+                                packet.dataset.position = 'queue2';
+                                queueingHighlight2.style.display = 'block';
+                                updateInfoPanel('queueing', 'Active: Packet ' + packet.textContent + ' is waiting in Router 2 queue');
+                                
+                                // Position in queue
+                                packet.style.left = '555px';
+                                packet.style.top = `${170 - (queuedPackets * 25)}px`;
+                                
+                                // Check queue every 100ms
+                                const checkQueueInterval = setInterval(() => {
+                                    if (!isRouterBusy('router2') && packets.filter(p => p.dataset.position === 'queue2' && p.dataset.id < packet.dataset.id).length === 0) {
+                                        clearInterval(checkQueueInterval);
+                                        queueingHighlight2.style.display = 'none';
+                                        processAtRouter2(packet);
+                                    }
+                                }, 100);
+                                animationIds.push(checkQueueInterval);
+                            } else {
+                                processAtRouter2(packet);
+                            }
+                        });
+                    });
+                }, 500 / animationSpeed); // Processing delay
+            }
+            
+            function processAtRouter2(packet) {
+                // Processing at Router 2
+                packet.dataset.state = 'processing';
+                packet.dataset.position = 'router2';
+                packet.style.left = '615px';
+                packet.style.top = '200px';
+                
+                processingHighlight2.style.display = 'block';
+                updateInfoPanel('processing', 'Active: Packet ' + packet.textContent + ' is being processed at Router 2');
+                
+                setTimeout(() => {
+                    // Transmission from Router 2
+                    processingHighlight2.style.display = 'none';
+                    packet.dataset.state = 'transmitting';
+                    transmissionHighlight3.style.display = 'block';
+                    updateInfoPanel('transmission', 'Active: Packet ' + packet.textContent + ' is being transmitted from Router 2 to Destination');
+                    
+                    animatePacket(packet, 670, 200, 300 / animationSpeed, () => {
+                        // Propagation to Destination
+                        packet.dataset.state = 'propagating';
+                        transmissionHighlight3.style.display = 'none';
+                        propagationHighlight3.style.display = 'block';
+                        updateInfoPanel('propagation', 'Active: Packet ' + packet.textContent + ' is propagating along the link from Router 2 to Destination');
+                        
+                        animatePacket(packet, 860, 200, 800 / animationSpeed, () => {
+                            propagationHighlight3.style.display = 'none';
+                            packet.dataset.state = 'delivered';
+                            packet.dataset.position = 'destination';
+                            
+                            // Check if all packets are delivered
+                            if (packets.every(p => p.dataset.state === 'delivered')) {
+                                resetInfoPanels();
+                                isSimulationRunning = false;
+                            }
+                        });
+                    });
+                }, 500 / animationSpeed); // Processing delay
+            }
+            
+            function isRouterBusy(router) {
+                return packets.some(p => p.dataset.position === router && p.dataset.state === 'processing');
+            }
+            
+            function animatePacket(packet, targetX, targetY, duration, callback) {
+                const startX = parseInt(packet.style.left);
+                const startY = parseInt(packet.style.top);
+                const dx = targetX - startX;
+                const dy = targetY - startY;
+                const startTime = performance.now();
+                
+                function step(timestamp) {
+                    const elapsed = timestamp - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    packet.style.left = `${startX + dx * progress}px`;
+                    packet.style.top = `${startY + dy * progress}px`;
+                    
+                    if (progress < 1) {
+                        const animId = requestAnimationFrame(step);
+                        animationIds.push(animId);
+                    } else {
+                        if (callback) callback();
+                    }
+                }
+                
+                const animId = requestAnimationFrame(step);
+                animationIds.push(animId);
+            }
+            
+            function updateInfoPanel(type, message) {
+                switch (type) {
+                    case 'processing':
+                        processingInfo.textContent = message;
+                        break;
+                    case 'transmission':
+                        transmissionInfo.textContent = message;
+                        break;
+                    case 'propagation':
+                        propagationInfo.textContent = message;
+                        break;
+                    case 'queueing':
+                        queueingInfo.textContent = message;
+                        break;
+                }
+            }
+            
+            function resetInfoPanels() {
+                processingInfo.textContent = 'Examining packet headers, checking for bit errors, and determining output link.';
+                transmissionInfo.textContent = 'Time required to push all packet bits into the link (L/R, where L is packet size and R is transmission rate).';
+                propagationInfo.textContent = 'Time for a bit to travel from one end of a link to the other (d/s, where d is distance and s is propagation speed).';
+                queueingInfo.textContent = 'Time packet waits in buffer before processing; varies depending on network congestion.';
+            }
+            
+            function resetSimulation() {
+                // Clear all animations
+                animationIds.forEach(id => {
+                    if (typeof id === 'number') {
+                        clearTimeout(id);
+                        cancelAnimationFrame(id);
+                    }
+                });
+                animationIds = [];
+                
+                // Hide all highlights
+                processingHighlight1.style.display = 'none';
+                processingHighlight2.style.display = 'none';
+                transmissionHighlight1.style.display = 'none';
+                transmissionHighlight2.style.display = 'none';
+                transmissionHighlight3.style.display = 'none';
+                propagationHighlight1.style.display = 'none';
+                propagationHighlight2.style.display = 'none';
+                propagationHighlight3.style.display = 'none';
+                queueingHighlight1.style.display = 'none';
+                queueingHighlight2.style.display = 'none';
+                
+                // Remove existing packets
+                packets.forEach(packet => {
+                    networkContainer.removeChild(packet);
+                });
+                packets = [];
+                
+                // Reset info panels
+                resetInfoPanels();
+                
+                // Create new packets
+                createPackets();
+                
+                isSimulationRunning = false;
+            }
+            
+            function toggleSlowMotion() {
+                if (animationSpeed === 1) {
+                    animationSpeed = 0.3;
+                    slowBtn.textContent = 'Normal Speed';
+                } else {
+                    animationSpeed = 1;
+                    slowBtn.textContent = 'Slow Motion';
+                }
+                
+                if (isSimulationRunning) {
+                    resetSimulation();
+                    startSimulation();
+                }
+            }
+            
+            // Initialize
+            createPackets();
+            
+            // Event listeners
+            startBtn.addEventListener('click', startSimulation);
+            resetBtn.addEventListener('click', resetSimulation);
+            slowBtn.addEventListener('click', toggleSlowMotion);
+        });
+    </script>
+</body>
+</html>
