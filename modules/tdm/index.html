@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Division Multiplexing Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .mode-btn {
+            padding: 8px 16px;
+            background-color: #ddd;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .mode-btn.active {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .canvas-container {
+            position: relative;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+            background-color: white;
+            height: 400px;
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .source {
+            position: absolute;
+            left: 50px;
+            width: 80px;
+            height: 40px;
+            background-color: #90CAF9;
+            border: 2px solid #1565C0;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+        
+        #source1 { top: 80px; }
+        #source2 { top: 180px; }
+        #source3 { top: 280px; }
+        
+        .mux {
+            position: absolute;
+            left: 250px;
+            top: 170px;
+            width: 100px;
+            height: 60px;
+            background-color: #FFCC80;
+            border: 2px solid #E65100;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+        
+        .demux {
+            position: absolute;
+            right: 250px;
+            top: 170px;
+            width: 100px;
+            height: 60px;
+            background-color: #FFCC80;
+            border: 2px solid #E65100;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+        
+        .destination {
+            position: absolute;
+            right: 50px;
+            width: 80px;
+            height: 40px;
+            background-color: #A5D6A7;
+            border: 2px solid #2E7D32;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+        
+        #dest1 { top: 80px; }
+        #dest2 { top: 180px; }
+        #dest3 { top: 280px; }
+        
+        .link {
+            position: absolute;
+            left: 352px;
+            top: 199px;
+            width: 196px;
+            height: 2px;
+            background-color: #333;
+        }
+        
+        .packet {
+            position: absolute;
+            width: 30px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        
+        .source-line {
+            position: absolute;
+            left: 132px;
+            width: 118px;
+            height: 2px;
+            background-color: #999;
+        }
+        
+        #line1 { top: 100px; }
+        #line2 { top: 200px; }
+        #line3 { top: 300px; }
+        
+        .dest-line {
+            position: absolute;
+            right: 132px;
+            width: 118px;
+            height: 2px;
+            background-color: #999;
+        }
+        
+        #dline1 { top: 100px; }
+        #dline2 { top: 200px; }
+        #dline3 { top: 300px; }
+        
+        .status {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ccc;
+        }
+        
+        .source-status {
+            left: 140px;
+        }
+        
+        #status1 { top: 94px; }
+        #status2 { top: 194px; }
+        #status3 { top: 294px; }
+        
+        .dest-status {
+            right: 140px;
+        }
+        
+        #dstatus1 { top: 94px; }
+        #dstatus2 { top: 194px; }
+        #dstatus3 { top: 294px; }
+        
+        .time-slot {
+            position: absolute;
+            top: 170px;
+            width: 30px;
+            height: 20px;
+            border: 1px dashed #777;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            color: #777;
+        }
+        
+        .multiplexed-packet {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #673AB7;
+            color: white;
+            font-size: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 4px;
+        }
+        
+        .legend {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        
+        .stats-container {
+            margin-top: 20px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .utilization-meter {
+            height: 20px;
+            background-color: #eee;
+            margin-top: 5px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .utilization-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+            transition: width 0.5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            position: relative;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Time Division Multiplexing Visualization</h1>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" id="tdm-btn">Synchronous TDM</button>
+            <button class="mode-btn" id="stdm-btn">Statistical TDM</button>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn">Start</button>
+            <button id="stop-btn" disabled>Stop</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+        
+        <div class="speed-control">
+            <label for="speed">Animation Speed:</label>
+            <input type="range" id="speed" min="1" max="5" value="3">
+        </div>
+        
+        <div class="canvas-container" id="canvas">
+            <!-- Sources -->
+            <div class="source" id="source1">S1</div>
+            <div class="source" id="source2">S2</div>
+            <div class="source" id="source3">S3</div>
+            
+            <!-- Source lines -->
+            <div class="source-line" id="line1"></div>
+            <div class="source-line" id="line2"></div>
+            <div class="source-line" id="line3"></div>
+            
+            <!-- Source status -->
+            <div class="status source-status" id="status1"></div>
+            <div class="status source-status" id="status2"></div>
+            <div class="status source-status" id="status3"></div>
+            
+            <!-- Mux and Demux -->
+            <div class="mux" id="mux">MUX</div>
+            <div class="demux" id="demux">DEMUX</div>
+            
+            <!-- Link -->
+            <div class="link" id="link"></div>
+            
+            <!-- Destination lines -->
+            <div class="dest-line" id="dline1"></div>
+            <div class="dest-line" id="dline2"></div>
+            <div class="dest-line" id="dline3"></div>
+            
+            <!-- Destination status -->
+            <div class="status dest-status" id="dstatus1"></div>
+            <div class="status dest-status" id="dstatus2"></div>
+            <div class="status dest-status" id="dstatus3"></div>
+            
+            <!-- Destinations -->
+            <div class="destination" id="dest1">D1</div>
+            <div class="destination" id="dest2">D2</div>
+            <div class="destination" id="dest3">D3</div>
+        </div>
+        
+        <div class="stats-container">
+            <div id="tdm-stats">
+                <h3>Synchronous TDM Statistics</h3>
+                <p>Each source gets a fixed time slot regardless of data availability.</p>
+                <p>Link Utilization:</p>
+                <div class="utilization-meter">
+                    <div class="utilization-fill" id="tdm-utilization">0%</div>
+                </div>
+            </div>
+            
+            <div id="stdm-stats" style="display: none;">
+                <h3>Statistical TDM Statistics</h3>
+                <p>Time slots are allocated based on data availability, improving efficiency.</p>
+                <p>Link Utilization:</p>
+                <div class="utilization-meter">
+                    <div class="utilization-fill" id="stdm-utilization">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #90CAF9;"></div>
+                <span>Input Source</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFCC80;"></div>
+                <span>Multiplexer/Demultiplexer</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #A5D6A7;"></div>
+                <span>Destination</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #F48FB1;"></div>
+                <span>Source 1 Data</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #81D4FA;"></div>
+                <span>Source 2 Data</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFD54F;"></div>
+                <span>Source 3 Data</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #673AB7;"></div>
+                <span>Multiplexed Data</span>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h3>How Time Division Multiplexing Works</h3>
+            <p><strong>Synchronous TDM (Time Division Multiplexing):</strong> Each input source is allocated a fixed time slot in a cyclic manner, regardless of whether they have data to transmit. This ensures predictable transmission timing but can waste bandwidth when sources have no data.</p>
+            <p><strong>Statistical TDM (STDM):</strong> Time slots are dynamically allocated only to sources that have data to transmit. Each packet includes an identifier to indicate its source. This improves bandwidth utilization but requires more complex implementation.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const tdmBtn = document.getElementById('tdm-btn');
+        const stdmBtn = document.getElementById('stdm-btn');
+        const canvas = document.getElementById('canvas');
+        const speedControl = document.getElementById('speed');
+        const tdmStats = document.getElementById('tdm-stats');
+        const stdmStats = document.getElementById('stdm-stats');
+        const tdmUtilization = document.getElementById('tdm-utilization');
+        const stdmUtilization = document.getElementById('stdm-utilization');
+        
+        // Source and destination status indicators
+        const sourceStatus = [
+            document.getElementById('status1'),
+            document.getElementById('status2'),
+            document.getElementById('status3')
+        ];
+        
+        const destStatus = [
+            document.getElementById('dstatus1'),
+            document.getElementById('dstatus2'),
+            document.getElementById('dstatus3')
+        ];
+        
+        // Animation variables
+        let animationId = null;
+        let isTDM = true;
+        let cycle = 0;
+        let dataGenerated = [false, false, false];
+        let dataReceived = [false, false, false];
+        let animationSpeed = 3;
+        
+        // Data generation probabilities (for statistical mode)
+        const dataProbs = [0.7, 0.5, 0.3]; // S1 has more data than S3
+        
+        // Statistics
+        let totalSlots = 0;
+        let usedSlots = 0;
+        
+        // Colors for the packets from each source
+        const packetColors = ['#F48FB1', '#81D4FA', '#FFD54F'];
+        
+        // Initialize
+        function init() {
+            removeAllPackets();
+            dataGenerated = [false, false, false];
+            dataReceived = [false, false, false];
+            totalSlots = 0;
+            usedSlots = 0;
+            cycle = 0;
+            updateUtilization();
+            
+            sourceStatus.forEach(status => {
+                status.style.backgroundColor = '#ccc';
+            });
+            
+            destStatus.forEach(status => {
+                status.style.backgroundColor = '#ccc';
+            });
+        }
+        
+        // Remove all packets from the canvas
+        function removeAllPackets() {
+            const packets = document.querySelectorAll('.packet, .multiplexed-packet, .time-slot');
+            packets.forEach(packet => packet.remove());
+        }
+        
+        // Create a packet for a source
+        function createPacket(sourceIndex) {
+            const source = document.getElementById(`source${sourceIndex + 1}`);
+            const sourceRect = source.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            const packet = document.createElement('div');
+            packet.className = 'packet';
+            packet.style.backgroundColor = packetColors[sourceIndex];
+            packet.style.left = `${130}px`;
+            packet.style.top = `${80 + sourceIndex * 100 - 10}px`;
+            packet.textContent = `S${sourceIndex + 1}`;
+            packet.dataset.source = sourceIndex;
+            
+            canvas.appendChild(packet);
+            return packet;
+        }
+        
+        // Create a multiplexed packet
+        function createMultiplexedPacket(data) {
+            const packet = document.createElement('div');
+            packet.className = 'multiplexed-packet';
+            packet.style.left = `${350}px`;
+            packet.style.top = `${185}px`;
+            
+            let content = '';
+            if (data.length === 0) {
+                content = 'E'; // Empty
+            } else {
+                data.forEach(src => {
+                    content += `S${src + 1}`;
+                });
+            }
+            
+            packet.textContent = content;
+            canvas.appendChild(packet);
+            return packet;
+        }
+        
+        // Generate data for sources
+        function generateData() {
+            if (isTDM) {
+                // In TDM, each source gets a fixed slot
+                const sourceIndex = cycle % 3;
+                const hasData = Math.random() < dataProbs[sourceIndex];
+                dataGenerated[sourceIndex] = hasData;
+                
+                if (hasData) {
+                    sourceStatus[sourceIndex].style.backgroundColor = packetColors[sourceIndex];
+                    createPacket(sourceIndex);
+                    usedSlots++;
+                } else {
+                    sourceStatus[sourceIndex].style.backgroundColor = '#ccc';
+                }
+                
+                totalSlots++;
+            } else {
+                // In STDM, only sources with data get slots
+                let hasAnyData = false;
+                
+                for (let i = 0; i < 3; i++) {
+                    const hasData = Math.random() < dataProbs[i];
+                    dataGenerated[i] = hasData;
+                    
+                    if (hasData) {
+                        sourceStatus[i].style.backgroundColor = packetColors[i];
+                        createPacket(i);
+                        usedSlots++;
+                        hasAnyData = true;
+                    } else {
+                        sourceStatus[i].style.backgroundColor = '#ccc';
+                    }
+                }
+                
+                if (hasAnyData) {
+                    totalSlots++;
+                }
+            }
+        }
+        
+        // Move packets from sources to multiplexer
+        function movePacketsToMux() {
+            const packets = document.querySelectorAll('.packet');
+            let hasAnyPacket = false;
+            
+            packets.forEach(packet => {
+                const left = parseInt(packet.style.left);
+                if (left < 250) {
+                    packet.style.left = `${left + 5}px`;
+                    hasAnyPacket = true;
+                } else {
+                    packet.remove();
+                }
+            });
+            
+            return !hasAnyPacket;
+        }
+        
+        // Create and move multiplexed packet
+        function multiplexData() {
+            // Determine which sources have data to multiplex
+            const activeSources = [];
+            
+            if (isTDM) {
+                // In TDM mode, the current source in the cycle
+                const sourceIndex = cycle % 3;
+                if (dataGenerated[sourceIndex]) {
+                    activeSources.push(sourceIndex);
+                }
+            } else {
+                // In STDM mode, all sources with data
+                for (let i = 0; i < 3; i++) {
+                    if (dataGenerated[i]) {
+                        activeSources.push(i);
+                    }
+                }
+            }
+            
+            // Create the multiplexed packet
+            const packet = createMultiplexedPacket(activeSources);
+            return packet;
+        }
+        
+        // Move multiplexed packet to demultiplexer
+        function moveMultiplexedPacket(packet) {
+            if (!packet) return true;
+            
+            const left = parseInt(packet.style.left);
+            if (left < 545) {
+                packet.style.left = `${left + 5}px`;
+                return false;
+            } else {
+                packet.remove();
+                return true;
+            }
+        }
+        
+        // Demultiplex data to destinations
+        function demultiplexData() {
+            if (isTDM) {
+                // In TDM, data goes to the current destination in the cycle
+                const sourceIndex = cycle % 3;
+                if (dataGenerated[sourceIndex]) {
+                    dataReceived[sourceIndex] = true;
+                    destStatus[sourceIndex].style.backgroundColor = packetColors[sourceIndex];
+                    
+                    const packet = document.createElement('div');
+                    packet.className = 'packet';
+                    packet.style.backgroundColor = packetColors[sourceIndex];
+                    packet.style.left = `${750}px`;
+                    packet.style.top = `${80 + sourceIndex * 100 - 10}px`;
+                    packet.textContent = `S${sourceIndex + 1}`;
+                    canvas.appendChild(packet);
+                }
+            } else {
+                // In STDM, data goes to all active destinations
+                for (let i = 0; i < 3; i++) {
+                    if (dataGenerated[i]) {
+                        dataReceived[i] = true;
+                        destStatus[i].style.backgroundColor = packetColors[i];
+                        
+                        const packet = document.createElement('div');
+                        packet.className = 'packet';
+                        packet.style.backgroundColor = packetColors[i];
+                        packet.style.left = `${750}px`;
+                        packet.style.top = `${80 + i * 100 - 10}px`;
+                        packet.textContent = `S${i + 1}`;
+                        canvas.appendChild(packet);
+                    }
+                }
+            }
+        }
+        
+        // Move packets from demultiplexer to destinations
+        function movePacketsToDest() {
+            const packets = document.querySelectorAll('.packet');
+            let hasAnyPacket = false;
+            
+            packets.forEach(packet => {
+                const left = parseInt(packet.style.left);
+                if (left > 670) {
+                    packet.style.left = `${left - 5}px`;
+                    hasAnyPacket = true;
+                } else {
+                    packet.remove();
+                }
+            });
+            
+            return !hasAnyPacket;
+        }
+        
+        // Update utilization statistics
+        function updateUtilization() {
+            if (totalSlots > 0) {
+                const utilization = (usedSlots / totalSlots) * 100;
+                
+                if (isTDM) {
+                    tdmUtilization.style.width = `${utilization}%`;
+                    tdmUtilization.textContent = `${Math.round(utilization)}%`;
+                } else {
+                    stdmUtilization.style.width = `${utilization}%`;
+                    stdmUtilization.textContent = `${Math.round(utilization)}%`;
+                }
+            }
+        }
+        
+        // Animation steps
+        let animationStep = 0;
+        let multiplexedPacket = null;
+        
+        // Main animation function
+        function animate() {
+            // Get the animation speed factor
+            const speedFactor = 6 - animationSpeed;
+            
+            // Slow down animation by only proceeding every few frames based on speed
+            if (cycle % speedFactor !== 0) {
+                cycle++;
+                animationId = requestAnimationFrame(animate);
+                return;
+            }
+            
+            switch (animationStep) {
+                case 0: // Generate data
+                    generateData();
+                    animationStep = 1;
+                    break;
+                    
+                case 1: // Move packets to multiplexer
+                    if (movePacketsToMux()) {
+                        animationStep = 2;
+                    }
+                    break;
+                    
+                case 2: // Multiplex data
+                    multiplexedPacket = multiplexData();
+                    animationStep = 3;
+                    break;
+                    
+                case 3: // Move multiplexed packet
+                    if (moveMultiplexedPacket(multiplexedPacket)) {
+                        animationStep = 4;
+                    }
+                    break;
+                    
+                case 4: // Demultiplex data
+                    demultiplexData();
+                    animationStep = 5;
+                    break;
+                    
+                case 5: // Move packets to destinations
+                    if (movePacketsToDest()) {
+                        // Reset source and destination status for next cycle
+                        for (let i = 0; i < 3; i++) {
+                            if (dataReceived[i]) {
+                                dataReceived[i] = false;
+                            }
+                            if (dataGenerated[i]) {
+                                dataGenerated[i] = false;
+                            }
+                        }
+                        
+                        updateUtilization();
+                        animationStep = 0;
+                    }
+                    break;
+            }
+            
+            cycle++;
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', () => {
+            if (!animationId) {
+                animationId = requestAnimationFrame(animate);
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            }
+        });
+        
+        stopBtn.addEventListener('click', () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        });
+        
+        resetBtn.addEventListener('click', () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+            init();
+        });
+        
+        tdmBtn.addEventListener('click', () => {
+            isTDM = true;
+            tdmBtn.classList.add('active');
+            stdmBtn.classList.remove('active');
+            tdmStats.style.display = 'block';
+            stdmStats.style.display = 'none';
+            init();
+        });
+        
+        stdmBtn.addEventListener('click', () => {
+            isTDM = false;
+            tdmBtn.classList.remove('active');
+            stdmBtn.classList.add('active');
+            tdmStats.style.display = 'none';
+            stdmStats.style.display = 'block';
+            init();
+        });
+        
+        speedControl.addEventListener('input', () => {
+            animationSpeed = parseInt(speedControl.value);
+        });
+        
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
