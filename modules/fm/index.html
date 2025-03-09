@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FM Modulation Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .description {
+            margin-bottom: 20px;
+            color: #555;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.play-btn {
+            background-color: #2196F3;
+        }
+        button.play-btn:hover {
+            background-color: #0b7dda;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .canvas-container {
+            margin-top: 20px;
+        }
+        .signal-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        canvas {
+            width: 100%;
+            height: 150px;
+            background-color: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .signal-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .info-panel {
+            background-color: #e9f7ef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .parameters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 20px;
+        }
+        .param-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        .slider-container {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .value-display {
+            display: inline-block;
+            width: 60px;
+            text-align: right;
+            margin-left: 10px;
+        }
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .volume-control label {
+            margin-bottom: 0;
+        }
+        .volume-control input {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Frequency Modulation (FM) Visualization</h1>
+        
+        <div class="description">
+            <p>This visualization demonstrates Frequency Modulation (FM) with the following specifications:</p>
+            <ul>
+                <li>Signal bandwidth: 4 kHz</li>
+                <li>Carrier frequency: 107.5 MHz (scaled down for visualization)</li>
+            </ul>
+            <p>Generate a random signal and observe how FM modulation works! You can also listen to the signals.</p>
+        </div>
+
+        <div class="parameters">
+            <div class="param-group">
+                <div class="slider-container">
+                    <label for="modulationIndex">Modulation Index (β):</label>
+                    <input type="range" id="modulationIndex" min="0.1" max="5" step="0.1" value="2.5">
+                    <span id="modulationIndexValue" class="value-display">2.5</span>
+                </div>
+            </div>
+            <div class="param-group">
+                <div class="slider-container">
+                    <label for="timeScale">Time Scale:</label>
+                    <input type="range" id="timeScale" min="1" max="10" step="0.5" value="1">
+                    <span id="timeScaleValue" class="value-display">1×</span>
+                </div>
+                <div class="slider-container">
+                    <label for="audioDuration">Audio Duration (seconds):</label>
+                    <input type="range" id="audioDuration" min="1" max="10" step="0.5" value="3">
+                    <span id="audioDurationValue" class="value-display">3s</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="generateBtn">Generate Random Signal</button>
+            <button id="stopAudioBtn" disabled>Stop All Audio</button>
+        </div>
+        
+        <div class="canvas-container">
+            <div class="signal-group">
+                <div class="signal-controls">
+                    <label>Input Signal (4kHz bandwidth)</label>
+                    <div class="audio-controls">
+                        <button id="playMessageBtn" class="play-btn">Play</button>
+                        <div class="volume-control">
+                            <label for="messageVolume">Volume:</label>
+                            <input type="range" id="messageVolume" min="0" max="1" step="0.1" value="0.5">
+                        </div>
+                    </div>
+                </div>
+                <canvas id="signalCanvas"></canvas>
+            </div>
+            
+            <div class="signal-group">
+                <div class="signal-controls">
+                    <label>Carrier Signal (107.5 MHz, scaled down for visualization)</label>
+                    <div class="audio-controls">
+                        <button id="playCarrierBtn" class="play-btn">Play</button>
+                        <div class="volume-control">
+                            <label for="carrierVolume">Volume:</label>
+                            <input type="range" id="carrierVolume" min="0" max="1" step="0.1" value="0.5">
+                        </div>
+                    </div>
+                </div>
+                <canvas id="carrierCanvas"></canvas>
+            </div>
+            
+            <div class="signal-group">
+                <div class="signal-controls">
+                    <label>FM Modulated Signal</label>
+                    <div class="audio-controls">
+                        <button id="playModulatedBtn" class="play-btn">Play</button>
+                        <div class="volume-control">
+                            <label for="modulatedVolume">Volume:</label>
+                            <input type="range" id="modulatedVolume" min="0" max="1" step="0.1" value="0.5">
+                        </div>
+                    </div>
+                </div>
+                <canvas id="modulatedCanvas"></canvas>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>About FM Modulation</h3>
+            <p>In Frequency Modulation (FM), the frequency of the carrier wave is varied in accordance with the amplitude of the input signal. The equation for FM modulation is:</p>
+            <p style="text-align: center;"><i>s(t) = A cos(2πf<sub>c</sub>t + β sin(2πf<sub>m</sub>t))</i></p>
+            <p>Where:</p>
+            <ul>
+                <li><i>f<sub>c</sub></i> is the carrier frequency (107.5 MHz, scaled down for visualization)</li>
+                <li><i>f<sub>m</sub></i> is the message/modulating frequency</li>
+                <li><i>β</i> is the modulation index</li>
+            </ul>
+            <p>Note: For visualization and audio purposes, we've scaled down the carrier frequency. In a real FM system, the carrier would be much higher frequency compared to the message signal.</p>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const signalCanvas = document.getElementById('signalCanvas');
+        const carrierCanvas = document.getElementById('carrierCanvas');
+        const modulatedCanvas = document.getElementById('modulatedCanvas');
+        const generateBtn = document.getElementById('generateBtn');
+        const modulationIndexSlider = document.getElementById('modulationIndex');
+        const modulationIndexValue = document.getElementById('modulationIndexValue');
+        const timeScaleSlider = document.getElementById('timeScale');
+        const timeScaleValue = document.getElementById('timeScaleValue');
+        const audioDurationSlider = document.getElementById('audioDuration');
+        const audioDurationValue = document.getElementById('audioDurationValue');
+        
+        // Audio buttons
+        const playMessageBtn = document.getElementById('playMessageBtn');
+        const playCarrierBtn = document.getElementById('playCarrierBtn');
+        const playModulatedBtn = document.getElementById('playModulatedBtn');
+        const stopAudioBtn = document.getElementById('stopAudioBtn');
+        
+        // Volume controls
+        const messageVolumeSlider = document.getElementById('messageVolume');
+        const carrierVolumeSlider = document.getElementById('carrierVolume');
+        const modulatedVolumeSlider = document.getElementById('modulatedVolume');
+        
+        // Set up canvas contexts
+        const signalCtx = signalCanvas.getContext('2d');
+        const carrierCtx = carrierCanvas.getContext('2d');
+        const modulatedCtx = modulatedCanvas.getContext('2d');
+        
+        // Parameters
+        const samplingRate = 44100; // Hz
+        let duration = 0.1; // seconds for visualization
+        const messageBandwidth = 4000; // Hz
+        // Note: 107.5 MHz is too high to simulate/hear, so we scale it down for visualization and audio
+        const carrierFrequency = 500; // Hz (scaled down from 107.5 MHz)
+        
+        // Audio context and nodes
+        let audioContext;
+        let currentAudioSources = [];
+        
+        // Initialize data arrays
+        let messageSignal = [];
+        let carrierSignal = [];
+        let modulatedSignal = [];
+        let time = [];
+        
+        // Create time array for visualization
+        for (let i = 0; i < samplingRate * duration; i++) {
+            time.push(i / samplingRate);
+        }
+        
+        // Generate random message signal
+        function generateRandomMessageSignal() {
+            // Reset arrays
+            messageSignal = [];
+            
+            // Generate a message signal with frequencies up to the bandwidth
+            // We'll use a sum of random sinusoids for a more complex signal
+            const numComponents = 10;
+            const components = [];
+            
+            for (let i = 0; i < numComponents; i++) {
+                components.push({
+                    frequency: Math.random() * messageBandwidth,
+                    amplitude: Math.random(),
+                    phase: Math.random() * 2 * Math.PI
+                });
+            }
+            
+            // Normalize amplitudes
+            const totalAmplitude = components.reduce((sum, comp) => sum + comp.amplitude, 0);
+            components.forEach(comp => comp.amplitude /= totalAmplitude);
+            
+            // Generate the signal
+            for (let t of time) {
+                let value = 0;
+                for (let comp of components) {
+                    value += comp.amplitude * Math.sin(2 * Math.PI * comp.frequency * t + comp.phase);
+                }
+                messageSignal.push(value);
+            }
+            
+            updateAllSignals();
+        }
+        
+        // Update carrier and modulated signals based on current parameters
+        function updateAllSignals() {
+            const beta = parseFloat(modulationIndexSlider.value);
+            
+            carrierSignal = [];
+            modulatedSignal = [];
+            
+            for (let i = 0; i < time.length; i++) {
+                const t = time[i];
+                
+                // Carrier signal
+                const carrier = Math.cos(2 * Math.PI * carrierFrequency * t);
+                carrierSignal.push(carrier);
+                
+                // Modulated signal
+                // s(t) = A*cos(2πf_c*t + β*m(t))
+                const modulated = Math.cos(2 * Math.PI * carrierFrequency * t + beta * messageSignal[i]);
+                modulatedSignal.push(modulated);
+            }
+            
+            // Render all signals
+            drawSignal(signalCtx, messageSignal, signalCanvas);
+            drawSignal(carrierCtx, carrierSignal, carrierCanvas);
+            drawSignal(modulatedCtx, modulatedSignal, modulatedCanvas);
+        }
+        
+        // Draw signal on canvas
+        function drawSignal(ctx, signal, canvas) {
+            // Set canvas dimensions
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Get time scale factor
+            const timeScale = parseFloat(timeScaleSlider.value);
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw axes
+            ctx.strokeStyle = '#ccc';
+            ctx.beginPath();
+            ctx.moveTo(0, height/2);
+            ctx.lineTo(width, height/2);
+            ctx.stroke();
+            
+            // Draw signal
+            ctx.strokeStyle = '#1a73e8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // Calculate how many samples to show based on time scale
+            const samplesToShow = Math.min(signal.length, Math.floor(signal.length / timeScale));
+            const skip = Math.max(1, Math.floor(timeScale));
+            
+            for (let i = 0; i < samplesToShow; i += skip) {
+                const x = (i / samplesToShow) * width;
+                const y = height/2 - signal[i] * height/3;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+        }
+        
+        // Play a signal as audio
+        function playSignal(signal, volume) {
+            // Initialize audio context if not already created
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            // Get audio duration
+            const audioDuration = parseFloat(audioDurationSlider.value);
+            
+            // Create a buffer for the audio
+            const audioBuffer = audioContext.createBuffer(1, samplingRate * audioDuration, samplingRate);
+            const channelData = audioBuffer.getChannelData(0);
+            
+            // Fill the buffer with the signal
+            // For longer audio playback, we need to repeat the signal if necessary
+            const repeatCount = Math.ceil(audioDuration / duration);
+            
+            for (let i = 0; i < channelData.length; i++) {
+                const signalIndex = i % signal.length;
+                channelData[i] = signal[signalIndex];
+            }
+            
+            // Create a buffer source
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            
+            // Create a gain node for volume control
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = volume;
+            
+            // Connect the source to the gain node, and the gain node to the destination
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Start playing
+            source.start();
+            
+            // Keep track of current audio sources
+            currentAudioSources.push(source);
+            
+            // Enable stop button
+            stopAudioBtn.disabled = false;
+            
+            // Return the source so we can stop it later if needed
+            return source;
+        }
+        
+        // Stop all audio
+        function stopAllAudio() {
+            currentAudioSources.forEach(source => {
+                try {
+                    source.stop();
+                } catch (e) {
+                    // Source might have already stopped
+                }
+            });
+            
+            currentAudioSources = [];
+            stopAudioBtn.disabled = true;
+        }
+        
+        // Generate audio version of signals for longer playback
+        function generateAudioSignals(audioDuration) {
+            // Get parameters
+            const beta = parseFloat(modulationIndexSlider.value);
+            
+            // Arrays for audio signals
+            const audioMessageSignal = [];
+            const audioCarrierSignal = [];
+            const audioModulatedSignal = [];
+            const audioTime = [];
+            
+            // Create time array for audio duration
+            const audioSamples = Math.floor(samplingRate * audioDuration);
+            for (let i = 0; i < audioSamples; i++) {
+                audioTime.push(i / samplingRate);
+            }
+            
+            // For the message signal, we'll repeat our visualization signal if needed
+            for (let i = 0; i < audioSamples; i++) {
+                const signalIndex = i % messageSignal.length;
+                audioMessageSignal.push(messageSignal[signalIndex]);
+                
+                const t = audioTime[i];
+                
+                // Carrier signal
+                audioCarrierSignal.push(Math.cos(2 * Math.PI * carrierFrequency * t));
+                
+                // Modulated signal
+                audioModulatedSignal.push(Math.cos(2 * Math.PI * carrierFrequency * t + beta * audioMessageSignal[i]));
+            }
+            
+            return {
+                message: audioMessageSignal,
+                carrier: audioCarrierSignal,
+                modulated: audioModulatedSignal
+            };
+        }
+        
+        // Event listeners
+        generateBtn.addEventListener('click', generateRandomMessageSignal);
+        
+        modulationIndexSlider.addEventListener('input', function() {
+            modulationIndexValue.textContent = this.value;
+            updateAllSignals();
+        });
+        
+        timeScaleSlider.addEventListener('input', function() {
+            timeScaleValue.textContent = this.value + '×';
+            updateAllSignals();
+        });
+        
+        audioDurationSlider.addEventListener('input', function() {
+            audioDurationValue.textContent = this.value + 's';
+        });
+        
+        // Play audio buttons
+        playMessageBtn.addEventListener('click', function() {
+            const volume = parseFloat(messageVolumeSlider.value);
+            playSignal(messageSignal, volume);
+        });
+        
+        playCarrierBtn.addEventListener('click', function() {
+            const volume = parseFloat(carrierVolumeSlider.value);
+            playSignal(carrierSignal, volume);
+        });
+        
+        playModulatedBtn.addEventListener('click', function() {
+            const volume = parseFloat(modulatedVolumeSlider.value);
+            playSignal(modulatedSignal, volume);
+        });
+        
+        stopAudioBtn.addEventListener('click', stopAllAudio);
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            // Set canvas dimensions
+            signalCanvas.width = signalCanvas.clientWidth;
+            signalCanvas.height = signalCanvas.clientHeight;
+            carrierCanvas.width = carrierCanvas.clientWidth;
+            carrierCanvas.height = carrierCanvas.clientHeight;
+            modulatedCanvas.width = modulatedCanvas.clientWidth;
+            modulatedCanvas.height = modulatedCanvas.clientHeight;
+            
+            // Generate initial signal
+            generateRandomMessageSignal();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            // Redraw all signals
+            drawSignal(signalCtx, messageSignal, signalCanvas);
+            drawSignal(carrierCtx, carrierSignal, carrierCanvas);
+            drawSignal(modulatedCtx, modulatedSignal, modulatedCanvas);
+        });
+    </script>
+</body>
+</html>
