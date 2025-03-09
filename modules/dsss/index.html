@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSSS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .chart-container {
+            margin: 20px 0;
+            height: 150px;
+            position: relative;
+        }
+        .control-panel {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .data-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .data-item {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+            flex-grow: 1;
+        }
+        .canvas-label {
+            position: absolute;
+            left: 0;
+            top: -25px;
+            font-weight: bold;
+        }
+        .info-panel {
+            background-color: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Direct Sequence Spread Spectrum</h1>
+        
+        <div class="control-panel">
+            <button id="generateBtn">Generate New Random Bits</button>
+            <button id="animateBtn">Animate Spreading Process</button>
+        </div>
+        
+        <div class="data-display">
+            <div class="data-item">
+                <strong>Data Bits:</strong> <span id="dataBits"></span>
+            </div>
+            <div class="data-item">
+                <strong>Barker Code:</strong> <span id="barkerCode">+1,-1,+1,+1,-1,+1,+1,+1,-1,-1,-1</span>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="canvas-label">Data Signal</div>
+            <canvas id="dataCanvas" width="850" height="150"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <div class="canvas-label">Spreading Code (Barker Sequence)</div>
+            <canvas id="codeCanvas" width="850" height="150"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <div class="canvas-label">Spread Signal (DSSS)</div>
+            <canvas id="spreadCanvas" width="850" height="150"></canvas>
+        </div>
+        
+        <div class="info-panel">
+            <h2>About Direct Sequence Spread Spectrum (DSSS)</h2>
+            <p>DSSS is a modulation technique where a data signal is multiplied by a higher frequency pseudo-random noise code (PRN), spreading the signal over a wider bandwidth. This example uses an 11-chip Barker sequence as the spreading code.</p>
+            <p>Benefits of DSSS include increased resistance to interference, improved security, and multiple access capabilities.</p>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const BARKER_11 = [1, -1, 1, 1, -1, 1, 1, 1, -1, -1, -1];  // 11-bit Barker code
+        const CHIPS_PER_BIT = 11;  // Using 11-bit Barker code
+        
+        // Variables
+        let dataBits = [];
+        let spreadSignal = [];
+        
+        // DOM Elements
+        const dataCanvas = document.getElementById('dataCanvas');
+        const codeCanvas = document.getElementById('codeCanvas');
+        const spreadCanvas = document.getElementById('spreadCanvas');
+        const dataBitsElem = document.getElementById('dataBits');
+        const generateBtn = document.getElementById('generateBtn');
+        const animateBtn = document.getElementById('animateBtn');
+        
+        // Drawing contexts
+        const dataCtx = dataCanvas.getContext('2d');
+        const codeCtx = codeCanvas.getContext('2d');
+        const spreadCtx = spreadCanvas.getContext('2d');
+        
+        // Initialize
+        generateRandomBits();
+        drawSignals();
+        
+        // Event Listeners
+        generateBtn.addEventListener('click', () => {
+            generateRandomBits();
+            drawSignals();
+        });
+        
+        animateBtn.addEventListener('click', animateSpreadingProcess);
+        
+        // Functions
+        function generateRandomBits() {
+            dataBits = [];
+            for (let i = 0; i < 8; i++) {
+                // Generate binary 0 or 1, then convert to -1 or 1 for BPSK
+                const bit = Math.round(Math.random());
+                dataBits.push(bit === 0 ? -1 : 1);
+            }
+            
+            // Update display
+            dataBitsElem.textContent = dataBits.map(b => b === 1 ? '1' : '0').join(', ');
+            
+            // Generate spread signal
+            spreadSignal = generateSpreadSignal(dataBits, BARKER_11);
+        }
+        
+        function generateSpreadSignal(data, code) {
+            let result = [];
+            for (let i = 0; i < data.length; i++) {
+                for (let j = 0; j < code.length; j++) {
+                    // Multiply each bit by the spreading code
+                    result.push(data[i] * code[j]);
+                }
+            }
+            return result;
+        }
+        
+        function drawSignals(animateIndex = -1) {
+            clearCanvases();
+            
+            // Draw data signal
+            drawDataSignal(dataCtx, dataBits);
+            
+            // Draw Barker code for a single bit period (if not animating)
+            // or for specific bit during animation
+            if (animateIndex >= 0) {
+                drawBarkerCode(codeCtx, BARKER_11, animateIndex);
+            } else {
+                drawFullBarkerCode(codeCtx, BARKER_11, dataBits.length);
+            }
+            
+            // Draw spread signal
+            if (animateIndex >= 0) {
+                // Draw only up to the current animation point
+                let partialSpread = spreadSignal.slice(0, (animateIndex + 1) * CHIPS_PER_BIT);
+                drawSpreadSignal(spreadCtx, partialSpread);
+            } else {
+                drawSpreadSignal(spreadCtx, spreadSignal);
+            }
+        }
+        
+        function clearCanvases() {
+            dataCtx.clearRect(0, 0, dataCanvas.width, dataCanvas.height);
+            codeCtx.clearRect(0, 0, codeCanvas.width, codeCanvas.height);
+            spreadCtx.clearRect(0, 0, spreadCanvas.width, spreadCanvas.height);
+        }
+        
+        function drawDataSignal(ctx, bits) {
+            const height = ctx.canvas.height;
+            const bitWidth = ctx.canvas.width / bits.length;
+            
+            ctx.strokeStyle = '#3366CC';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            // Draw data signal
+            let x = 0;
+            for (let i = 0; i < bits.length; i++) {
+                const y = bits[i] === 1 ? height * 0.25 : height * 0.75;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                
+                x += bitWidth;
+                ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+            
+            // Draw bit markers
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            
+            for (let i = 1; i < bits.length; i++) {
+                x = i * bitWidth;
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+            }
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Add bit labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            
+            for (let i = 0; i < bits.length; i++) {
+                x = i * bitWidth + bitWidth/2;
+                ctx.fillText(`Bit ${i}`, x, height - 5);
+            }
+        }
+        
+        function drawFullBarkerCode(ctx, code, numBits) {
+            const height = ctx.canvas.height;
+            const chipWidth = ctx.canvas.width / (code.length * numBits);
+            
+            ctx.strokeStyle = '#FF6633';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // Draw full Barker sequence repeated for each bit
+            let x = 0;
+            for (let bit = 0; bit < numBits; bit++) {
+                for (let i = 0; i < code.length; i++) {
+                    const y = code[i] === 1 ? height * 0.25 : height * 0.75;
+                    
+                    if (bit === 0 && i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                    
+                    x += chipWidth;
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            // Draw bit separators
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            
+            for (let i = 1; i < numBits; i++) {
+                x = i * (chipWidth * code.length);
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+            }
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        function drawBarkerCode(ctx, code, bitIndex) {
+            const height = ctx.canvas.height;
+            const totalChips = code.length * dataBits.length;
+            const chipWidth = ctx.canvas.width / totalChips;
+            
+            ctx.strokeStyle = '#FF6633';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // Draw Barker sequence for a specific bit
+            const startX = bitIndex * code.length * chipWidth;
+            let x = startX;
+            
+            for (let i = 0; i < code.length; i++) {
+                const y = code[i] === 1 ? height * 0.25 : height * 0.75;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                
+                x += chipWidth;
+                ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+            
+            // Highlight current bit area
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.2)';
+            ctx.fillRect(startX, 0, code.length * chipWidth, height);
+        }
+        
+        function drawSpreadSignal(ctx, signal) {
+            const height = ctx.canvas.height;
+            const chipWidth = ctx.canvas.width / (CHIPS_PER_BIT * dataBits.length);
+            
+            ctx.strokeStyle = '#009900';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // Draw spread signal
+            let x = 0;
+            for (let i = 0; i < signal.length; i++) {
+                const y = signal[i] === 1 ? height * 0.25 : height * 0.75;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+                
+                x += chipWidth;
+                ctx.lineTo(x, y);
+            }
+            
+            ctx.stroke();
+            
+            // Draw bit separators
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            
+            for (let i = 1; i < dataBits.length; i++) {
+                x = i * (chipWidth * CHIPS_PER_BIT);
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+            }
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        function animateSpreadingProcess() {
+            // Disable buttons during animation
+            generateBtn.disabled = true;
+            animateBtn.disabled = true;
+            
+            let currentBit = 0;
+            
+            function animate() {
+                drawSignals(currentBit);
+                
+                currentBit++;
+                if (currentBit < dataBits.length) {
+                    setTimeout(animate, 800);  // Animation speed
+                } else {
+                    // Animation complete, re-enable buttons
+                    setTimeout(() => {
+                        drawSignals();  // Draw final state
+                        generateBtn.disabled = false;
+                        animateBtn.disabled = false;
+                    }, 800);
+                }
+            }
+            
+            animate();
+        }
+    </script>
+</body>
+</html>
