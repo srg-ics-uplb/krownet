@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bandwidth-Delay Product </title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+        }
+        
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #3e8e41;
+        }
+        
+        .visualization {
+            margin-top: 30px;
+            position: relative;
+            height: 300px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+            background-color: #f9f9f9;
+        }
+        
+        .network-link {
+            position: absolute;
+            top: 50%;
+            left: 5%;
+            right: 5%;
+            height: 30px;
+            background-color: #ddd;
+            transform: translateY(-50%);
+            border-radius: 15px;
+        }
+        
+        .packet {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: #2196F3;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: left 0.1s linear;
+        }
+        
+        .sender {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 5%;
+            height: 80px;
+            background-color: #ff9800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+        }
+        
+        .receiver {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 5%;
+            height: 80px;
+            background-color: #9c27b0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+        }
+        
+        .metrics {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e7f3ff;
+            border-radius: 5px;
+        }
+        
+        .metrics p {
+            margin: 5px 0;
+        }
+        
+        .time-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-weight: bold;
+        }
+        
+        .explanation {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-left: 4px solid #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bandwidth-Delay Product</h1>
+        
+        <div class="explanation">
+            <p>The <strong>Bandwidth-Delay Product (BDP)</strong> is the maximum amount of data that can be in transit on a network link. It's calculated as:</p>
+            <p><strong>BDP = Bandwidth × Round-Trip Time</strong></p>
+            <p>This visualization shows how data packets (1 bit each) travel through a network link and how the BDP determines the maximum number of bits that can be "in flight" at any given time.</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="bandwidth">Bandwidth (bps):</label>
+                <input type="range" id="bandwidth" min="1" max="10" value="5" step="1">
+                <div class="value-display">
+                    <span>1 bps</span>
+                    <span id="bandwidth-value">5 bps</span>
+                    <span>10 bps</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="delay">One-way Delay (seconds):</label>
+                <input type="range" id="delay" min="0.5" max="10" value="2" step="0.5">
+                <div class="value-display">
+                    <span>0.5 s</span>
+                    <span id="delay-value">2 s</span>
+                    <span>10 s</span>
+                </div>
+            </div>
+        </div>
+        
+        <button id="start-btn">Start Simulation</button>
+        <button id="reset-btn">Reset</button>
+        
+        <div class="visualization">
+            <div class="network-link"></div>
+            <div class="sender">Sender</div>
+            <div class="receiver">Receiver</div>
+            <div class="time-display">Time: <span id="time-counter">0.00</span> s</div>
+        </div>
+        
+        <div class="metrics">
+            <p>Round-Trip Time (RTT): <span id="rtt">4.00</span> s</p>
+            <p>Bandwidth-Delay Product: <span id="bdp">20</span> bits</p>
+            <p>Maximum bits in flight: <span id="max-bits">20</span></p>
+            <p>Bits sent: <span id="bits-sent">0</span></p>
+            <p>Bits received: <span id="bits-received">0</span></p>
+            <p>Link utilization: <span id="link-utilization">0</span>%</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const bandwidthSlider = document.getElementById('bandwidth');
+        const delaySlider = document.getElementById('delay');
+        const bandwidthValue = document.getElementById('bandwidth-value');
+        const delayValue = document.getElementById('delay-value');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const visualization = document.querySelector('.visualization');
+        const timeCounter = document.getElementById('time-counter');
+        const rttDisplay = document.getElementById('rtt');
+        const bdpDisplay = document.getElementById('bdp');
+        const maxBitsDisplay = document.getElementById('max-bits');
+        const bitsSentDisplay = document.getElementById('bits-sent');
+        const bitsReceivedDisplay = document.getElementById('bits-received');
+        const linkUtilizationDisplay = document.getElementById('link-utilization');
+
+        // Simulation parameters
+        let bandwidth = parseInt(bandwidthSlider.value); // bps
+        let delay = parseFloat(delaySlider.value); // seconds (one-way)
+        let packetSize = 1; // 1 bit per packet
+        let simulating = false;
+        let simulationTime = 0;
+        let simulationInterval;
+        let packetsInFlight = [];
+        let packetsSent = 0;
+        let packetsReceived = 0;
+        let packetId = 0;
+        let lastPacketSentTime = 0;
+        const simStepTime = 0.1; // simulation step in seconds
+        
+        // Update display values
+        function updateDisplayValues() {
+            bandwidthValue.textContent = `${bandwidth} bps`;
+            delayValue.textContent = `${delay.toFixed(1)} s`;
+            const rtt = delay * 2;
+            rttDisplay.textContent = rtt.toFixed(2);
+            
+            // Calculate BDP in bits
+            const bdpBits = bandwidth * rtt;
+            
+            bdpDisplay.textContent = bdpBits;
+            maxBitsDisplay.textContent = bdpBits;
+        }
+
+        // Event listeners for sliders
+        bandwidthSlider.addEventListener('input', function() {
+            bandwidth = parseInt(this.value);
+            updateDisplayValues();
+        });
+
+        delaySlider.addEventListener('input', function() {
+            delay = parseFloat(this.value);
+            updateDisplayValues();
+        });
+
+        // Calculate time to send one bit in seconds
+        function calculatePacketSendTime() {
+            return 1 / bandwidth; // Time in seconds to send one bit
+        }
+
+        // Create a packet element
+        function createPacket() {
+            const packet = document.createElement('div');
+            packet.className = 'packet';
+            packet.style.left = '5%';
+            const id = packetId++;
+            packet.dataset.id = id;
+            visualization.appendChild(packet);
+            
+            return {
+                element: packet,
+                id: id,
+                sendTime: simulationTime,
+                receiveTime: null,
+                position: 'sender',
+                progress: 0
+            };
+        }
+
+        // Update packet positions
+        function updatePackets() {
+            const linkLength = 90; // percentage of visualization width
+            
+            packetsInFlight.forEach(packet => {
+                if (packet.position === 'sender' && simulationTime >= packet.sendTime) {
+                    // Calculate how far the packet has traveled based on time since sending
+                    const timeInTransit = simulationTime - packet.sendTime;
+                    
+                    // If the packet has reached the receiver
+                    if (timeInTransit >= delay) {
+                        packet.position = 'receiver';
+                        packet.receiveTime = simulationTime;
+                        packetsReceived++;
+                        bitsReceivedDisplay.textContent = packetsReceived;
+                        packet.element.style.left = '95%';
+                        
+                        // Remove packet from DOM after it's received
+                        setTimeout(() => {
+                            packet.element.remove();
+                        }, 100);
+                    } else {
+                        // Update packet position during transit
+                        const progress = timeInTransit / delay;
+                        packet.progress = progress;
+                        const position = 5 + (linkLength * progress);
+                        packet.element.style.left = `${position}%`;
+                    }
+                }
+            });
+            
+            // Remove received packets from the in-flight array
+            packetsInFlight = packetsInFlight.filter(packet => packet.position !== 'receiver');
+        }
+
+        // Send a new packet if possible
+        function sendPacketIfPossible() {
+            const packetSendInterval = calculatePacketSendTime();
+            const timeSinceLastPacket = simulationTime - lastPacketSentTime;
+            const bdpBits = bandwidth * delay * 2; // Maximum bits in flight
+            
+            // If enough time has passed to send another bit and we haven't exceeded BDP
+            if (timeSinceLastPacket >= packetSendInterval && packetsInFlight.length < bdpBits) {
+                const packet = createPacket();
+                packetsInFlight.push(packet);
+                packetsSent++;
+                bitsSentDisplay.textContent = packetsSent;
+                lastPacketSentTime = simulationTime;
+            }
+        }
+
+        // Update link utilization
+        function updateLinkUtilization() {
+            const maxBits = bandwidth * delay * 2;
+            if (maxBits === 0) return;
+            const utilization = packetsInFlight.length / maxBits * 100;
+            linkUtilizationDisplay.textContent = Math.round(utilization);
+        }
+
+        // Main simulation step
+        function simulationStep() {
+            simulationTime += simStepTime; // Increment by simulation step time
+            timeCounter.textContent = simulationTime.toFixed(2);
+            
+            sendPacketIfPossible();
+            updatePackets();
+            updateLinkUtilization();
+        }
+
+        // Start simulation
+        startBtn.addEventListener('click', function() {
+            if (!simulating) {
+                simulating = true;
+                startBtn.textContent = 'Pause Simulation';
+                simulationInterval = setInterval(simulationStep, simStepTime * 1000); // Update based on sim step
+            } else {
+                simulating = false;
+                startBtn.textContent = 'Resume Simulation';
+                clearInterval(simulationInterval);
+            }
+        });
+
+        // Reset simulation
+        resetBtn.addEventListener('click', function() {
+            simulating = false;
+            clearInterval(simulationInterval);
+            startBtn.textContent = 'Start Simulation';
+            
+            // Reset counters
+            simulationTime = 0;
+            packetsSent = 0;
+            packetsReceived = 0;
+            packetId = 0;
+            lastPacketSentTime = 0;
+            
+            // Update displays
+            timeCounter.textContent = simulationTime.toFixed(2);
+            bitsSentDisplay.textContent = packetsSent;
+            bitsReceivedDisplay.textContent = packetsReceived;
+            linkUtilizationDisplay.textContent = 0;
+            
+            // Remove all packets
+            packetsInFlight.forEach(packet => {
+                packet.element.remove();
+            });
+            packetsInFlight = [];
+        });
+
+        // Initialize
+        updateDisplayValues();
+    </script>
+</body>
+</html>
