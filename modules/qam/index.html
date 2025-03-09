@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quadrature Amplitude Modulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 20px 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    canvas {
+      border: 1px solid #ddd;
+      background-color: white;
+      display: block;
+      margin: 0 auto;
+    }
+    .canvas-container {
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Quadrature Amplitude Modulation</h1>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label for="baudRate">Baud Rate (symbols/sec):</label>
+        <input type="number" id="baudRate" value="8" min="1" max="50">
+      </div>
+      <div class="control-group">
+        <label for="bitRate">Bit Rate (bits/sec):</label>
+        <input type="number" id="bitRate" value="24" min="1" max="150">
+      </div>
+      <div class="control-group">
+        <label for="amplitudes">Number of Amplitudes:</label>
+        <input type="number" id="amplitudes" value="2" min="1" max="4">
+      </div>
+      <div class="control-group">
+        <label for="phases">Number of Phases:</label>
+        <input type="number" id="phases" value="4" min="2" max="8">
+      </div>
+      <button id="updateButton">Update Visualization</button>
+    </div>
+    
+    <h2>QAM Symbol Mapping</h2>
+    <table id="mappingTable">
+      <thead>
+        <tr>
+          <th>Bits</th>
+          <th>Amplitude</th>
+          <th>Phase (degrees)</th>
+          <th>I Component</th>
+          <th>Q Component</th>
+        </tr>
+      </thead>
+      <tbody id="mappingTableBody">
+        <!-- Table will be filled by JavaScript -->
+      </tbody>
+    </table>
+    
+    <h2>Time Domain Signal</h2>
+    <div class="canvas-container">
+      <canvas id="timeDomainCanvas" width="900" height="300"></canvas>
+    </div>
+    
+    <h2>Constellation Diagram</h2>
+    <div class="canvas-container">
+      <canvas id="constellationCanvas" width="400" height="400"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // Constants and variables
+    let baudRate = 8;
+    let bitRate = 24;
+    let amplitudes = 2;
+    let phases = 4;
+    let symbols = [];
+    let symbolMapping = [];
+    
+    // DOM elements
+    const baudRateInput = document.getElementById('baudRate');
+    const bitRateInput = document.getElementById('bitRate');
+    const amplitudesInput = document.getElementById('amplitudes');
+    const phasesInput = document.getElementById('phases');
+    const updateButton = document.getElementById('updateButton');
+    const mappingTableBody = document.getElementById('mappingTableBody');
+    const timeDomainCanvas = document.getElementById('timeDomainCanvas');
+    const constellationCanvas = document.getElementById('constellationCanvas');
+    
+    // Initialize the application
+    function init() {
+      baudRate = parseInt(baudRateInput.value);
+      bitRate = parseInt(bitRateInput.value);
+      amplitudes = parseInt(amplitudesInput.value);
+      phases = parseInt(phasesInput.value);
+      
+      // Generate QAM constellation
+      generateConstellation();
+      
+      // Update the UI
+      updateMappingTable();
+      drawTimeDomain();
+      drawConstellation();
+    }
+    
+    // Generate QAM constellation based on parameters
+    function generateConstellation() {
+      symbols = [];
+      symbolMapping = [];
+      
+      // Calculate number of symbols based on amplitudes and phases
+      const numSymbols = amplitudes * phases;
+      
+      // Generate symbols
+      for (let a = 0; a < amplitudes; a++) {
+        for (let p = 0; p < phases; p++) {
+          const amplitude = (a + 1) / amplitudes;
+          const phaseAngle = (p * 360 / phases) * (Math.PI / 180);
+          
+          const i = amplitude * Math.cos(phaseAngle);
+          const q = amplitude * Math.sin(phaseAngle);
+          
+          symbols.push({
+            amplitude: amplitude,
+            phase: (p * 360 / phases),
+            i: i,
+            q: q
+          });
+        }
+      }
+      
+      // Create mapping from bits to symbols
+      const bitsPerSymbol = Math.log2(numSymbols);
+      for (let i = 0; i < numSymbols; i++) {
+        // Convert index to binary string and pad with zeros
+        let bits = i.toString(2);
+        while (bits.length < 3) { // Fixed at 3 bits (tribit) for 8-QAM
+          bits = '0' + bits;
+        }
+        
+        symbolMapping.push({
+          bits: bits,
+          symbol: symbols[i]
+        });
+      }
+    }
+    
+    // Update the mapping table
+    function updateMappingTable() {
+      mappingTableBody.innerHTML = '';
+      
+      symbolMapping.forEach(mapping => {
+        const row = document.createElement('tr');
+        
+        const bitsCell = document.createElement('td');
+        bitsCell.textContent = mapping.bits;
+        row.appendChild(bitsCell);
+        
+        const amplitudeCell = document.createElement('td');
+        amplitudeCell.textContent = mapping.symbol.amplitude.toFixed(2);
+        row.appendChild(amplitudeCell);
+        
+        const phaseCell = document.createElement('td');
+        phaseCell.textContent = mapping.symbol.phase + '°';
+        row.appendChild(phaseCell);
+        
+        const iCell = document.createElement('td');
+        iCell.textContent = mapping.symbol.i.toFixed(2);
+        row.appendChild(iCell);
+        
+        const qCell = document.createElement('td');
+        qCell.textContent = mapping.symbol.q.toFixed(2);
+        row.appendChild(qCell);
+        
+        mappingTableBody.appendChild(row);
+      });
+    }
+    
+    // Draw time domain signal
+    function drawTimeDomain() {
+      const ctx = timeDomainCanvas.getContext('2d');
+      ctx.clearRect(0, 0, timeDomainCanvas.width, timeDomainCanvas.height);
+      
+      // Calculate sample rate and total samples
+      const sampleRate = 100 * baudRate; // 100 samples per symbol period
+      const duration = 1; // 1 second
+      const totalSamples = sampleRate * duration;
+      const samplesPerSymbol = sampleRate / baudRate;
+      
+      // Generate random symbols for the duration
+      const totalSymbols = baudRate * duration;
+      const symbolSequence = [];
+      
+      // We'll show one instance of each tribit
+      for (let i = 0; i < totalSymbols; i++) {
+        const symbolIndex = i % symbolMapping.length;
+        symbolSequence.push(symbolMapping[symbolIndex]);
+      }
+      
+      // Set up canvas
+      ctx.strokeStyle = 'blue';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      // Draw I component (real part)
+      ctx.moveTo(0, timeDomainCanvas.height / 2);
+      
+      for (let i = 0; i < totalSamples; i++) {
+        const t = i / sampleRate;
+        const symbolIndex = Math.floor(t * baudRate);
+        const symbol = symbolSequence[symbolIndex].symbol;
+        
+        // Calculate the carrier-modulated signal
+        const carrierFreq = 10 * baudRate; // Carrier frequency relative to baud rate
+        const iSignal = symbol.i * Math.cos(2 * Math.PI * carrierFreq * t);
+        const qSignal = symbol.q * Math.sin(2 * Math.PI * carrierFreq * t);
+        const signal = iSignal + qSignal;
+        
+        // Map signal to canvas coordinates
+        const x = (i / totalSamples) * timeDomainCanvas.width;
+        const y = timeDomainCanvas.height / 2 - (signal * timeDomainCanvas.height / 4);
+        
+        ctx.lineTo(x, y);
+      }
+      
+      ctx.stroke();
+      
+      // Draw x-axis
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, timeDomainCanvas.height / 2);
+      ctx.lineTo(timeDomainCanvas.width, timeDomainCanvas.height / 2);
+      ctx.stroke();
+      
+      // Draw symbol boundaries
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = '#999';
+      
+      for (let i = 0; i <= totalSymbols; i++) {
+        const x = (i / totalSymbols) * timeDomainCanvas.width;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, timeDomainCanvas.height);
+        ctx.stroke();
+        
+        if (i < totalSymbols) {
+          // Add tribit label
+          ctx.fillStyle = '#333';
+          ctx.font = '12px Arial';
+          ctx.fillText(symbolSequence[i].bits, x + 5, 20);
+        }
+      }
+      
+      ctx.setLineDash([]);
+      
+      // Add labels
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Arial';
+      ctx.fillText('Time (seconds)', timeDomainCanvas.width / 2, timeDomainCanvas.height - 10);
+      ctx.fillText('Amplitude', 10, 20);
+      
+      // Add time markers
+      ctx.font = '12px Arial';
+      for (let i = 0; i <= 10; i++) {
+        const x = (i / 10) * timeDomainCanvas.width;
+        ctx.fillText((i / 10).toFixed(1) + 's', x, timeDomainCanvas.height - 25);
+      }
+    }
+    
+    // Draw constellation diagram
+    function drawConstellation() {
+      const ctx = constellationCanvas.getContext('2d');
+      ctx.clearRect(0, 0, constellationCanvas.width, constellationCanvas.height);
+      
+      const centerX = constellationCanvas.width / 2;
+      const centerY = constellationCanvas.height / 2;
+      const scale = constellationCanvas.width * 0.4;
+      
+      // Draw axes
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 1;
+      
+      // x-axis (I)
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      ctx.lineTo(constellationCanvas.width, centerY);
+      ctx.stroke();
+      
+      // y-axis (Q)
+      ctx.beginPath();
+      ctx.moveTo(centerX, 0);
+      ctx.lineTo(centerX, constellationCanvas.height);
+      ctx.stroke();
+      
+      // Labels
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Arial';
+      ctx.fillText('I', constellationCanvas.width - 15, centerY - 10);
+      ctx.fillText('Q', centerX + 10, 15);
+      
+      // Draw unit circle
+      ctx.strokeStyle = '#ddd';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, scale, 0, 2 * Math.PI);
+      ctx.stroke();
+      
+      // Draw constellation points
+      symbolMapping.forEach(mapping => {
+        const x = centerX + mapping.symbol.i * scale;
+        const y = centerY - mapping.symbol.q * scale;
+        
+        // Draw point
+        ctx.fillStyle = 'blue';
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Draw label (bits)
+        ctx.fillStyle = '#333';
+        ctx.font = '12px Arial';
+        ctx.fillText(mapping.bits, x + 10, y);
+      });
+    }
+    
+    // Event listeners
+    updateButton.addEventListener('click', init);
+    
+    // Initialize on load
+    window.onload = init;
+  </script>
+</body>
+</html>
