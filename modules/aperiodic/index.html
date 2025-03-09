@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nonperiodic Composite Signal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: grid;
+            grid-template-rows: auto auto;
+            gap: 20px;
+        }
+        .chart-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .signal-info {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Nonperiodic Composite Signal</h1>
+    
+    <div class="controls">
+        <h2>Signal Controls</h2>
+        <div class="control-group">
+            <button id="generateSignal">Generate New Nonperiodic Signal</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="chart-container">
+            <h2>Time Domain</h2>
+            <canvas id="timeChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h2>Frequency Domain</h2>
+            <canvas id="frequencyChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="signal-info">
+        <h2>Signal Information</h2>
+        <div id="signalInfo"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const sampleRate = 1000; // Hz
+        const duration = 1; // seconds
+        const numSamples = sampleRate * duration;
+        
+        // Initialize charts
+        let timeChart, frequencyChart;
+        
+        // Initialize signal data
+        let timeData = [];
+        let signalComponents = [];
+        
+        // Function to generate a random nonperiodic composite signal
+        function generateNonperiodicSignal() {
+            // Clear previous components
+            signalComponents = [];
+            
+            // Number of signal components (random between 3 and 6)
+            const numComponents = Math.floor(Math.random() * 4) + 3;
+            
+            // Generate random components for the signal
+            for (let i = 0; i < numComponents; i++) {
+                // Nonperiodic qualities: random frequencies not related by integer multiples
+                // and possibly with exponential decay or growth
+                const component = {
+                    frequency: Math.random() * 100 + 5, // Random frequency between 5 and 105 Hz
+                    amplitude: Math.random() * 0.5 + 0.5, // Random amplitude between 0.5 and 1
+                    phase: Math.random() * 2 * Math.PI, // Random phase
+                    // Add decay or growth factor to make signal nonperiodic
+                    decayFactor: Math.random() * 0.01 - 0.005, // Between -0.005 and 0.005
+                    // Add some randomization to make it nonperiodic
+                    noiseLevel: Math.random() * 0.1 // Up to 10% noise
+                };
+                signalComponents.push(component);
+            }
+            
+            // Add a non-sinusoidal component (e.g., a pulse or step function) to further ensure non-periodicity
+            const specialComponent = {
+                type: 'pulse',
+                amplitude: Math.random() * 0.5 + 0.5,
+                position: Math.random() * duration * 0.8, // Position in time
+                width: Math.random() * 0.05 + 0.01 // Pulse width
+            };
+            signalComponents.push(specialComponent);
+            
+            // Generate time domain data
+            const time = Array.from({length: numSamples}, (_, i) => i / sampleRate);
+            const signal = Array(numSamples).fill(0);
+            
+            // Calculate signal values
+            for (let i = 0; i < numSamples; i++) {
+                const t = time[i];
+                
+                // Add all sinusoidal components
+                for (const component of signalComponents.filter(c => c.frequency)) {
+                    // Apply decay or growth factor to amplitude
+                    const timeVaryingAmplitude = component.amplitude * Math.exp(component.decayFactor * t * 10);
+                    // Add some random noise to make it less periodic
+                    const noise = (Math.random() * 2 - 1) * component.noiseLevel;
+                    signal[i] += timeVaryingAmplitude * Math.sin(2 * Math.PI * component.frequency * t + component.phase) + noise;
+                }
+                
+                // Add special non-sinusoidal component (pulse)
+                const pulseComponent = signalComponents.find(c => c.type === 'pulse');
+                if (pulseComponent && Math.abs(t - pulseComponent.position) < pulseComponent.width) {
+                    signal[i] += pulseComponent.amplitude;
+                }
+            }
+            
+            // Store time domain data
+            timeData = {
+                time: time,
+                signal: signal
+            };
+            
+            // Calculate frequency domain data using FFT
+            const fftResult = performFFT(signal);
+            
+            // Update charts
+            updateTimeChart(time, signal);
+            updateFrequencyChart(fftResult.frequencies, fftResult.magnitudes);
+            
+            // Update signal info
+            updateSignalInfo();
+        }
+        
+        // Function to perform FFT
+        function performFFT(signal) {
+            // Simple approximation of FFT for demonstration purposes
+            const frequencies = [];
+            const magnitudes = [];
+            
+            // Calculate the frequency resolution
+            const frequencyResolution = sampleRate / numSamples;
+            
+            // Maximum frequency is half the sample rate (Nyquist)
+            const maxFrequency = sampleRate / 2;
+            
+            // Number of frequency points
+            const numFrequencies = Math.floor(numSamples / 2);
+            
+            // For each frequency
+            for (let k = 0; k < numFrequencies; k++) {
+                const frequency = k * frequencyResolution;
+                frequencies.push(frequency);
+                
+                let realPart = 0;
+                let imagPart = 0;
+                
+                // Calculate DFT manually
+                for (let n = 0; n < numSamples; n++) {
+                    const angle = -2 * Math.PI * k * n / numSamples;
+                    realPart += signal[n] * Math.cos(angle);
+                    imagPart += signal[n] * Math.sin(angle);
+                }
+                
+                // Calculate magnitude
+                const magnitude = Math.sqrt(realPart * realPart + imagPart * imagPart) / numSamples;
+                magnitudes.push(magnitude);
+            }
+            
+            return {
+                frequencies: frequencies,
+                magnitudes: magnitudes
+            };
+        }
+        
+        // Function to update time domain chart
+        function updateTimeChart(time, signal) {
+            if (timeChart) {
+                timeChart.destroy();
+            }
+            
+            const ctx = document.getElementById('timeChart').getContext('2d');
+            
+            timeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: time.map(t => t.toFixed(3)),
+                    datasets: [{
+                        label: 'Amplitude',
+                        data: signal,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (seconds)'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Amplitude'
+                            }
+                        }
+                    },
+                    animation: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Function to update frequency domain chart
+        function updateFrequencyChart(frequencies, magnitudes) {
+            if (frequencyChart) {
+                frequencyChart.destroy();
+            }
+            
+            const ctx = document.getElementById('frequencyChart').getContext('2d');
+            
+            // Limit to the first 100 frequency points for better visualization
+            const maxFreqIndex = Math.min(frequencies.length, 100);
+            const displayFrequencies = frequencies.slice(0, maxFreqIndex);
+            const displayMagnitudes = magnitudes.slice(0, maxFreqIndex);
+            
+            frequencyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: displayFrequencies.map(f => f.toFixed(1)),
+                    datasets: [{
+                        label: 'Amplitude',
+                        data: displayMagnitudes,
+                        backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Frequency (Hz)'
+                            },
+                            ticks: {
+                                maxTicksLimit: 20
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Amplitude'
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    animation: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Function to update signal information
+        function updateSignalInfo() {
+            const infoDiv = document.getElementById('signalInfo');
+            let html = '<p>This nonperiodic composite signal consists of:</p><ul>';
+            
+            // Add information about each sinusoidal component
+            signalComponents.filter(c => c.frequency).forEach((component, index) => {
+                html += `<li>Component ${index + 1}: 
+                    Frequency = ${component.frequency.toFixed(2)} Hz, 
+                    Amplitude = ${component.amplitude.toFixed(2)}, 
+                    Phase = ${(component.phase / Math.PI).toFixed(2)}π rad, 
+                    ${component.decayFactor > 0 ? 'Growing' : 'Decaying'} factor = ${Math.abs(component.decayFactor).toFixed(4)},
+                    Noise level = ${component.noiseLevel.toFixed(2)}
+                </li>`;
+            });
+            
+            // Add information about non-sinusoidal component
+            const pulseComponent = signalComponents.find(c => c.type === 'pulse');
+            if (pulseComponent) {
+                html += `<li>Pulse component: 
+                    Amplitude = ${pulseComponent.amplitude.toFixed(2)}, 
+                    Position = ${pulseComponent.position.toFixed(3)} sec, 
+                    Width = ${pulseComponent.width.toFixed(3)} sec
+                </li>`;
+            }
+            
+            html += '</ul>';
+            html += '<p>The signal is nonperiodic due to:</p><ul>';
+            html += '<li>Components with non-related frequencies (not integer multiples)</li>';
+            html += '<li>Time-varying amplitudes (growth/decay factors)</li>';
+            html += '<li>Added random noise components</li>';
+            html += '<li>Non-sinusoidal pulse component</li>';
+            html += '</ul>';
+            
+            infoDiv.innerHTML = html;
+        }
+        
+        // Set chart heights for better visualization
+        function setChartHeights() {
+            const charts = document.querySelectorAll('.chart-container');
+            charts.forEach(chart => {
+                chart.style.height = '300px';
+            });
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up event listener for the generate button
+            document.getElementById('generateSignal').addEventListener('click', generateNonperiodicSignal);
+            
+            // Set chart heights
+            setChartHeights();
+            
+            // Generate initial signal
+            generateNonperiodicSignal();
+        });
+    </script>
+</body>
+</html>
