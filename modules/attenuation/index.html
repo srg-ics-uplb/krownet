@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signal Attenuation Simulation</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .control-group {
+      margin: 10px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .simulation-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .signal-display {
+      position: relative;
+      height: 200px;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+    }
+    
+    .signal-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+    }
+    
+    .signal-stage {
+      font-weight: bold;
+      color: #555;
+    }
+    
+    .signal-strength {
+      color: #0066cc;
+    }
+    
+    .distance-line {
+      position: relative;
+      height: 30px;
+      margin-top: 10px;
+      background-color: #e9e9e9;
+      border-radius: 5px;
+    }
+    
+    .distance-markers {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 5px;
+    }
+    
+    .amplifier {
+      position: absolute;
+      top: -20px;
+      width: 40px;
+      height: 40px;
+      background-color: #28a745;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transform: translateX(-50%);
+      z-index: 10;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .legend-color {
+      width: 15px;
+      height: 15px;
+      border-radius: 3px;
+    }
+    
+    .explanation {
+      margin-top: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Signal Attenuation & Amplification Simulator</h1>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label for="frequency">Signal Frequency (Hz):</label>
+      <input type="range" id="frequency" min="1" max="10" value="2" step="0.1">
+      <span id="frequency-value">2 Hz</span>
+    </div>
+    
+    <div class="control-group">
+      <label for="amplitude">Initial Amplitude:</label>
+      <input type="range" id="amplitude" min="10" max="90" value="80" step="1">
+      <span id="amplitude-value">80%</span>
+    </div>
+    
+    <div class="control-group">
+      <label for="attenuation">Attenuation Factor:</label>
+      <input type="range" id="attenuation" min="0.1" max="0.9" value="0.5" step="0.05">
+      <span id="attenuation-value">0.5</span>
+    </div>
+    
+    <div class="control-group">
+      <label for="amplification">Amplification Gain:</label>
+      <input type="range" id="amplification" min="1" max="5" value="2" step="0.1">
+      <span id="amplification-value">2.0x</span>
+    </div>
+    
+    <div class="control-group">
+      <label for="amplifier-position">Amplifier Position:</label>
+      <input type="range" id="amplifier-position" min="20" max="80" value="60" step="1">
+      <span id="amplifier-position-value">60%</span>
+    </div>
+  </div>
+  
+  <div class="simulation-container">
+    <div>
+      <div class="signal-display" id="original-signal">
+        <!-- Signal will be drawn here -->
+      </div>
+      <div class="signal-info">
+        <span class="signal-stage">Original Signal</span>
+        <span class="signal-strength" id="original-strength">Amplitude: 80%</span>
+      </div>
+    </div>
+    
+    <div>
+      <div class="signal-display" id="attenuated-signal">
+        <!-- Attenuated signal will be drawn here -->
+      </div>
+      <div class="signal-info">
+        <span class="signal-stage">Attenuated Signal</span>
+        <span class="signal-strength" id="attenuated-strength">Amplitude: 40%</span>
+      </div>
+    </div>
+    
+    <div>
+      <div class="signal-display" id="amplified-signal">
+        <!-- Amplified signal will be drawn here -->
+      </div>
+      <div class="signal-info">
+        <span class="signal-stage">Amplified Signal</span>
+        <span class="signal-strength" id="amplified-strength">Amplitude: 80%</span>
+      </div>
+    </div>
+    
+    <div class="distance-line">
+      <div class="distance-markers">
+        <span>Transmitter</span>
+        <span>Distance</span>
+        <span>Receiver</span>
+      </div>
+      <div class="amplifier" id="amplifier">A</div>
+    </div>
+    
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #4285f4;"></div>
+        <span>Original Signal</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #ea4335;"></div>
+        <span>Attenuated Signal</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #34a853;"></div>
+        <span>Amplified Signal</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="explanation">
+    <h2>Understanding Signal Attenuation</h2>
+    <p>This simulator demonstrates how signals weaken (attenuate) as they travel over distance. Signal attenuation occurs due to factors like:</p>
+    <ul>
+      <li><strong>Free-space path loss</strong>: Signal power decreases as it spreads over distance</li>
+      <li><strong>Absorption</strong>: Materials in the signal path absorb energy</li>
+      <li><strong>Reflection/refraction</strong>: Signals can be redirected or partially blocked</li>
+    </ul>
+    <p>The amplifier boosts the weakened signal to restore it to a usable level, but this process may also amplify noise that the signal has picked up along the way.</p>
+  </div>
+
+  <script>
+    // Get DOM elements
+    const frequencySlider = document.getElementById('frequency');
+    const frequencyValue = document.getElementById('frequency-value');
+    const amplitudeSlider = document.getElementById('amplitude');
+    const amplitudeValue = document.getElementById('amplitude-value');
+    const attenuationSlider = document.getElementById('attenuation');
+    const attenuationValue = document.getElementById('attenuation-value');
+    const amplificationSlider = document.getElementById('amplification');
+    const amplificationValue = document.getElementById('amplification-value');
+    const amplifierPositionSlider = document.getElementById('amplifier-position');
+    const amplifierPositionValue = document.getElementById('amplifier-position-value');
+    
+    const originalSignalDisplay = document.getElementById('original-signal');
+    const attenuatedSignalDisplay = document.getElementById('attenuated-signal');
+    const amplifiedSignalDisplay = document.getElementById('amplified-signal');
+    
+    const originalStrength = document.getElementById('original-strength');
+    const attenuatedStrength = document.getElementById('attenuated-strength');
+    const amplifiedStrength = document.getElementById('amplified-strength');
+    
+    const amplifier = document.getElementById('amplifier');
+    
+    // Set initial state
+    let frequency = parseFloat(frequencySlider.value);
+    let amplitude = parseInt(amplitudeSlider.value);
+    let attenuation = parseFloat(attenuationSlider.value);
+    let amplification = parseFloat(amplificationSlider.value);
+    let amplifierPosition = parseInt(amplifierPositionSlider.value);
+    
+    // Update values display
+    frequencyValue.textContent = `${frequency} Hz`;
+    amplitudeValue.textContent = `${amplitude}%`;
+    attenuationValue.textContent = attenuation.toFixed(2);
+    amplificationValue.textContent = `${amplification.toFixed(1)}x`;
+    amplifierPositionValue.textContent = `${amplifierPosition}%`;
+    
+    // Position amplifier
+    amplifier.style.left = `${amplifierPosition}%`;
+    
+    // Event listeners for controls
+    frequencySlider.addEventListener('input', function() {
+      frequency = parseFloat(this.value);
+      frequencyValue.textContent = `${frequency.toFixed(1)} Hz`;
+      drawSignals();
+    });
+    
+    amplitudeSlider.addEventListener('input', function() {
+      amplitude = parseInt(this.value);
+      amplitudeValue.textContent = `${amplitude}%`;
+      drawSignals();
+    });
+    
+    attenuationSlider.addEventListener('input', function() {
+      attenuation = parseFloat(this.value);
+      attenuationValue.textContent = attenuation.toFixed(2);
+      drawSignals();
+    });
+    
+    amplificationSlider.addEventListener('input', function() {
+      amplification = parseFloat(this.value);
+      amplificationValue.textContent = `${amplification.toFixed(1)}x`;
+      drawSignals();
+    });
+    
+    amplifierPositionSlider.addEventListener('input', function() {
+      amplifierPosition = parseInt(this.value);
+      amplifierPositionValue.textContent = `${amplifierPosition}%`;
+      amplifier.style.left = `${amplifierPosition}%`;
+      drawSignals();
+    });
+    
+    // Function to create SVG element
+    function createSVG(parent) {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("height", "100%");
+      parent.innerHTML = ''; // Clear previous content
+      parent.appendChild(svg);
+      return svg;
+    }
+    
+    // Function to draw a signal path
+    function drawSignalPath(svg, color, amplitude, frequency, noise = 0, noiseFrequency = 10) {
+      const pathElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      const width = svg.clientWidth;
+      const height = svg.clientHeight;
+      const center = height / 2;
+      
+      let path = `M 0,${center}`;
+      
+      for (let x = 0; x <= width; x += 1) {
+        const normalizedX = x / width;
+        const y = center - (amplitude / 100 * center * Math.sin(2 * Math.PI * frequency * normalizedX));
+        
+        // Add some noise if needed
+        const noiseComponent = noise > 0 ? (Math.random() * 2 - 1) * noise * Math.sin(noiseFrequency * normalizedX) : 0;
+        path += ` L ${x},${y + noiseComponent}`;
+      }
+      
+      pathElement.setAttribute("d", path);
+      pathElement.setAttribute("fill", "none");
+      pathElement.setAttribute("stroke", color);
+      pathElement.setAttribute("stroke-width", "2");
+      
+      svg.appendChild(pathElement);
+    }
+    
+    // Function to draw the signals
+    function drawSignals() {
+      // Original signal
+      const originalSVG = createSVG(originalSignalDisplay);
+      drawSignalPath(originalSVG, "#4285f4", amplitude, frequency);
+      originalStrength.textContent = `Amplitude: ${amplitude}%`;
+      
+      // Calculate attenuation at position (linear decrease up to amplifier position)
+      const distanceFactorBeforeAmplifier = amplifierPosition / 100;
+      const attenuatedAmplitude = amplitude * Math.pow(attenuation, distanceFactorBeforeAmplifier);
+      
+      // Attenuated signal with some noise
+      const attenuatedSVG = createSVG(attenuatedSignalDisplay);
+      const noiseLevel = (100 - attenuatedAmplitude) / 20; // More noise as signal gets weaker
+      drawSignalPath(attenuatedSVG, "#ea4335", attenuatedAmplitude, frequency, noiseLevel);
+      attenuatedStrength.textContent = `Amplitude: ${attenuatedAmplitude.toFixed(1)}%`;
+      
+      // Amplified signal with amplified noise
+      const amplifiedSVG = createSVG(amplifiedSignalDisplay);
+      let amplifiedAmplitude = attenuatedAmplitude * amplification;
+      // Cap at 100%
+      amplifiedAmplitude = Math.min(amplifiedAmplitude, 100);
+      
+      // Amplified noise gets worse as attenuated signal gets weaker
+      const amplifiedNoiseLevel = noiseLevel * amplification;
+      drawSignalPath(amplifiedSVG, "#34a853", amplifiedAmplitude, frequency, amplifiedNoiseLevel);
+      amplifiedStrength.textContent = `Amplitude: ${amplifiedAmplitude.toFixed(1)}%`;
+    }
+    
+    // Initial draw
+    drawSignals();
+    
+    // Resize handling
+    window.addEventListener('resize', drawSignals);
+  </script>
+</body>
+</html>
