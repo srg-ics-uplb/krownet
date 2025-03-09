@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmonic Periodic Composite Signal</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .controls button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    .controls button:hover {
+      background-color: #45a049;
+    }
+    
+    .plot-container {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    
+    .plot-title {
+      text-align: center;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #333;
+    }
+    
+    canvas {
+      display: block;
+      width: 100%;
+      height: 200px;
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+    }
+    
+    .component {
+      margin-bottom: 10px;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 5px;
+    }
+    
+    .signal-info {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #e8f5e9;
+      border-radius: 5px;
+      border-left: 5px solid #4CAF50;
+    }
+    
+    .signal-info h3 {
+      margin-top: 0;
+      color: #2e7d32;
+    }
+    
+    .signal-params {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .signal-param {
+      flex: 1;
+      min-width: 150px;
+      padding: 10px;
+      background-color: #f0f8ff;
+      border-radius: 5px;
+      border-left: 3px solid #2196F3;
+    }
+    
+    .base-frequency-control {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 15px;
+      gap: 10px;
+    }
+    
+    .base-frequency-control label {
+      font-weight: bold;
+    }
+    
+    .base-frequency-control input {
+      width: 60px;
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .axis {
+      stroke: #999;
+      stroke-width: 1;
+    }
+    
+    .axis-label {
+      fill: #666;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Harmonic Periodic Composite Signal</h1>
+    
+    <div class="base-frequency-control">
+      <label for="baseFrequency">Base Frequency (Hz):</label>
+      <input type="number" id="baseFrequency" min="1" max="20" value="3">
+      <button id="updateBaseFrequency">Update</button>
+    </div>
+    
+    <div class="controls">
+      <button id="generateBtn">Generate New Signal</button>
+      <button id="addComponentBtn">Add Harmonic</button>
+      <button id="removeComponentBtn">Remove Harmonic</button>
+    </div>
+    
+    <div class="signal-params" id="signalParams">
+      <!-- Signal parameters will be displayed here -->
+    </div>
+    
+    <div class="plot-container">
+      <div class="plot-title">Composite Signal (Time Domain)</div>
+      <canvas id="compositeCanvas"></canvas>
+    </div>
+    
+    <div id="componentsContainer">
+      <!-- Component plots will be added here -->
+    </div>
+    
+    <div class="plot-container">
+      <div class="plot-title">Frequency Domain (Magnitude Spectrum)</div>
+      <canvas id="frequencyCanvas"></canvas>
+    </div>
+    
+    <div class="signal-info">
+      <h3>About Harmonic Composite Signals</h3>
+      <p>A harmonic composite signal consists of a fundamental frequency and its integer multiples (harmonics). This visualization shows:</p>
+      <ul>
+        <li><strong>Time Domain</strong>: The waveform as it varies over time (1 second duration shown)</li>
+        <li><strong>Component Breakdown</strong>: Each harmonic sinusoid displayed separately</li>
+        <li><strong>Frequency Domain</strong>: Discrete frequency peaks at each harmonic frequency</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Constants
+    const sampleRate = 1000; // samples per second
+    const duration = 5; // seconds
+    const numSamples = sampleRate * duration;
+    const signalComponents = [];
+    const MAX_COMPONENTS = 4; // Maximum of 4 components
+    
+    // Canvas elements
+    const compositeCanvas = document.getElementById('compositeCanvas');
+    const frequencyCanvas = document.getElementById('frequencyCanvas');
+    const componentsContainer = document.getElementById('componentsContainer');
+    const signalParamsContainer = document.getElementById('signalParams');
+    
+    // Buttons and inputs
+    const generateBtn = document.getElementById('generateBtn');
+    const addComponentBtn = document.getElementById('addComponentBtn');
+    const removeComponentBtn = document.getElementById('removeComponentBtn');
+    const baseFrequencyInput = document.getElementById('baseFrequency');
+    const updateBaseFrequencyBtn = document.getElementById('updateBaseFrequency');
+    
+    // Default base frequency
+    let baseFrequency = parseInt(baseFrequencyInput.value);
+    
+    // Set up canvases
+    setupCanvas(compositeCanvas);
+    setupCanvas(frequencyCanvas);
+    
+    // Initialize with a random signal
+    generateRandomSignal();
+    
+    // Event listeners
+    generateBtn.addEventListener('click', generateRandomSignal);
+    addComponentBtn.addEventListener('click', addHarmonicComponent);
+    removeComponentBtn.addEventListener('click', removeLastComponent);
+    updateBaseFrequencyBtn.addEventListener('click', updateBaseFrequency);
+    
+    // Function to set up canvas
+    function setupCanvas(canvas) {
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      
+      return ctx;
+    }
+    
+    // Function to update base frequency
+    function updateBaseFrequency() {
+      const newBaseFrequency = parseInt(baseFrequencyInput.value);
+      if (newBaseFrequency >= 1 && newBaseFrequency <= 20) {
+        baseFrequency = newBaseFrequency;
+        
+        // Update existing components to maintain harmonic relationships
+        signalComponents.forEach((component, index) => {
+          component.frequency = baseFrequency * (index + 1);
+        });
+        
+        updateVisualization();
+      }
+    }
+    
+    // Function to generate a random signal with harmonic components
+    function generateRandomSignal() {
+      signalComponents.length = 0;
+      
+      // Update base frequency from input
+      baseFrequency = parseInt(baseFrequencyInput.value);
+      
+      // Generate 2-4 random harmonic components
+      const numComponents = Math.floor(Math.random() * 3) + 2; // 2 to 4 components
+      
+      for (let i = 0; i < numComponents && i < MAX_COMPONENTS; i++) {
+        addHarmonicComponent(true);
+      }
+      
+      updateVisualization();
+    }
+    
+    // Function to add a harmonic component
+    function addHarmonicComponent(isInitialGeneration = false) {
+      if (signalComponents.length >= MAX_COMPONENTS) {
+        alert("Maximum of 4 components allowed");
+        return;
+      }
+      
+      // The harmonic number is determined by the current number of components
+      const harmonicNumber = signalComponents.length + 1;
+      
+      // For initial generation, create a natural harmonic pattern
+      // (amplitudes typically decrease for higher harmonics)
+      let amplitude;
+      if (isInitialGeneration) {
+        // First harmonic (fundamental) should be strongest
+        if (harmonicNumber === 1) {
+          amplitude = 0.8 + Math.random() * 0.2; // 0.8 to 1.0
+        } else {
+          // Higher harmonics have progressively smaller amplitudes
+          amplitude = (1.0 / harmonicNumber) + (Math.random() * 0.3); 
+        }
+      } else {
+        // For manually added components, use 1/n amplitude
+        amplitude = 1.0 / harmonicNumber;
+      }
+      
+      const frequency = baseFrequency * harmonicNumber; // Harmonic frequency
+      const phase = Math.random() * Math.PI * 2; // 0 to 2π
+      
+      signalComponents.push({ amplitude, frequency, phase });
+      updateVisualization();
+    }
+    
+    // Function to remove the last component
+    function removeLastComponent() {
+      if (signalComponents.length > 1) {
+        signalComponents.pop();
+        updateVisualization();
+      }
+    }
+    
+    // Function to update the visualization
+    function updateVisualization() {
+      // Generate the composite signal
+      const compositeSignal = generateCompositeSignal();
+      
+      // Update the parameter display
+      updateSignalParams();
+      
+      // Draw the composite signal with proper time axis
+      drawTimeSignal(compositeCanvas, compositeSignal, 'rgba(0, 123, 255, 1)');
+      
+      // Draw individual components
+      drawComponents(compositeSignal);
+      
+      // Compute and draw the frequency spectrum with proper frequency axis
+      const frequencyData = computeDFT(compositeSignal);
+      drawFrequencySpectrum(frequencyCanvas, frequencyData);
+    }
+    
+    // Function to generate the composite signal
+    function generateCompositeSignal() {
+      const signal = new Array(numSamples).fill(0);
+      const timeStep = 1 / sampleRate;
+      
+      // Sum all components
+      for (let i = 0; i < numSamples; i++) {
+        const t = i * timeStep;
+        for (const component of signalComponents) {
+          const { amplitude, frequency, phase } = component;
+          signal[i] += amplitude * Math.sin(2 * Math.PI * frequency * t + phase);
+        }
+      }
+      
+      return signal;
+    }
+    
+    // Function to draw a time-domain signal with proper time axis
+    function drawTimeSignal(canvas, signal, color, lineWidth = 2) {
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
+      
+      // Clear the canvas
+      ctx.clearRect(0, 0, width, height);
+      
+      // Find the min and max values for scaling
+      let minVal = Math.min(...signal);
+      let maxVal = Math.max(...signal);
+      const range = Math.max(Math.abs(minVal), Math.abs(maxVal)) * 1.1; // Add 10% margin
+      
+      // Draw grid lines
+      ctx.strokeStyle = '#eee';
+      ctx.lineWidth = 1;
+      
+      // Horizontal grid lines
+      const numHLines = 4;
+      for (let i = 0; i <= numHLines; i++) {
+        const y = (i / numHLines) * height;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      
+      // Vertical grid lines (time markers)
+      const timeStep = 0.1; // seconds
+      for (let t = 0; t <= duration; t += timeStep) {
+        const x = (t / duration) * width;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      
+      // Draw center axis
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, height / 2);
+      ctx.lineTo(width, height / 2);
+      ctx.stroke();
+      
+      // Draw the signal
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      
+      for (let i = 0; i < signal.length; i++) {
+        const x = (i / signal.length) * width;
+        const y = (height / 2) - (signal[i] / range) * (height / 2);
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      
+      ctx.stroke();
+      
+      // Draw time axis labels
+      ctx.fillStyle = '#666';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      
+      for (let t = 0; t <= duration; t += timeStep) {
+        const x = (t / duration) * width;
+        ctx.fillText(`${t.toFixed(1)}s`, x, height - 5);
+      }
+      
+      // Y-axis labels
+      ctx.textAlign = 'right';
+      ctx.fillText('0', 15, height / 2 + 4);
+      ctx.fillText(`+${range.toFixed(1)}`, 15, 15);
+      ctx.fillText(`-${range.toFixed(1)}`, 15, height - 5);
+    }
+    
+    // Function to draw individual components
+    function drawComponents(compositeSignal) {
+      // Remove existing component plots
+      componentsContainer.innerHTML = '';
+      
+      // Generate and draw each component separately
+      signalComponents.forEach((component, index) => {
+        const { amplitude, frequency, phase } = component;
+        const harmonicNumber = index + 1;
+        
+        // Create a new plot container
+        const plotDiv = document.createElement('div');
+        plotDiv.className = 'plot-container component';
+        
+        // Create a title
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'plot-title';
+        titleDiv.textContent = `Harmonic ${harmonicNumber}: A=${amplitude.toFixed(2)}, f=${frequency} Hz (${harmonicNumber}f₀), φ=${(phase / Math.PI).toFixed(2)}π`;
+        
+        // Create a canvas
+        const canvas = document.createElement('canvas');
+        canvas.height = 150;
+        
+        // Add elements to the DOM
+        plotDiv.appendChild(titleDiv);
+        plotDiv.appendChild(canvas);
+        componentsContainer.appendChild(plotDiv);
+        
+        // Set up the canvas
+        setupCanvas(canvas);
+        
+        // Generate the component signal
+        const componentSignal = new Array(numSamples);
+        const timeStep = 1 / sampleRate;
+        
+        for (let i = 0; i < numSamples; i++) {
+          const t = i * timeStep;
+          componentSignal[i] = amplitude * Math.sin(2 * Math.PI * frequency * t + phase);
+        }
+        
+        // Draw the component signal
+        drawTimeSignal(canvas, componentSignal, `hsl(${(index * 60) % 360}, 70%, 50%)`);
+      });
+    }
+    
+    // Function to compute the Discrete Fourier Transform
+    function computeDFT(signal) {
+      const N = signal.length;
+      const result = [];
+      
+      // Compute the DFT
+      for (let k = 0; k < N / 2; k++) {
+        let realPart = 0;
+        let imagPart = 0;
+        
+        for (let n = 0; n < N; n++) {
+          const angle = 2 * Math.PI * k * n / N;
+          realPart += signal[n] * Math.cos(angle);
+          imagPart -= signal[n] * Math.sin(angle);
+        }
+        
+        realPart /= N;
+        imagPart /= N;
+        
+        // Compute magnitude
+        const magnitude = 2 * Math.sqrt(realPart * realPart + imagPart * imagPart);
+        result.push(magnitude);
+      }
+      
+      return result;
+    }
+    
+    // Function to draw the frequency spectrum
+    function drawFrequencySpectrum(canvas, frequencyData) {
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
+      
+      // Clear the canvas
+      ctx.clearRect(0, 0, width, height);
+      
+      // Find the max value for scaling
+      const maxVal = Math.max(...frequencyData) * 1.1; // Add 10% margin
+      
+      // Maximum frequency to display (Nyquist frequency)
+      const nyquistFreq = sampleRate / 2;
+      const maxFreqToShow = Math.min(100, nyquistFreq); // Show up to 100 Hz or Nyquist
+      const freqDataToShow = Math.floor(frequencyData.length * (maxFreqToShow / nyquistFreq));
+      
+      // Draw grid
+      ctx.strokeStyle = '#eee';
+      ctx.lineWidth = 1;
+      
+      // Horizontal grid lines
+      const numHLines = 4;
+      for (let i = 0; i <= numHLines; i++) {
+        const y = height - (i / numHLines) * height;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      
+      // Vertical grid lines (frequency markers)
+      const freqStep = 10; // Hz
+      for (let f = 0; f <= maxFreqToShow; f += freqStep) {
+        const x = (f / maxFreqToShow) * width;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      
+      // Draw bottom axis
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, height);
+      ctx.lineTo(width, height);
+      ctx.stroke();
+      
+      // Draw frequency labels
+      ctx.fillStyle = '#666';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      
+      for (let f = 0; f <= maxFreqToShow; f += freqStep) {
+        const x = (f / maxFreqToShow) * width;
+        ctx.fillText(`${f}Hz`, x, height - 5);
+      }
+      
+      // Draw amplitude labels on y-axis
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= numHLines; i++) {
+        const y = height - (i / numHLines) * height;
+        const value = (i / numHLines) * maxVal;
+        ctx.fillText(value.toFixed(1), 20, y + 4);
+      }
+      
+      // Plot frequency data as line and dots
+      ctx.strokeStyle = 'rgba(0, 123, 255, 0.7)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      for (let i = 0; i < freqDataToShow; i++) {
+        const freqHz = i * (sampleRate / numSamples);
+        const x = (freqHz / maxFreqToShow) * width;
+        const y = height - (frequencyData[i] / maxVal) * height;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      
+      ctx.stroke();
+      
+      // Draw peak markers at each harmonic
+      signalComponents.forEach((component, index) => {
+        const { frequency, amplitude } = component;
+        
+        if (frequency <= maxFreqToShow) {
+          const binIndex = Math.round(frequency * numSamples / sampleRate);
+          const magnitude = frequencyData[binIndex];
+          
+          const x = (frequency / maxFreqToShow) * width;
+          const y = height - (magnitude / maxVal) * height;
+          
+          // Draw circle at peak
+          ctx.fillStyle = `hsl(${(index * 60) % 360}, 70%, 50%)`;
+          ctx.beginPath();
+          ctx.arc(x, y, 6, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Draw label
+          ctx.fillText(`f${index + 1}`, x, y - 10);
+        }
+      });
+      
+      // Draw stems (vertical lines) to make it look more like a spectrum
+      for (let i = 0; i < freqDataToShow; i++) {
+        const freqHz = i * (sampleRate / numSamples);
+        if (frequencyData[i] > 0.01) {  // Only draw stems for non-zero values
+          const x = (freqHz / maxFreqToShow) * width;
+          const y = height - (frequencyData[i] / maxVal) * height;
+          
+          ctx.strokeStyle = 'rgba(0, 123, 255, 0.5)';
+          ctx.beginPath();
+          ctx.moveTo(x, height);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+      }
+    }
+    
+    // Function to update the signal parameters display
+    function updateSignalParams() {
+      signalParamsContainer.innerHTML = '';
+      
+      // Add a parameter box for the composite signal
+      const compositeParam = document.createElement('div');
+      compositeParam.className = 'signal-param';
+      compositeParam.innerHTML = `
+        <strong>Composite Signal</strong><br>
+        Base Frequency: ${baseFrequency} Hz<br>
+        Harmonics: ${signalComponents.length}<br>
+        Duration: ${duration} sec
+      `;
+      signalParamsContainer.appendChild(compositeParam);
+      
+      // Add parameter boxes for each component
+      signalComponents.forEach((component, index) => {
+        const { amplitude, frequency, phase } = component;
+        const harmonicNumber = index + 1;
+        
+        const paramDiv = document.createElement('div');
+        paramDiv.className = 'signal-param';
+        paramDiv.innerHTML = `
+          <strong>Harmonic ${harmonicNumber}</strong><br>
+          Amplitude: ${amplitude.toFixed(2)}<br>
+          Frequency: ${frequency} Hz (${harmonicNumber}f₀)<br>
+          Phase: ${(phase / Math.PI).toFixed(2)}π
+        `;
+        
+        signalParamsContainer.appendChild(paramDiv);
+      });
+    }
+  </script>
+</body>
+</html>
