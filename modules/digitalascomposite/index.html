@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Signal and Frequency Spectrum Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        canvas {
+            width: 100%;
+            border: 1px solid #ddd;
+            background-color: white;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #3a7bc8;
+        }
+        
+        .explanation {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4a90e2;
+            border-radius: 4px;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .color-box {
+            width: 15px;
+            height: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Digital Signal and Frequency Spectrum Analysis</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="signalType">Signal Type:</label>
+                <select id="signalType">
+                    <option value="square">Square Wave</option>
+                    <option value="pulse">Pulse Train</option>
+                    <option value="custom">Custom Digital Pattern</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="bitRate">Bit Rate (Hz):</label>
+                <input type="range" id="bitRate" min="1" max="50" value="10">
+                <span id="bitRateValue">10 Hz</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="harmonics">Number of Harmonics:</label>
+                <input type="range" id="harmonics" min="1" max="100" value="20">
+                <span id="harmonicsValue">20</span>
+            </div>
+            
+            <div class="control-group">
+                <button id="generateBtn">Generate Signal</button>
+            </div>
+        </div>
+        
+        <div id="customPattern" style="display: none; margin-bottom: 20px; text-align: center;">
+            <label for="bitsInput">Enter bit pattern (0s and 1s):</label>
+            <input type="text" id="bitsInput" placeholder="e.g. 10110101" value="10110010">
+            <button id="applyPattern">Apply Pattern</button>
+        </div>
+        
+        <div class="canvas-container">
+            <div>
+                <h3>Time Domain: Digital Signal</h3>
+                <canvas id="timeCanvas" height="200"></canvas>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #3a7bc8;"></div>
+                        <span>Digital Signal</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #e74c3c;"></div>
+                        <span>Reconstruction with Harmonics</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h3>Frequency Domain: Spectrum Analysis</h3>
+                <canvas id="freqCanvas" height="200"></canvas>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h3>What's Happening Here?</h3>
+            <p>
+                Digital signals, despite their binary nature, can be represented as a sum of sinusoidal waves with different frequencies - a concept described by Fourier analysis.
+            </p>
+            <p>
+                This simulation shows how a digital signal can be decomposed into its frequency components. The frequency spectrum displays the amplitude of each frequency component present in the signal.
+            </p>
+            <p>
+                The red overlay on the time domain shows how adding harmonics progressively reconstructs the original digital signal. As you increase the number of harmonics used, the reconstruction becomes closer to the original square wave, demonstrating Gibbs phenomenon and the theoretical infinite bandwidth needed for perfect square waves.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const timeCanvas = document.getElementById('timeCanvas');
+            const freqCanvas = document.getElementById('freqCanvas');
+            const timeCtx = timeCanvas.getContext('2d');
+            const freqCtx = freqCanvas.getContext('2d');
+            
+            const bitRateSlider = document.getElementById('bitRate');
+            const bitRateValue = document.getElementById('bitRateValue');
+            const harmonicsSlider = document.getElementById('harmonics');
+            const harmonicsValue = document.getElementById('harmonicsValue');
+            const signalTypeSelect = document.getElementById('signalType');
+            const generateBtn = document.getElementById('generateBtn');
+            const customPatternDiv = document.getElementById('customPattern');
+            const bitsInput = document.getElementById('bitsInput');
+            const applyPatternBtn = document.getElementById('applyPattern');
+            
+            // Default parameters
+            let sampleRate = 1000; // Hz
+            let duration = 1; // seconds
+            let bitRate = parseInt(bitRateSlider.value); // bits per second
+            let numHarmonics = parseInt(harmonicsSlider.value);
+            let signalType = signalTypeSelect.value;
+            let customBits = bitsInput.value;
+            
+            // Resize canvas to fit container
+            function resizeCanvas() {
+                timeCanvas.width = timeCanvas.parentElement.clientWidth;
+                freqCanvas.width = freqCanvas.parentElement.clientWidth;
+            }
+            
+            // Update UI display values
+            bitRateSlider.addEventListener('input', function() {
+                bitRate = parseInt(this.value);
+                bitRateValue.textContent = `${bitRate} Hz`;
+            });
+            
+            harmonicsSlider.addEventListener('input', function() {
+                numHarmonics = parseInt(this.value);
+                harmonicsValue.textContent = numHarmonics;
+            });
+            
+            signalTypeSelect.addEventListener('change', function() {
+                signalType = this.value;
+                if (signalType === 'custom') {
+                    customPatternDiv.style.display = 'block';
+                } else {
+                    customPatternDiv.style.display = 'none';
+                }
+            });
+            
+            applyPatternBtn.addEventListener('click', function() {
+                customBits = bitsInput.value.replace(/[^01]/g, '');
+                bitsInput.value = customBits;
+                if (customBits.length === 0) {
+                    customBits = '10110010';
+                    bitsInput.value = customBits;
+                }
+                generateAndPlotSignal();
+            });
+            
+            generateBtn.addEventListener('click', generateAndPlotSignal);
+            
+            // Generate digital signal based on parameters
+            function generateDigitalSignal() {
+                const numSamples = sampleRate * duration;
+                const signal = new Array(numSamples).fill(0);
+                
+                const bitDuration = sampleRate / bitRate;
+                let bitSequence = [];
+                
+                if (signalType === 'square') {
+                    // Generate alternating 1s and 0s
+                    for (let i = 0; i < bitRate * duration; i++) {
+                        bitSequence.push(i % 2);
+                    }
+                } else if (signalType === 'pulse') {
+                    // Generate pulse train (one 1 followed by several 0s)
+                    for (let i = 0; i < bitRate * duration; i++) {
+                        bitSequence.push(i % 4 === 0 ? 1 : 0);
+                    }
+                } else if (signalType === 'custom') {
+                    // Use custom bit pattern, repeating if necessary
+                    for (let i = 0; i < bitRate * duration; i++) {
+                        bitSequence.push(parseInt(customBits[i % customBits.length]));
+                    }
+                }
+                
+                // Create signal
+                for (let i = 0; i < numSamples; i++) {
+                    const bitIndex = Math.floor(i / bitDuration);
+                    if (bitIndex < bitSequence.length) {
+                        signal[i] = bitSequence[bitIndex];
+                    }
+                }
+                
+                return { signal, bitSequence };
+            }
+            
+            // Calculate frequency spectrum using Discrete Fourier Transform
+            function calculateSpectrum(signal) {
+                const numSamples = signal.length;
+                const frequencies = [];
+                const amplitudes = [];
+                
+                // Only calculate for positive frequencies up to Nyquist frequency
+                const maxFrequency = sampleRate / 2;
+                const frequencyStep = sampleRate / numSamples;
+                
+                for (let freq = 0; freq <= maxFrequency; freq += frequencyStep) {
+                    let real = 0, imag = 0;
+                    
+                    for (let t = 0; t < numSamples; t++) {
+                        const angle = -2 * Math.PI * freq * t / sampleRate;
+                        real += signal[t] * Math.cos(angle);
+                        imag += signal[t] * Math.sin(angle);
+                    }
+                    
+                    real /= numSamples;
+                    imag /= numSamples;
+                    
+                    // Calculate magnitude
+                    const amplitude = 2 * Math.sqrt(real * real + imag * imag);
+                    
+                    frequencies.push(freq);
+                    amplitudes.push(amplitude);
+                }
+                
+                return { frequencies, amplitudes };
+            }
+            
+            // Reconstruct signal using limited harmonics
+            function reconstructSignal(bitSequence, numHarmonics) {
+                const numSamples = sampleRate * duration;
+                const reconstructed = new Array(numSamples).fill(0);
+                const bitDuration = sampleRate / bitRate;
+                const fundamentalFreq = bitRate / 2; // Half of bit rate for square wave
+                
+                // Time domain values
+                for (let t = 0; t < numSamples; t++) {
+                    let value = 0.5; // DC offset
+                    
+                    // Sum up harmonics
+                    for (let k = 1; k <= numHarmonics; k += 2) {
+                        const freq = k * fundamentalFreq;
+                        const amplitude = 2 / (k * Math.PI);
+                        value += amplitude * Math.sin(2 * Math.PI * freq * t / sampleRate);
+                    }
+                    
+                    reconstructed[t] = value;
+                }
+                
+                return reconstructed;
+            }
+            
+            // Plot time domain signal
+            function plotTimeDomain(signal, reconstructed) {
+                const width = timeCanvas.width;
+                const height = timeCanvas.height;
+                const numSamples = signal.length;
+                
+                timeCtx.clearRect(0, 0, width, height);
+                
+                // Draw background grid
+                timeCtx.strokeStyle = '#ddd';
+                timeCtx.lineWidth = 1;
+                
+                // Vertical grid lines (time divisions)
+                for (let i = 0; i <= 10; i++) {
+                    const x = i * width / 10;
+                    timeCtx.beginPath();
+                    timeCtx.moveTo(x, 0);
+                    timeCtx.lineTo(x, height);
+                    timeCtx.stroke();
+                }
+                
+                // Horizontal grid lines
+                timeCtx.beginPath();
+                timeCtx.moveTo(0, height / 2);
+                timeCtx.lineTo(width, height / 2);
+                timeCtx.stroke();
+                
+                timeCtx.beginPath();
+                timeCtx.moveTo(0, height * 0.1);
+                timeCtx.lineTo(width, height * 0.1);
+                timeCtx.stroke();
+                
+                timeCtx.beginPath();
+                timeCtx.moveTo(0, height * 0.9);
+                timeCtx.lineTo(width, height * 0.9);
+                timeCtx.stroke();
+                
+                // Draw original digital signal
+                timeCtx.strokeStyle = '#3a7bc8';
+                timeCtx.lineWidth = 2;
+                timeCtx.beginPath();
+                
+                for (let i = 0; i < numSamples; i++) {
+                    const x = i * width / numSamples;
+                    const y = height - signal[i] * (height * 0.8) - height * 0.1;
+                    
+                    if (i === 0) {
+                        timeCtx.moveTo(x, y);
+                    } else {
+                        timeCtx.lineTo(x, y);
+                    }
+                }
+                
+                timeCtx.stroke();
+                
+                // Draw reconstructed signal
+                timeCtx.strokeStyle = '#e74c3c';
+                timeCtx.lineWidth = 2;
+                timeCtx.beginPath();
+                
+                for (let i = 0; i < numSamples; i++) {
+                    const x = i * width / numSamples;
+                    const y = height - reconstructed[i] * (height * 0.8) - height * 0.1;
+                    
+                    if (i === 0) {
+                        timeCtx.moveTo(x, y);
+                    } else {
+                        timeCtx.lineTo(x, y);
+                    }
+                }
+                
+                timeCtx.stroke();
+                
+                // Add axis labels
+                timeCtx.fillStyle = '#333';
+                timeCtx.font = '12px Arial';
+                timeCtx.fillText('Time (s)', width - 50, height - 5);
+                timeCtx.fillText('0', 5, height - 5);
+                timeCtx.fillText(duration.toFixed(1), width - 15, height - 5);
+                
+                // Y axis labels
+                timeCtx.fillText('1', 5, height * 0.1 + 15);
+                timeCtx.fillText('0', 5, height * 0.9 + 5);
+            }
+            
+            // Plot frequency domain
+            function plotFrequencyDomain(frequencies, amplitudes) {
+                const width = freqCanvas.width;
+                const height = freqCanvas.height;
+                
+                freqCtx.clearRect(0, 0, width, height);
+                
+                // Draw background grid
+                freqCtx.strokeStyle = '#ddd';
+                freqCtx.lineWidth = 1;
+                
+                // Vertical grid lines (frequency divisions)
+                const maxFreq = frequencies[frequencies.length - 1];
+                for (let i = 0; i <= 10; i++) {
+                    const x = i * width / 10;
+                    freqCtx.beginPath();
+                    freqCtx.moveTo(x, 0);
+                    freqCtx.lineTo(x, height);
+                    freqCtx.stroke();
+                }
+                
+                // Horizontal grid lines
+                freqCtx.beginPath();
+                freqCtx.moveTo(0, height);
+                freqCtx.lineTo(width, height);
+                freqCtx.stroke();
+                
+                // Find max amplitude for scaling
+                const maxAmplitude = Math.max(...amplitudes) * 1.1;
+                
+                // Draw frequency domain as bar graph
+                freqCtx.fillStyle = '#4a90e280';
+                
+                for (let i = 0; i < frequencies.length; i++) {
+                    const x = frequencies[i] * width / maxFreq;
+                    const barHeight = amplitudes[i] * height / maxAmplitude;
+                    
+                    freqCtx.fillRect(x - 1, height - barHeight, 2, barHeight);
+                }
+                
+                // Add axis labels
+                freqCtx.fillStyle = '#333';
+                freqCtx.font = '12px Arial';
+                freqCtx.fillText('Frequency (Hz)', width - 80, height - 5);
+                freqCtx.fillText('0', 5, height - 5);
+                freqCtx.fillText(maxFreq.toFixed(0), width - 25, height - 5);
+                
+                // Add bit rate frequency marker
+                const bitRateX = bitRate * width / maxFreq;
+                freqCtx.strokeStyle = '#e74c3c';
+                freqCtx.beginPath();
+                freqCtx.moveTo(bitRateX, height);
+                freqCtx.lineTo(bitRateX, 0);
+                freqCtx.stroke();
+                
+                freqCtx.fillStyle = '#e74c3c';
+                freqCtx.fillText(`Bit Rate: ${bitRate}Hz`, bitRateX + 5, 15);
+                
+                // Mark key harmonics
+                for (let i = 1; i <= numHarmonics; i += 2) {
+                    if (i * bitRate / 2 <= maxFreq) {
+                        const harmonicX = i * bitRate / 2 * width / maxFreq;
+                        
+                        // Add small marker for included harmonics
+                        freqCtx.fillStyle = '#e74c3c';
+                        freqCtx.beginPath();
+                        freqCtx.arc(harmonicX, height - 10, 3, 0, 2 * Math.PI);
+                        freqCtx.fill();
+                        
+                        if (i === 1 || i === 3 || i === 5) {
+                            freqCtx.fillText(`${i}ƒ`, harmonicX - 5, height - 15);
+                        }
+                    }
+                }
+                
+                // Add amplitude scale
+                freqCtx.fillStyle = '#333';
+                freqCtx.fillText('Amplitude', 5, 15);
+                freqCtx.fillText(maxAmplitude.toFixed(2), 5, 30);
+            }
+            
+            function generateAndPlotSignal() {
+                resizeCanvas();
+                
+                const { signal, bitSequence } = generateDigitalSignal();
+                const { frequencies, amplitudes } = calculateSpectrum(signal);
+                const reconstructed = reconstructSignal(bitSequence, numHarmonics);
+                
+                plotTimeDomain(signal, reconstructed);
+                plotFrequencyDomain(frequencies, amplitudes);
+            }
+            
+            // Initial generation
+            window.addEventListener('resize', resizeCanvas);
+            generateAndPlotSignal();
+        });
+    </script>
+</body>
+</html>
