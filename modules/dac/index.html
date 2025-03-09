@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital to Analog Conversion</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .bit-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .bit {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            background-color: white;
+            transition: background-color 0.2s;
+        }
+        
+        .bit.selected {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .visualizations {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .viz-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .viz-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 150px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .parameters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+            justify-content: center;
+        }
+        
+        .parameter {
+            background-color: #e9f5ff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 3px solid #007bff;
+            font-size: 14px;
+        }
+        
+        .parameter.bit-0 {
+            background-color: #f0f0f0;
+            border-left-color: #666;
+        }
+        
+        .parameter.bit-1 {
+            background-color: #e6f7ff;
+            border-left-color: #0056b3;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .explanation h3 {
+            margin-bottom: 10px;
+        }
+
+        .explanation p {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Digital to Analog Conversion Visualization</h1>
+    <div class="container">
+        <div class="input-section">
+            <h2>Enter 8 bits:</h2>
+            <div class="bit-input" id="bitInput">
+                <div class="bit" data-index="0">0</div>
+                <div class="bit" data-index="1">0</div>
+                <div class="bit" data-index="2">0</div>
+                <div class="bit" data-index="3">0</div>
+                <div class="bit" data-index="4">0</div>
+                <div class="bit" data-index="5">0</div>
+                <div class="bit" data-index="6">0</div>
+                <div class="bit" data-index="7">0</div>
+            </div>
+            <div class="controls">
+                <button id="encodeBtn">Encode</button>
+                <button id="randomizeBtn">Randomize</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+        </div>
+        
+        <div class="visualizations">
+            <div class="viz-row">
+                <div class="viz-title">Amplitude Shift Keying (ASK)</div>
+                <canvas id="askCanvas"></canvas>
+                <div class="parameters">
+                    <div class="parameter bit-0">Bit 0: Amplitude = 10%</div>
+                    <div class="parameter bit-1">Bit 1: Amplitude = 40%</div>
+                    <div class="parameter">Frequency = 10 cycles/bit</div>
+                    <div class="parameter">Phase = 0°</div>
+                </div>
+            </div>
+            
+            <div class="viz-row">
+                <div class="viz-title">Frequency Shift Keying (FSK)</div>
+                <canvas id="fskCanvas"></canvas>
+                <div class="parameters">
+                    <div class="parameter bit-0">Bit 0: Frequency = 5 cycles/bit</div>
+                    <div class="parameter bit-1">Bit 1: Frequency = 15 cycles/bit</div>
+                    <div class="parameter">Amplitude = 30%</div>
+                    <div class="parameter">Phase = 0°</div>
+                </div>
+            </div>
+            
+            <div class="viz-row">
+                <div class="viz-title">Phase Shift Keying (PSK)</div>
+                <canvas id="pskCanvas"></canvas>
+                <div class="parameters">
+                    <div class="parameter bit-0">Bit 0: Phase = 0°</div>
+                    <div class="parameter bit-1">Bit 1: Phase = 180°</div>
+                    <div class="parameter">Amplitude = 30%</div>
+                    <div class="parameter">Frequency = 10 cycles/bit</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="explanation">
+            <h3>About Digital to Analog Conversion</h3>
+            <p><strong>Amplitude Shift Keying (ASK):</strong> Represents digital data by varying the amplitude of the carrier signal. A bit value of 1 uses high amplitude (40%), while a bit value of 0 uses low amplitude (10%).</p>
+            <p><strong>Frequency Shift Keying (FSK):</strong> Represents digital data by varying the frequency of the carrier signal. A bit value of 1 uses a higher frequency (15 cycles/bit), while a bit value of 0 uses a lower frequency (5 cycles/bit).</p>
+            <p><strong>Phase Shift Keying (PSK):</strong> Represents digital data by varying the phase of the carrier signal. A bit value of 1 shifts the phase by 180 degrees (π radians) compared to a bit value of 0.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const bitElements = document.querySelectorAll('.bit');
+        const encodeBtn = document.getElementById('encodeBtn');
+        const randomizeBtn = document.getElementById('randomizeBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const askCanvas = document.getElementById('askCanvas');
+        const fskCanvas = document.getElementById('fskCanvas');
+        const pskCanvas = document.getElementById('pskCanvas');
+
+        // Canvas contexts
+        const askCtx = askCanvas.getContext('2d');
+        const fskCtx = fskCanvas.getContext('2d');
+        const pskCtx = pskCanvas.getContext('2d');
+
+        // Set canvas dimensions with higher resolution
+        function setupCanvas(canvas) {
+            // Get the display size
+            const displayWidth = canvas.clientWidth;
+            const displayHeight = canvas.clientHeight;
+            
+            // Set the internal canvas dimensions to match display size
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+        }
+
+        // Initialize canvases
+        setupCanvas(askCanvas);
+        setupCanvas(fskCanvas);
+        setupCanvas(pskCanvas);
+
+        // State
+        let bitValues = [0, 0, 0, 0, 0, 0, 0, 0];
+
+        // Event listeners for bit toggles
+        bitElements.forEach(bit => {
+            bit.addEventListener('click', () => {
+                const index = parseInt(bit.dataset.index);
+                bitValues[index] = bitValues[index] === 0 ? 1 : 0;
+                bit.textContent = bitValues[index];
+                bit.classList.toggle('selected', bitValues[index] === 1);
+            });
+        });
+
+        // Random bit pattern
+        randomizeBtn.addEventListener('click', () => {
+            bitValues = Array.from({length: 8}, () => Math.round(Math.random()));
+            updateBitDisplay();
+            
+            // Auto-encode after randomizing
+            drawASK(askCtx, askCanvas.width, askCanvas.height, bitValues);
+            drawFSK(fskCtx, fskCanvas.width, fskCanvas.height, bitValues);
+            drawPSK(pskCtx, pskCanvas.width, pskCanvas.height, bitValues);
+        });
+
+        // Reset bits to 0
+        resetBtn.addEventListener('click', () => {
+            bitValues = [0, 0, 0, 0, 0, 0, 0, 0];
+            updateBitDisplay();
+            
+            // Auto-encode after resetting
+            drawASK(askCtx, askCanvas.width, askCanvas.height, bitValues);
+            drawFSK(fskCtx, fskCanvas.width, fskCanvas.height, bitValues);
+            drawPSK(pskCtx, pskCanvas.width, pskCanvas.height, bitValues);
+        });
+
+        // Update the visual display of bits
+        function updateBitDisplay() {
+            bitElements.forEach((bit, index) => {
+                bit.textContent = bitValues[index];
+                bit.classList.toggle('selected', bitValues[index] === 1);
+            });
+        }
+
+        // Event listener for encode button
+        encodeBtn.addEventListener('click', () => {
+            drawASK(askCtx, askCanvas.width, askCanvas.height, bitValues);
+            drawFSK(fskCtx, fskCanvas.width, fskCanvas.height, bitValues);
+            drawPSK(pskCtx, pskCanvas.width, pskCanvas.height, bitValues);
+        });
+
+        // Draw Amplitude Shift Keying
+        function drawASK(ctx, width, height, bits) {
+            ctx.clearRect(0, 0, width, height);
+            const centerY = height / 2;
+            const bitsPerScreen = bits.length;
+            const segmentWidth = width / bitsPerScreen;
+            
+            // Settings
+            const highAmplitude = height * 0.4; // 40% of height for bit 1
+            const lowAmplitude = height * 0.1; // 10% of height for bit 0
+            const samplesPerBit = 100;
+            const baseFrequency = 10; // cycles per bit period
+            
+            ctx.strokeStyle = '#007bff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < bits.length; i++) {
+                const amplitude = bits[i] === 1 ? highAmplitude : lowAmplitude;
+                const startX = i * segmentWidth;
+                
+                if (i === 0) {
+                    ctx.moveTo(startX, centerY);
+                }
+                
+                for (let j = 0; j <= samplesPerBit; j++) {
+                    const x = startX + (j / samplesPerBit) * segmentWidth;
+                    const y = centerY - amplitude * Math.sin(2 * Math.PI * baseFrequency * j / samplesPerBit);
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            // Draw bit separators and values
+            drawBitSeparators(ctx, width, height, bits);
+        }
+
+        // Draw Frequency Shift Keying
+        function drawFSK(ctx, width, height, bits) {
+            ctx.clearRect(0, 0, width, height);
+            const centerY = height / 2;
+            const bitsPerScreen = bits.length;
+            const segmentWidth = width / bitsPerScreen;
+            
+            // Settings
+            const amplitude = height * 0.3; // 30% of height
+            const samplesPerBit = 100;
+            const lowFrequency = 5; // cycles per bit period for 0
+            const highFrequency = 15; // cycles per bit period for 1
+            
+            ctx.strokeStyle = '#28a745';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < bits.length; i++) {
+                const frequency = bits[i] === 1 ? highFrequency : lowFrequency;
+                const startX = i * segmentWidth;
+                
+                if (i === 0) {
+                    ctx.moveTo(startX, centerY);
+                }
+                
+                for (let j = 0; j <= samplesPerBit; j++) {
+                    const x = startX + (j / samplesPerBit) * segmentWidth;
+                    const y = centerY - amplitude * Math.sin(2 * Math.PI * frequency * j / samplesPerBit);
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            // Draw bit separators and values
+            drawBitSeparators(ctx, width, height, bits);
+        }
+
+        // Draw Phase Shift Keying
+        function drawPSK(ctx, width, height, bits) {
+            ctx.clearRect(0, 0, width, height);
+            const centerY = height / 2;
+            const bitsPerScreen = bits.length;
+            const segmentWidth = width / bitsPerScreen;
+            
+            // Settings
+            const amplitude = height * 0.3; // 30% of height
+            const samplesPerBit = 100;
+            const baseFrequency = 10; // cycles per bit period
+            
+            ctx.strokeStyle = '#dc3545';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // For true BPSK (Binary Phase Shift Keying)
+            for (let i = 0; i < bits.length; i++) {
+                const startX = i * segmentWidth;
+                // 0 degrees for bit 0, 180 degrees for bit 1
+                const phase = bits[i] === 1 ? Math.PI : 0;
+                
+                if (i === 0) {
+                    ctx.moveTo(startX, centerY);
+                }
+                
+                for (let j = 0; j <= samplesPerBit; j++) {
+                    const x = startX + (j / samplesPerBit) * segmentWidth;
+                    const y = centerY - amplitude * Math.sin(2 * Math.PI * baseFrequency * j / samplesPerBit + phase);
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            // Draw bit separators and values
+            drawBitSeparators(ctx, width, height, bits);
+        }
+
+        // Helper function to draw bit separators and values
+        function drawBitSeparators(ctx, width, height, bits) {
+            const bitsPerScreen = bits.length;
+            const segmentWidth = width / bitsPerScreen;
+            
+            ctx.strokeStyle = '#aaa';
+            ctx.lineWidth = 1;
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            
+            for (let i = 0; i <= bits.length; i++) {
+                const x = i * segmentWidth;
+                
+                // Draw vertical separator
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+                
+                // Draw bit value
+                if (i < bits.length) {
+                    ctx.fillText(bits[i].toString(), x + 10, 20);
+                }
+            }
+        }
+
+        // Initial drawing
+        drawASK(askCtx, askCanvas.width, askCanvas.height, bitValues);
+        drawFSK(fskCtx, fskCanvas.width, fskCanvas.height, bitValues);
+        drawPSK(pskCtx, pskCanvas.width, pskCanvas.height, bitValues);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            setupCanvas(askCanvas);
+            setupCanvas(fskCanvas);
+            setupCanvas(pskCanvas);
+            
+            drawASK(askCtx, askCanvas.width, askCanvas.height, bitValues);
+            drawFSK(fskCtx, fskCanvas.width, fskCanvas.height, bitValues);
+            drawPSK(pskCtx, pskCanvas.width, pskCanvas.height, bitValues);
+        });
+    </script>
+</body>
+</html>
