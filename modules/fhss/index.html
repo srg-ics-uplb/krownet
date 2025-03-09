@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frequency Hopping Spread Spectrum Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .intro {
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .visualization-container {
+            display: flex;
+            margin-top: 20px;
+        }
+        .frequency-table {
+            flex: 1;
+            margin-right: 20px;
+        }
+        .animation-container {
+            flex: 2;
+            position: relative;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            width: 100%;
+            height: 300px;
+            background-color: #f9f9f9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .highlight {
+            background-color: #ffffcc;
+        }
+        .current-hop {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .status {
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .cycle-counter {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+            font-size: 18px;
+        }
+        .legend {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border: 1px solid #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Frequency Hopping Spread Spectrum (FHSS)</h1>
+        
+        <div class="intro">
+            <p>Frequency Hopping Spread Spectrum (FHSS) is a method of transmitting radio signals by rapidly switching a carrier among many frequency channels, using a pseudorandom sequence known to both transmitter and receiver. This visualization demonstrates how FHSS works with 3-bit patterns determining 8 different frequency channels.</p>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">Start</button>
+            <button id="pauseBtn" disabled>Pause</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        
+        <div class="cycle-counter">Cycle: <span id="cycleCount">0</span>/3</div>
+        
+        <div class="visualization-container">
+            <div class="frequency-table">
+                <h2>Frequency Table</h2>
+                <table id="frequencyTable">
+                    <thead>
+                        <tr>
+                            <th>Bit Pattern</th>
+                            <th>Frequency (MHz)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>000</td>
+                            <td>2400</td>
+                        </tr>
+                        <tr>
+                            <td>001</td>
+                            <td>2410</td>
+                        </tr>
+                        <tr>
+                            <td>010</td>
+                            <td>2420</td>
+                        </tr>
+                        <tr>
+                            <td>011</td>
+                            <td>2430</td>
+                        </tr>
+                        <tr>
+                            <td>100</td>
+                            <td>2440</td>
+                        </tr>
+                        <tr>
+                            <td>101</td>
+                            <td>2450</td>
+                        </tr>
+                        <tr>
+                            <td>110</td>
+                            <td>2460</td>
+                        </tr>
+                        <tr>
+                            <td>111</td>
+                            <td>2470</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h2>Current Status</h2>
+                <div class="status">
+                    <p>Bit Pattern: <span id="currentBitPattern">-</span></p>
+                    <p>Frequency: <span id="currentFrequency">-</span> MHz</p>
+                    <p>Time Slot: <span id="currentTimeSlot">-</span></p>
+                </div>
+            </div>
+            
+            <div class="animation-container">
+                <h2>FHSS Visualization</h2>
+                <canvas id="fhssCanvas"></canvas>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgba(0, 128, 255, 0.5);"></div>
+                        <span>Signal</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgba(255, 0, 0, 0.8);"></div>
+                        <span>Current Hop</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: rgba(0, 0, 0, 0.1);"></div>
+                        <span>Previous Hops</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const hopSequence = [
+            {bitPattern: '101', frequency: 2450}, // 5
+            {bitPattern: '001', frequency: 2410}, // 1
+            {bitPattern: '110', frequency: 2460}, // 6
+            {bitPattern: '010', frequency: 2420}, // 2
+            {bitPattern: '111', frequency: 2470}, // 7
+            {bitPattern: '000', frequency: 2400}, // 0
+            {bitPattern: '100', frequency: 2440}, // 4
+            {bitPattern: '011', frequency: 2430}  // 3
+        ];
+        
+        const hopDuration = 1000; // milliseconds per hop
+        const frequencyMap = {
+            '000': 2400,
+            '001': 2410,
+            '010': 2420,
+            '011': 2430,
+            '100': 2440,
+            '101': 2450,
+            '110': 2460,
+            '111': 2470
+        };
+        
+        // DOM Elements
+        const canvas = document.getElementById('fhssCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const currentBitPattern = document.getElementById('currentBitPattern');
+        const currentFrequency = document.getElementById('currentFrequency');
+        const currentTimeSlot = document.getElementById('currentTimeSlot');
+        const frequencyTable = document.getElementById('frequencyTable');
+        const cycleCount = document.getElementById('cycleCount');
+        
+        // Canvas setup
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        
+        // Animation variables
+        let animationId;
+        let isRunning = false;
+        let currentHopIndex = 0;
+        let startTime;
+        let lastHopTime;
+        let elapsedCycles = 0;
+        let previousHops = [];
+        
+        // Initialize the visualization
+        function init() {
+            currentHopIndex = 0;
+            previousHops = [];
+            elapsedCycles = 0;
+            cycleCount.textContent = elapsedCycles;
+            updateStatus();
+            drawVisualization();
+        }
+        
+        // Start animation
+        function startAnimation() {
+            if (isRunning) return;
+            
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            
+            isRunning = true;
+            startTime = Date.now();
+            lastHopTime = startTime;
+            
+            animate();
+        }
+        
+        // Pause animation
+        function pauseAnimation() {
+            isRunning = false;
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+        
+        // Reset animation
+        function resetAnimation() {
+            pauseAnimation();
+            init();
+        }
+        
+        // Animation loop
+        function animate() {
+            const currentTime = Date.now();
+            const timeSinceLastHop = currentTime - lastHopTime;
+            
+            if (timeSinceLastHop >= hopDuration) {
+                // Move to next hop
+                previousHops.push({...hopSequence[currentHopIndex], x: (currentHopIndex % 8) * (canvas.width / 8) + canvas.width / 16});
+                
+                currentHopIndex = (currentHopIndex + 1) % hopSequence.length;
+                
+                // Check if we've completed a cycle
+                if (currentHopIndex === 0) {
+                    elapsedCycles++;
+                    cycleCount.textContent = elapsedCycles;
+                    
+                    // Stop after 3 cycles
+                    if (elapsedCycles >= 3) {
+                        pauseAnimation();
+                        return;
+                    }
+                }
+                
+                lastHopTime = currentTime;
+                updateStatus();
+                highlightCurrentRow();
+            }
+            
+            drawVisualization();
+            
+            if (isRunning) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        // Update status display
+        function updateStatus() {
+            const currentHop = hopSequence[currentHopIndex];
+            currentBitPattern.textContent = currentHop.bitPattern;
+            currentFrequency.textContent = currentHop.frequency;
+            currentTimeSlot.textContent = (currentHopIndex % 8) + 1;
+        }
+        
+        // Highlight the current row in the frequency table
+        function highlightCurrentRow() {
+            // Remove previous highlights
+            const rows = frequencyTable.getElementsByTagName('tr');
+            for (let i = 0; i < rows.length; i++) {
+                rows[i].classList.remove('highlight');
+            }
+            
+            // Add highlight to current frequency
+            const currentHop = hopSequence[currentHopIndex];
+            const bitPattern = currentHop.bitPattern;
+            
+            // Find the row to highlight (add 1 to skip header row)
+            const patternIndex = parseInt(bitPattern, 2) + 1;
+            if (rows[patternIndex]) {
+                rows[patternIndex].classList.add('highlight');
+            }
+        }
+        
+        // Draw the visualization
+        function drawVisualization() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw frequency grid
+            drawFrequencyGrid();
+            
+            // Draw previous hops
+            drawPreviousHops();
+            
+            // Draw current hop and signal
+            if (isRunning || previousHops.length > 0) {
+                drawCurrentHop();
+            }
+        }
+        
+        // Draw the frequency grid
+        function drawFrequencyGrid() {
+            const gridHeight = canvas.height - 40;
+            const baseY = 20;
+            
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            
+            // Draw horizontal frequency lines
+            for (let i = 0; i <= 8; i++) {
+                const y = baseY + (i * gridHeight / 8);
+                
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+                
+                // Add frequency labels
+                if (i < 8) {
+                    ctx.fillStyle = '#888';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'left';
+                    const freq = 2400 + (i * 10);
+                    ctx.fillText(`${freq} MHz`, 5, y - 5);
+                }
+            }
+            
+            // Draw vertical time slot lines
+            for (let i = 0; i <= 8; i++) {
+                const x = i * (canvas.width / 8);
+                
+                ctx.beginPath();
+                ctx.moveTo(x, baseY);
+                ctx.lineTo(x, baseY + gridHeight);
+                ctx.stroke();
+                
+                // Add time slot labels
+                if (i < 8) {
+                    ctx.fillStyle = '#888';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`Slot ${i + 1}`, x + canvas.width / 16, baseY + gridHeight + 15);
+                }
+            }
+        }
+        
+        // Draw previous hops
+        function drawPreviousHops() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            
+            for (const hop of previousHops) {
+                const freqIndex = (hop.frequency - 2400) / 10;
+                const y = 20 + ((7 - freqIndex) * (canvas.height - 40) / 8);
+                
+                // Draw circle at hop point
+                ctx.beginPath();
+                ctx.arc(hop.x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Draw current hop and signal
+        function drawCurrentHop() {
+            const currentHop = hopSequence[currentHopIndex];
+            const freqIndex = (currentHop.frequency - 2400) / 10;
+            const slotWidth = canvas.width / 8;
+            const x = (currentHopIndex % 8) * slotWidth + slotWidth / 2;
+            const y = 20 + ((7 - freqIndex) * (canvas.height - 40) / 8);
+            
+            // Draw current signal as a sine wave
+            if (isRunning) {
+                const timeSinceLastHop = Date.now() - lastHopTime;
+                const progress = timeSinceLastHop / hopDuration;
+                
+                ctx.strokeStyle = 'rgba(0, 128, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                const startX = (currentHopIndex % 8) * slotWidth;
+                const endX = startX + slotWidth * progress;
+                
+                for (let i = startX; i <= endX; i += 2) {
+                    const amplitude = 10;
+                    const wavelength = 20;
+                    const sineY = y + amplitude * Math.sin((i - startX) / wavelength * Math.PI * 2);
+                    
+                    if (i === startX) {
+                        ctx.moveTo(i, sineY);
+                    } else {
+                        ctx.lineTo(i, sineY);
+                    }
+                }
+                
+                ctx.stroke();
+            }
+            
+            // Draw current hop point
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.beginPath();
+            ctx.arc(x, y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add label
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentHop.bitPattern, x, y - 15);
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', startAnimation);
+        pauseBtn.addEventListener('click', pauseAnimation);
+        resetBtn.addEventListener('click', resetAnimation);
+        
+        // Resize handling
+        window.addEventListener('resize', () => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            drawVisualization();
+        });
+        
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
