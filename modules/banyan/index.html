@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banyan Switch Routing Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .network-canvas {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            background-color: white;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #999;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+        
+        .collision {
+            color: #d9534f;
+            font-weight: bold;
+        }
+        
+        .info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Banyan Switch Routing Visualization</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Network Size:</label>
+                <select id="network-size">
+                    <option value="2">2×2 (4 inputs)</option>
+                    <option value="3" selected>3×3 (8 inputs)</option>
+                    <option value="4">4×4 (16 inputs)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Source and Destination:</label>
+                <div class="control-row">
+                    <input type="number" id="source" min="0" max="7" value="0" placeholder="Source">
+                    <input type="number" id="destination" min="0" max="7" value="3" placeholder="Destination">
+                    <button id="add-packet">Add Packet</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <div class="control-row">
+                    <button id="reset">Reset</button>
+                    <button id="step">Step</button>
+                    <button id="auto-run">Auto Run</button>
+                </div>
+            </div>
+        </div>
+        
+        <canvas id="network-canvas" class="network-canvas" width="900" height="500"></canvas>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #888;"></div>
+                <span>Switch</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4CAF50;"></div>
+                <span>Active Path</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #d9534f;"></div>
+                <span>Collision</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f0ad4e;"></div>
+                <span>Waiting Packet</span>
+            </div>
+        </div>
+        
+        <div id="status" class="status"></div>
+        
+        <div class="info-panel">
+            <h3>About Banyan Networks</h3>
+            <p>A Banyan network is a multistage interconnection network (MIN) with the self-routing property. Each stage consists of 2×2 switching elements that route packets based on the destination address bits.</p>
+            <p>Key characteristics of Banyan networks:</p>
+            <ul>
+                <li>For N inputs/outputs, the network has log₂N stages</li>
+                <li>Each stage has N/2 switching elements</li>
+                <li>Packets are routed based on their destination address bits</li>
+                <li>Collisions occur when two packets attempt to use the same link simultaneously</li>
+            </ul>
+            <p>This visualization demonstrates how packets are routed through the network and highlights collisions when they occur.</p>
+        </div>
+    </div>
+
+    <script>
+        class BanyanNetwork {
+            constructor(size) {
+                this.stages = size; // Log₂ of number of inputs
+                this.inputs = Math.pow(2, size);
+                this.switches = this.inputs / 2; // Number of switches per stage
+                
+                // Initialize the network
+                this.network = Array(this.stages).fill().map(() => 
+                    Array(this.switches).fill().map(() => ({
+                        upperIn: null,
+                        lowerIn: null,
+                        upperOut: null,
+                        lowerOut: null,
+                        collision: false
+                    }))
+                );
+                
+                this.packets = [];
+                this.collisions = [];
+                this.completedPackets = [];
+                this.currentStage = 0;
+            }
+            
+            reset() {
+                // Reset all switches
+                for (let stage = 0; stage < this.stages; stage++) {
+                    for (let sw = 0; sw < this.switches; sw++) {
+                        this.network[stage][sw] = {
+                            upperIn: null,
+                            lowerIn: null,
+                            upperOut: null,
+                            lowerOut: null,
+                            collision: false
+                        };
+                    }
+                }
+                
+                this.packets = [];
+                this.collisions = [];
+                this.completedPackets = [];
+                this.currentStage = 0;
+            }
+            
+            addPacket(source, destination) {
+                if (source < 0 || source >= this.inputs || destination < 0 || destination >= this.inputs) {
+                    return false;
+                }
+                
+                // Convert destination to binary string for routing
+                const destBinary = destination.toString(2).padStart(this.stages, '0');
+                
+                this.packets.push({
+                    id: this.packets.length + 1,
+                    source,
+                    destination,
+                    destBinary,
+                    currentStage: 0,
+                    path: [],
+                    collided: false,
+                    completed: false
+                });
+                
+                return true;
+            }
+            
+            step() {
+                if (this.currentStage >= this.stages) {
+                    return false; // All packets have reached their destinations
+                }
+                
+                // First, place packets at input of current stage switches
+                for (let p = 0; p < this.packets.length; p++) {
+                    const packet = this.packets[p];
+                    
+                    if (packet.collided || packet.completed) continue;
+                    
+                    if (packet.currentStage === this.currentStage) {
+                        const stageIndex = packet.currentStage;
+                        
+                        // Determine which switch to enter
+                        let switchIndex;
+                        if (stageIndex === 0) {
+                            // First stage - use source address
+                            switchIndex = Math.floor(packet.source / 2);
+                        } else {
+                            // Use previous stage output
+                            switchIndex = packet.path[stageIndex - 1].outSwitch;
+                        }
+                        
+                        // Determine upper or lower input
+                        const isUpper = stageIndex === 0 ? packet.source % 2 === 0 : packet.path[stageIndex - 1].outPort === 'upper';
+                        
+                        // Check for collision at input
+                        const currentSwitch = this.network[stageIndex][switchIndex];
+                        const inputPort = isUpper ? 'upperIn' : 'lowerIn';
+                        
+                        if (currentSwitch[inputPort] !== null) {
+                            // Collision detected
+                            packet.collided = true;
+                            this.collisions.push({
+                                stage: stageIndex,
+                                switchIndex,
+                                port: inputPort,
+                                packetIds: [currentSwitch[inputPort].id, packet.id]
+                            });
+                        } else {
+                            // No collision, place packet at input
+                            currentSwitch[inputPort] = packet;
+                        }
+                    }
+                }
+                
+                // Then, route packets through switches to outputs
+                for (let sw = 0; sw < this.switches; sw++) {
+                    const currentSwitch = this.network[this.currentStage][sw];
+                    
+                    // Process upper input
+                    if (currentSwitch.upperIn !== null && !currentSwitch.upperIn.collided) {
+                        const packet = currentSwitch.upperIn;
+                        const bitValue = parseInt(packet.destBinary[this.currentStage]);
+                        
+                        // Route based on destination bit
+                        const outputPort = bitValue === 0 ? 'upperOut' : 'lowerOut';
+                        
+                        if (currentSwitch[outputPort] === null) {
+                            currentSwitch[outputPort] = packet;
+                            packet.path[this.currentStage] = {
+                                stage: this.currentStage,
+                                inSwitch: sw,
+                                inPort: 'upper',
+                                outSwitch: Math.floor(sw / 2) * 2 + (outputPort === 'upperOut' ? 0 : 1),
+                                outPort: outputPort === 'upperOut' ? 'upper' : 'lower'
+                            };
+                        } else {
+                            // Collision at output port
+                            packet.collided = true;
+                            currentSwitch.collision = true;
+                            this.collisions.push({
+                                stage: this.currentStage,
+                                switchIndex: sw,
+                                port: outputPort,
+                                packetIds: [currentSwitch[outputPort].id, packet.id]
+                            });
+                        }
+                    }
+                    
+                    // Process lower input
+                    if (currentSwitch.lowerIn !== null && !currentSwitch.lowerIn.collided) {
+                        const packet = currentSwitch.lowerIn;
+                        const bitValue = parseInt(packet.destBinary[this.currentStage]);
+                        
+                        // Route based on destination bit
+                        const outputPort = bitValue === 0 ? 'upperOut' : 'lowerOut';
+                        
+                        if (currentSwitch[outputPort] === null) {
+                            currentSwitch[outputPort] = packet;
+                            packet.path[this.currentStage] = {
+                                stage: this.currentStage,
+                                inSwitch: sw,
+                                inPort: 'lower',
+                                outSwitch: Math.floor(sw / 2) * 2 + (outputPort === 'upperOut' ? 0 : 1),
+                                outPort: outputPort === 'upperOut' ? 'upper' : 'lower'
+                            };
+                        } else {
+                            // Collision at output port
+                            packet.collided = true;
+                            currentSwitch.collision = true;
+                            this.collisions.push({
+                                stage: this.currentStage,
+                                switchIndex: sw,
+                                port: outputPort,
+                                packetIds: [currentSwitch[outputPort].id, packet.id]
+                            });
+                        }
+                    }
+                }
+                
+                // Move non-collided packets to next stage
+                for (let p = 0; p < this.packets.length; p++) {
+                    const packet = this.packets[p];
+                    
+                    if (!packet.collided && packet.currentStage === this.currentStage) {
+                        packet.currentStage++;
+                        
+                        // Check if packet has reached destination
+                        if (packet.currentStage >= this.stages) {
+                            packet.completed = true;
+                            this.completedPackets.push(packet);
+                        }
+                    }
+                }
+                
+                // Clear switch states for next stage
+                if (this.currentStage < this.stages) {
+                    for (let sw = 0; sw < this.switches; sw++) {
+                        const currentSwitch = this.network[this.currentStage][sw];
+                        currentSwitch.upperIn = null;
+                        currentSwitch.lowerIn = null;
+                        currentSwitch.upperOut = null;
+                        currentSwitch.lowerOut = null;
+                    }
+                }
+                
+                this.currentStage++;
+                return true;
+            }
+            
+            getStatus() {
+                return {
+                    totalPackets: this.packets.length,
+                    completed: this.completedPackets.length,
+                    collided: this.collisions.length,
+                    currentStage: this.currentStage,
+                    collisions: this.collisions
+                };
+            }
+        }
+
+        class BanyanRenderer {
+            constructor(canvas, network) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.network = network;
+                
+                // Visual settings
+                this.marginX = 50;
+                this.marginY = 50;
+                this.switchWidth = 40;
+                this.switchHeight = 60;
+                this.stageSpacing = (canvas.width - 2 * this.marginX) / (network.stages + 1);
+                this.switchSpacing = (canvas.height - 2 * this.marginY) / (network.inputs / 2);
+                
+                // Colors
+                this.colors = {
+                    switch: '#888',
+                    activePath: '#4CAF50',
+                    collision: '#d9534f',
+                    waiting: '#f0ad4e',
+                    text: '#333',
+                    line: '#ddd'
+                };
+            }
+            
+            updateNetwork(network) {
+                this.network = network;
+                this.stageSpacing = (this.canvas.width - 2 * this.marginX) / (network.stages + 1);
+                this.switchSpacing = (this.canvas.height - 2 * this.marginY) / (network.inputs / 2);
+            }
+            
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+            
+            render() {
+                this.clear();
+                this.drawNetwork();
+                this.drawPackets();
+            }
+            
+            drawNetwork() {
+                const ctx = this.ctx;
+                
+                // Draw input labels
+                for (let i = 0; i < this.network.inputs; i++) {
+                    const x = this.marginX;
+                    const y = this.marginY + (i * this.switchSpacing / 2);
+                    
+                    ctx.fillStyle = this.colors.text;
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`Input ${i}`, x - 10, y + 5);
+                    
+                    // Input line
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + this.stageSpacing / 2, y);
+                    ctx.strokeStyle = this.colors.line;
+                    ctx.stroke();
+                }
+                
+                // Draw output labels
+                for (let i = 0; i < this.network.inputs; i++) {
+                    const x = this.marginX + (this.network.stages + 1) * this.stageSpacing;
+                    const y = this.marginY + (i * this.switchSpacing / 2);
+                    
+                    ctx.fillStyle = this.colors.text;
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`Output ${i}`, x + 10, y + 5);
+                    
+                    // Output line
+                    ctx.beginPath();
+                    ctx.moveTo(x - this.stageSpacing / 2, y);
+                    ctx.lineTo(x, y);
+                    ctx.strokeStyle = this.colors.line;
+                    ctx.stroke();
+                }
+                
+                // Draw switches and connections
+                for (let stage = 0; stage < this.network.stages; stage++) {
+                    const stageX = this.marginX + (stage + 1) * this.stageSpacing;
+                    
+                    for (let sw = 0; sw < this.network.switches; sw++) {
+                        const switchY = this.marginY + sw * this.switchSpacing;
+                        
+                        // Draw switch
+                        ctx.fillStyle = this.colors.switch;
+                        ctx.fillRect(stageX - this.switchWidth / 2, switchY, this.switchWidth, this.switchHeight);
+                        
+                        // Switch label
+                        ctx.fillStyle = 'white';
+                        ctx.font = '12px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`S${stage},${sw}`, stageX, switchY + this.switchHeight / 2 + 5);
+                        
+                        // Calculate input positions
+                        const upperInY = switchY;
+                        const lowerInY = switchY + this.switchHeight;
+                        
+                        // Draw input connections for each stage
+                        if (stage === 0) {
+                            // First stage - connect to inputs
+                            const upperInIndex = sw * 2;
+                            const lowerInIndex = sw * 2 + 1;
+                            
+                            const upperInputY = this.marginY + upperInIndex * (this.switchSpacing / 2);
+                            const lowerInputY = this.marginY + lowerInIndex * (this.switchSpacing / 2);
+                            
+                            // Upper input connection
+                            ctx.beginPath();
+                            ctx.moveTo(this.marginX + this.stageSpacing / 2, upperInputY);
+                            ctx.lineTo(stageX - this.switchWidth / 2, upperInY);
+                            ctx.strokeStyle = this.colors.line;
+                            ctx.stroke();
+                            
+                            // Lower input connection
+                            ctx.beginPath();
+                            ctx.moveTo(this.marginX + this.stageSpacing / 2, lowerInputY);
+                            ctx.lineTo(stageX - this.switchWidth / 2, lowerInY);
+                            ctx.strokeStyle = this.colors.line;
+                            ctx.stroke();
+                        } else {
+                            // Connect to previous stage outputs
+                            const prevStageX = this.marginX + stage * this.stageSpacing;
+                            
+                            // Perfect shuffle pattern connections
+                            const groupSize = Math.pow(2, this.network.stages - stage);
+                            const groupIndex = Math.floor(sw / (this.network.switches / groupSize));
+                            const withinGroupIndex = sw % (this.network.switches / groupSize);
+                            
+                            const upperPrevSwitch = (groupIndex * 2) * (this.network.switches / groupSize) + withinGroupIndex;
+                            const lowerPrevSwitch = (groupIndex * 2 + 1) * (this.network.switches / groupSize) + withinGroupIndex;
+                            
+                            const upperPrevY = this.marginY + upperPrevSwitch * this.switchSpacing + (upperPrevSwitch % 2 === 0 ? 0 : this.switchHeight);
+                            const lowerPrevY = this.marginY + lowerPrevSwitch * this.switchSpacing + (lowerPrevSwitch % 2 === 0 ? 0 : this.switchHeight);
+                            
+                            // Upper input connection
+                            ctx.beginPath();
+                            ctx.moveTo(prevStageX + this.switchWidth / 2, upperPrevY);
+                            ctx.lineTo(stageX - this.switchWidth / 2, upperInY);
+                            ctx.strokeStyle = this.colors.line;
+                            ctx.stroke();
+                            
+                            // Lower input connection
+                            ctx.beginPath();
+                            ctx.moveTo(prevStageX + this.switchWidth / 2, lowerPrevY);
+                            ctx.lineTo(stageX - this.switchWidth / 2, lowerInY);
+                            ctx.strokeStyle = this.colors.line;
+                            ctx.stroke();
+                        }
+                        
+                        // Calculate output positions
+                        const upperOutY = switchY;
+                        const lowerOutY = switchY + this.switchHeight;
+                        
+                        // Draw output connections
+                        if (stage === this.network.stages - 1) {
+                            // Last stage - connect to outputs
+                            const outputStartIndex = sw * 2;
+                            
+                            const upperOutputY = this.marginY + outputStartIndex * (this.switchSpacing / 2);
+                            const lowerOutputY = this.marginY + (outputStartIndex + 1) * (this.switchSpacing / 2);
+                            
+                            // Upper output connection
+                            ctx.beginPath();
+                            ctx.moveTo(stageX + this.switchWidth / 2, upperOutY);
+                            ctx.lineTo(stageX + this.stageSpacing / 2, upperOutputY);
+                            ctx.strokeStyle = this.colors.line;
+                            ctx.stroke();
+                            
+                            // Lower output connection
+                            ctx.beginPath();
+                            ctx.moveTo(stageX + this.switchWidth / 2, lowerOutY);
+                            ctx.lineTo(stageX + this.stageSpacing / 2, lowerOutputY);
+                            ctx.strokeStyle = this.colors.line;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+            
+            drawPackets() {
+                const ctx = this.ctx;
+                
+                // Draw active paths for all packets
+                for (let p = 0; p < this.network.packets.length; p++) {
+                    const packet = this.network.packets[p];
+                    
+                    if (packet.collided) {
+                        // Draw collision path
+                        this.drawPacketPath(packet, this.colors.collision);
+                    } else if (packet.completed) {
+                        // Draw completed path
+                        this.drawPacketPath(packet, this.colors.activePath);
+                    } else {
+                        // Draw active path
+                        this.drawPacketPath(packet, this.colors.activePath);
+                        
+                        // Draw waiting packet
+                        if (packet.currentStage < this.network.stages) {
+                            // Draw at the input of the next stage
+                            const inputPos = this.getInputPosition(packet);
+                            if (inputPos) {
+                                ctx.beginPath();
+                                ctx.arc(inputPos.x, inputPos.y, 5, 0, Math.PI * 2);
+                                ctx.fillStyle = this.colors.waiting;
+                                ctx.fill();
+                                
+                                // Packet label
+                                ctx.fillStyle = this.colors.text;
+                                ctx.font = '10px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(`P${packet.id}`, inputPos.x, inputPos.y - 8);
+                            }
+                        }
+                    }
+                }
+                
+                // Highlight collisions
+                for (let c = 0; c < this.network.collisions.length; c++) {
+                    const collision = this.network.collisions[c];
+                    const stage = collision.stage;
+                    const sw = collision.switchIndex;
+                    
+                    const x = this.marginX + (stage + 1) * this.stageSpacing;
+                    const y = this.marginY + sw * this.switchSpacing;
+                    
+                    // Draw collision indicator
+                    ctx.beginPath();
+                    ctx.arc(x, y + this.switchHeight / 2, 10, 0, Math.PI * 2);
+                    ctx.fillStyle = this.colors.collision;
+                    ctx.fill();
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('!', x, y + this.switchHeight / 2 + 3);
+                }
+            }
+            
+            drawPacketPath(packet, color) {
+                const ctx = this.ctx;
+                
+                if (packet.path.length === 0) return;
+                
+                // Input point
+                const inputX = this.marginX;
+                const inputY = this.marginY + packet.source * (this.switchSpacing / 2);
+                
+                let prevX = inputX;
+                let prevY = inputY;
+                
+                // Draw path through all completed stages
+                for (let s = 0; s < packet.path.length; s++) {
+                    const pathSegment = packet.path[s];
+                    const stageX = this.marginX + (pathSegment.stage + 1) * this.stageSpacing;
+                    const switchY = this.marginY + pathSegment.inSwitch * this.switchSpacing;
+                    
+                    // Input point on switch
+                    let switchInY = switchY + (pathSegment.inPort === 'upper' ? 0 : this.switchHeight);
+                    
+                    // Draw connection to switch input
+                    ctx.beginPath();
+                    ctx.moveTo(prevX, prevY);
+                    ctx.lineTo(stageX - this.switchWidth / 2, switchInY);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.lineWidth = 1;
+                    
+                    // Output point on switch
+                    let switchOutY = switchY + (pathSegment.outPort === 'upper' ? 0 : this.switchHeight);
+                    
+                    // Draw connection through switch
+                    ctx.beginPath();
+                    ctx.moveTo(stageX - this.switchWidth / 2, switchInY);
+                    ctx.lineTo(stageX + this.switchWidth / 2, switchOutY);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.lineWidth = 1;
+                    
+                    prevX = stageX + this.switchWidth / 2;
+                    prevY = switchOutY;
+                }
+                
+                // If packet is completed, draw line to output
+                if (packet.completed && packet.path.length === this.network.stages) {
+                    const outputX = this.marginX + (this.network.stages + 1) * this.stageSpacing;
+                    const outputY = this.marginY + packet.destination * (this.switchSpacing / 2);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(prevX, prevY);
+                    ctx.lineTo(outputX, outputY);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.lineWidth = 1;
+                }
+            }
+            
+            getInputPosition(packet) {
+                if (packet.currentStage >= this.network.stages || packet.path.length === 0) return null;
+                
+                if (packet.currentStage === 0) {
+                    // At first stage input
+                    return {
+                        x: this.marginX + this.stageSpacing / 2,
+                        y: this.marginY + packet.source * (this.switchSpacing / 2)
+                    };
+                } else {
+                    // At some intermediate stage
+                    const prevPathSegment = packet.path[packet.currentStage - 1];
+                    const nextStageX = this.marginX + (packet.currentStage + 1) * this.stageSpacing;
+                    
+                    // Calculate switch based on perfect shuffle pattern
+                    const groupSize = Math.pow(2, this.network.stages - packet.currentStage);
+                    const prevSwitchIndex = prevPathSegment.outSwitch;
+                    const isUpper = prevPathSegment.outPort === 'upper';
+                    
+                    const switchY = this.marginY + prevSwitchIndex * this.switchSpacing;
+                    const inputY = switchY + (isUpper ? 0 : this.switchHeight);
+                    
+                    return {
+                        x: nextStageX - this.switchWidth,
+                        y: inputY
+                    };
+                }
+            }
+        }
+
+        // UI Controller
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('network-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const sizeSelect = document.getElementById('network-size');
+            const sourceInput = document.getElementById('source');
+            const destInput = document.getElementById('destination');
+            const addPacketBtn = document.getElementById('add-packet');
+            const resetBtn = document.getElementById('reset');
+            const stepBtn = document.getElementById('step');
+            const autoRunBtn = document.getElementById('auto-run');
+            const statusDiv = document.getElementById('status');
+            
+            let network = new BanyanNetwork(parseInt(sizeSelect.value));
+            let renderer = new BanyanRenderer(canvas, network);
+            let autoRunInterval = null;
+            
+            // Update input ranges based on network size
+            function updateInputRanges() {
+                const maxIndex = network.inputs - 1;
+                sourceInput.max = maxIndex;
+                destInput.max = maxIndex;
+                
+                if (parseInt(sourceInput.value) > maxIndex) {
+                    sourceInput.value = maxIndex;
+                }
+
+                if (parseInt(destInput.value) > maxIndex) {
+                    destInput.value = maxIndex;
+                }
+            }
+            
+            // Initialize UI
+            function initUI() {
+                renderer.render();
+                updateInputRanges();
+                updateStatus();
+            }
+            
+            // Update status display
+            function updateStatus() {
+                const status = network.getStatus();
+                let statusText = `Stage: ${status.currentStage}/${network.stages} | Packets: ${status.totalPackets} | Completed: ${status.completed}`;
+                
+                if (status.collisions.length > 0) {
+                    statusText += ` | <span class="collision">Collisions: ${status.collisions.length}</span>`;
+                    
+                    // Add collision details
+                    statusText += `<div class="collision">Collision details: `;
+                    status.collisions.forEach((collision, index) => {
+                        statusText += `Stage ${collision.stage}, Switch ${collision.switchIndex} (Packets ${collision.packetIds.join(', ')})`;
+                        if (index < status.collisions.length - 1) {
+                            statusText += ` | `;
+                        }
+                    });
+                    statusText += `</div>`;
+                }
+                
+                statusDiv.innerHTML = statusText;
+            }
+            
+            // Event handlers
+            sizeSelect.addEventListener('change', function() {
+                stopAutoRun();
+                network = new BanyanNetwork(parseInt(this.value));
+                renderer.updateNetwork(network);
+                initUI();
+            });
+            
+            addPacketBtn.addEventListener('click', function() {
+                const source = parseInt(sourceInput.value);
+                const dest = parseInt(destInput.value);
+                
+                if (network.addPacket(source, dest)) {
+                    renderer.render();
+                    updateStatus();
+                } else {
+                    alert('Invalid source or destination');
+                }
+            });
+            
+            resetBtn.addEventListener('click', function() {
+                stopAutoRun();
+                network.reset();
+                renderer.render();
+                updateStatus();
+            });
+            
+            stepBtn.addEventListener('click', function() {
+                if (network.step()) {
+                    renderer.render();
+                    updateStatus();
+                } else {
+                    alert('All packets have reached their destinations or are blocked');
+                }
+            });
+            
+            function stopAutoRun() {
+                if (autoRunInterval) {
+                    clearInterval(autoRunInterval);
+                    autoRunInterval = null;
+                    autoRunBtn.textContent = 'Auto Run';
+                }
+            }
+            
+            autoRunBtn.addEventListener('click', function() {
+                if (autoRunInterval) {
+                    stopAutoRun();
+                } else {
+                    autoRunBtn.textContent = 'Stop';
+                    autoRunInterval = setInterval(function() {
+                        if (!network.step()) {
+                            stopAutoRun();
+                        }
+                        renderer.render();
+                        updateStatus();
+                    }, 1000);
+                }
+            });
+            
+            // Initialize
+            initUI();
+            
+            // Add sample packets for demonstration
+            network.addPacket(0, 3);
+            network.addPacket(2, 7);
+            renderer.render();
+            updateStatus();
+        });
+    </script>
+</body>
+</html>
