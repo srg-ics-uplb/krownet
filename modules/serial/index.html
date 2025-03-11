@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serial Data Transmission Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f0f0f0;
+    }
+    
+    .container {
+      width: 1200px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    
+    .controls {
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .simulation {
+      margin-top: 20px;
+    }
+    
+    canvas {
+      background-color: #eee;
+      display: block;
+      margin: 0 auto;
+    }
+    
+    .bit-inputs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .bit-button {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 2px solid #333;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .bit-0 {
+      background-color: white;
+      color: black;
+    }
+    
+    .bit-1 {
+      background-color: #2196f3;
+      color: white;
+    }
+    
+    .bit-label {
+      text-align: center;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    
+    .info-panel {
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border-left: 4px solid #007bff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Serial Data Transmission Simulation</h1>
+    
+    <div class="bit-inputs">
+      <div>
+        <div id="bit7" class="bit-button bit-1" onclick="toggleBit(7)">1</div>
+        <div class="bit-label">Bit 7</div>
+      </div>
+      <div>
+        <div id="bit6" class="bit-button bit-0" onclick="toggleBit(6)">0</div>
+        <div class="bit-label">Bit 6</div>
+      </div>
+      <div>
+        <div id="bit5" class="bit-button bit-1" onclick="toggleBit(5)">1</div>
+        <div class="bit-label">Bit 5</div>
+      </div>
+      <div>
+        <div id="bit4" class="bit-button bit-0" onclick="toggleBit(4)">0</div>
+        <div class="bit-label">Bit 4</div>
+      </div>
+      <div>
+        <div id="bit3" class="bit-button bit-1" onclick="toggleBit(3)">1</div>
+        <div class="bit-label">Bit 3</div>
+      </div>
+      <div>
+        <div id="bit2" class="bit-button bit-0" onclick="toggleBit(2)">0</div>
+        <div class="bit-label">Bit 2</div>
+      </div>
+      <div>
+        <div id="bit1" class="bit-button bit-1" onclick="toggleBit(1)">1</div>
+        <div class="bit-label">Bit 1</div>
+      </div>
+      <div>
+        <div id="bit0" class="bit-button bit-0" onclick="toggleBit(0)">0</div>
+        <div class="bit-label">Bit 0</div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <button id="startBtn">Start Transmission</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    
+    <div class="simulation">
+      <canvas id="simulationCanvas" width="1100" height="300"></canvas>
+    </div>
+    
+    <div class="info-panel">
+      <h3>Transmission Details:</h3>
+      <p id="transmissionInfo">Ready to transmit. Click the bit buttons above to set your data and click "Start Transmission".</p>
+    </div>
+  </div>
+
+  <script>
+    // Get canvas and context
+    const canvas = document.getElementById('simulationCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Constants
+    const COMPONENT_WIDTH = 120;
+    const COMPONENT_HEIGHT = 80;
+    const LINK_WIDTH = 280;
+    const BIT_SIZE = 20;
+    const BIT_SPACING = 10;
+    const BIT_SPEED = 2; // pixels per frame
+    
+    // Component positions
+    const senderDataBusX = 100;
+    const senderUartX = senderDataBusX + COMPONENT_WIDTH + 80;
+    const linkX = senderUartX + COMPONENT_WIDTH + 20;
+    const receiverUartX = linkX + LINK_WIDTH + 20;
+    const receiverDataBusX = receiverUartX + COMPONENT_WIDTH + 80;
+    const componentY = canvas.height / 2 - COMPONENT_HEIGHT / 2;
+    
+    // Transmission line Y position
+    const lineY = componentY + COMPONENT_HEIGHT / 2;
+    
+    // Animation state
+    let animationFrameId = null;
+    let transmittingBits = [];
+    let receivedBits = [];
+    let currentState = 'idle'; // idle, transmitting, completed
+    
+    // Toggle bit value
+    function toggleBit(index) {
+      if (currentState !== 'idle') return;
+      
+      const bitElement = document.getElementById('bit' + index);
+      const currentValue = bitElement.classList.contains('bit-1') ? 1 : 0;
+      const newValue = currentValue === 1 ? 0 : 1;
+      
+      bitElement.classList.remove('bit-' + currentValue);
+      bitElement.classList.add('bit-' + newValue);
+      bitElement.textContent = newValue;
+    }
+    
+    // Initialize
+    function init() {
+      drawComponents();
+      drawTransmissionLine();
+    }
+    
+    // Draw the components (sender data bus, UARTs, receiver data bus)
+    function drawComponents() {
+      // Draw sender data bus
+      ctx.fillStyle = '#a0d0ff';
+      ctx.fillRect(senderDataBusX, componentY, COMPONENT_WIDTH, COMPONENT_HEIGHT);
+      ctx.strokeRect(senderDataBusX, componentY, COMPONENT_WIDTH, COMPONENT_HEIGHT);
+      
+      ctx.fillStyle = 'black';
+      ctx.textAlign = 'center';
+      ctx.font = '12px Arial';
+      ctx.fillText('Sender Data Bus', senderDataBusX + COMPONENT_WIDTH/2, componentY + COMPONENT_HEIGHT/2);
+      ctx.fillText('(Parallel)', senderDataBusX + COMPONENT_WIDTH/2, componentY + COMPONENT_HEIGHT/2 + 15);
+      
+      // Draw sender UART
+      ctx.fillStyle = '#ffcca0';
+      ctx.fillRect(senderUartX, componentY, COMPONENT_WIDTH, COMPONENT_HEIGHT);
+      ctx.strokeRect(senderUartX, componentY, COMPONENT_WIDTH, COMPONENT_HEIGHT);
+      
+      ctx.fillStyle = 'black';
+      ctx.fillText('Sender UART', senderUartX + COMPONENT_WIDTH/2, componentY + COMPONENT_HEIGHT/2);
+      
+      // Draw link label
+      ctx.fillStyle = 'black';
+      ctx.fillText('Link', linkX + LINK_WIDTH/2, lineY - 15);
+      
+      // Draw receiver UART
+      ctx.fillStyle = '#ffcca0';
+      ctx.fillRect(receiverUartX, componentY, COMPONENT_WIDTH, COMPONENT_HEIGHT);
+      ctx.strokeRect(receiverUartX, componentY, COMPONENT_WIDTH, COMPONENT_HEIGHT);
+      
+      ctx.fillStyle = 'black';
+      ctx.fillText('Receiver UART', receiverUartX + COMPONENT_WIDTH/2, componentY + COMPONENT_HEIGHT/2);
+      
+      // Draw receiver data bus
+      ctx.fillStyle = '#a0d0ff';
+      ctx.fillRect(receiverDataBusX, componentY, COMPONENT_WIDTH, COMPONENT_HEIGHT);
+      ctx.strokeRect(receiverDataBusX, componentY, COMPONENT_WIDTH, COMPONENT_HEIGHT);
+      
+      ctx.fillStyle = 'black';
+      ctx.fillText('Receiver Data Bus', receiverDataBusX + COMPONENT_WIDTH/2, componentY + COMPONENT_HEIGHT/2);
+      ctx.fillText('(Parallel)', receiverDataBusX + COMPONENT_WIDTH/2, componentY + COMPONENT_HEIGHT/2 + 15);
+    }
+    
+    // Draw the transmission line connecting components
+    function drawTransmissionLine() {
+      ctx.beginPath();
+      ctx.moveTo(senderDataBusX + COMPONENT_WIDTH, lineY);
+      ctx.lineTo(senderUartX, lineY);
+      ctx.moveTo(senderUartX + COMPONENT_WIDTH, lineY);
+      ctx.lineTo(receiverUartX, lineY);
+      ctx.moveTo(receiverUartX + COMPONENT_WIDTH, lineY);
+      ctx.lineTo(receiverDataBusX, lineY);
+      ctx.strokeStyle = 'black';
+      ctx.stroke();
+      
+      // Draw arrow for the link
+      drawArrow(linkX + LINK_WIDTH/2 - 30, lineY, linkX + LINK_WIDTH/2 + 30, lineY);
+    }
+    
+    // Helper function to draw an arrow
+    function drawArrow(fromX, fromY, toX, toY) {
+      const headLength = 10;
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.lineTo(toX - headLength * Math.cos(angle - Math.PI/6), toY - headLength * Math.sin(angle - Math.PI/6));
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - headLength * Math.cos(angle + Math.PI/6), toY - headLength * Math.sin(angle + Math.PI/6));
+      ctx.strokeStyle = 'black';
+      ctx.stroke();
+    }
+    
+    // Draw a bit (0 or 1)
+    function drawBit(x, y, value, type = 'data') {
+      ctx.beginPath();
+      ctx.arc(x, y, BIT_SIZE/2, 0, Math.PI * 2);
+      
+      // Different colors for different bit types
+      if (type === 'start') {
+        ctx.fillStyle = '#4caf50'; // green for start bit
+      } else if (type === 'stop') {
+        ctx.fillStyle = '#f44336'; // red for stop bit
+      } else if (type === 'parity') {
+        ctx.fillStyle = '#9c27b0'; // purple for parity bit
+      } else {
+        ctx.fillStyle = value ? '#2196f3' : '#fff'; // blue for 1, white for 0
+      }
+      
+      ctx.fill();
+      ctx.stroke();
+      
+      ctx.fillStyle = 'black';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      if (type === 'start') {
+        ctx.fillText('S', x, y);
+      } else if (type === 'stop') {
+        ctx.fillText('P', x, y);
+      } else if (type === 'parity') {
+        ctx.fillText('P', x, y);
+      } else {
+        ctx.fillText(value ? '1' : '0', x, y);
+      }
+    }
+    
+    // Draw parallel data bits
+    function drawParallelBits(x, bits) {
+      const startY = componentY - 50;
+      const bitsPerRow = 8;
+      
+      for (let i = 0; i < bits.length; i++) {
+        const bitX = x + COMPONENT_WIDTH/2 - ((bitsPerRow / 2) * (BIT_SIZE + BIT_SPACING)) + (i % bitsPerRow) * (BIT_SIZE + BIT_SPACING);
+        const bitY = startY + Math.floor(i / bitsPerRow) * (BIT_SIZE + BIT_SPACING);
+        drawBit(bitX, bitY, bits[i]);
+        
+        // Draw connection line to component
+        if (x === senderDataBusX) {
+          ctx.beginPath();
+          ctx.moveTo(bitX, bitY + BIT_SIZE/2);
+          ctx.lineTo(bitX, componentY);
+          ctx.stroke();
+        }
+      }
+    }
+    
+    // Calculate parity bit (even parity)
+    function calculateParity(bits) {
+      const sum = bits.reduce((total, bit) => total + bit, 0);
+      return sum % 2 === 0 ? 0 : 1; // Even parity
+    }
+    
+    // Start the transmission
+    function startTransmission() {
+      if (currentState !== 'idle') return;
+      
+      currentState = 'transmitting';
+      document.getElementById('startBtn').disabled = true;
+      
+      // Get bits from bit buttons
+      const dataBits = [];
+      for (let i = 7; i >= 0; i--) {
+        const bitElement = document.getElementById('bit' + i);
+        dataBits.push(bitElement.classList.contains('bit-1') ? 1 : 0);
+      }
+      
+      // Display in info panel
+      const binaryString = dataBits.join('');
+      const decimalValue = parseInt(binaryString, 2);
+      document.getElementById('transmissionInfo').innerHTML = 
+        `Transmitting: ${binaryString} (Decimal: ${decimalValue})<br>` +
+        `Frame format: 1 start bit (0), 8 data bits, 1 parity bit (even parity), 1 stop bit (1)`;
+      
+      // Show parallel data bits at sender
+      drawParallelBits(senderDataBusX, dataBits);
+      
+      // Create transmission bits (start bit + data bits + parity bit + stop bit)
+      const startBit = { value: 0, x: senderUartX + COMPONENT_WIDTH, y: lineY, type: 'start' };
+      const parityBit = { value: calculateParity(dataBits), x: senderUartX + COMPONENT_WIDTH, y: lineY, type: 'parity' };
+      const stopBit = { value: 1, x: senderUartX + COMPONENT_WIDTH, y: lineY, type: 'stop' };
+      
+      // Add start bit first
+      transmittingBits.push(startBit);
+      
+      // Add data bits
+      for (let i = 0; i < dataBits.length; i++) {
+        transmittingBits.push({
+          value: dataBits[i],
+          x: senderUartX + COMPONENT_WIDTH,
+          y: lineY,
+          type: 'data'
+        });
+      }
+      
+      // Add parity and stop bits
+      transmittingBits.push(parityBit);
+      transmittingBits.push(stopBit);
+      
+      // Start animation
+      if (!animationFrameId) {
+        animate();
+      }
+    }
+    
+    // Animation loop
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw components and transmission line
+      drawComponents();
+      drawTransmissionLine();
+      
+      // Draw bits at sender data bus if we're transmitting
+      if (currentState === 'transmitting' || currentState === 'completed') {
+        const dataBits = [];
+        for (let i = 7; i >= 0; i--) {
+          const bitElement = document.getElementById('bit' + i);
+          dataBits.push(bitElement.classList.contains('bit-1') ? 1 : 0);
+        }
+        drawParallelBits(senderDataBusX, dataBits);
+      }
+      
+      // Draw received bits at receiver data bus
+      if (receivedBits.length > 0) {
+        const dataOnlyBits = receivedBits.filter(bit => bit.type === 'data').map(bit => bit.value);
+        drawParallelBits(receiverDataBusX, dataOnlyBits);
+      }
+      
+      // Update and draw transmitting bits
+      let allBitsDelivered = true;
+      
+      for (let i = 0; i < transmittingBits.length; i++) {
+        const bit = transmittingBits[i];
+        
+        // Only move if previous bit has advanced enough or it's the first bit
+        const shouldMove = i === 0 || 
+                          (transmittingBits[i-1].x >= (senderUartX + COMPONENT_WIDTH + (i * (BIT_SIZE + 10))));
+        
+        if (shouldMove && bit.x < receiverUartX) {
+          bit.x += BIT_SPEED;
+          allBitsDelivered = false;
+        }
+        
+        // If bit reaches receiver UART, add to received bits
+        if (bit.x >= receiverUartX && !bit.received) {
+          bit.received = true;
+          receivedBits.push({...bit});
+          
+          // If all bits are received, update received bits at receiver data bus
+          if (i === transmittingBits.length - 1) {
+            // Update info panel when transmission completes
+            const dataOnlyBits = receivedBits.filter(b => b.type === 'data').map(b => b.value);
+            const binaryString = dataOnlyBits.join('');
+            const decimalValue = parseInt(binaryString, 2);
+            const parityBit = receivedBits.find(b => b.type === 'parity').value;
+            const calculatedParity = calculateParity(dataOnlyBits);
+            const parityCheck = parityBit === calculatedParity ? 'Valid' : 'Error';
+            
+            document.getElementById('transmissionInfo').innerHTML += 
+              `<br>Reception complete! Received: ${binaryString} (Decimal: ${decimalValue})<br>` +
+              `Parity check: ${parityCheck}`;
+              
+            currentState = 'completed';
+            document.getElementById('startBtn').disabled = false;
+          }
+        }
+        
+        // Draw the bit
+        drawBit(bit.x, bit.y, bit.value, bit.type);
+      }
+      
+      if (!allBitsDelivered) {
+        animationFrameId = requestAnimationFrame(animate);
+      } else {
+        animationFrameId = null;
+      }
+    }
+    
+    // Reset the simulation
+    function resetSimulation() {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      
+      transmittingBits = [];
+      receivedBits = [];
+      currentState = 'idle';
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('transmissionInfo').textContent = 'Ready to transmit. Click the bit buttons above to set your data and click "Start Transmission".';
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      init();
+    }
+    
+    // Event listeners
+    document.getElementById('startBtn').addEventListener('click', startTransmission);
+    document.getElementById('resetBtn').addEventListener('click', resetSimulation);
+    
+    // Initialize on load
+    window.onload = init;
+  </script>
+</body>
+</html>
