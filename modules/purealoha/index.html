@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pure ALOHA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .network {
+            display: flex;
+            margin: 30px 0;
+            position: relative;
+        }
+        .senders {
+            width: 20%;
+        }
+        .medium {
+            width: 60%;
+            background-color: #e6f7ff;
+            border-radius: 8px;
+            padding: 10px;
+            position: relative;
+            height: 300px;
+            overflow: hidden;
+        }
+        .receiver {
+            width: 20%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .sender {
+            margin: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .sender.active {
+            background-color: #bae7ff;
+        }
+        .sender.collision {
+            background-color: #ffccc7;
+        }
+        .sender-status {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .packet {
+            position: absolute;
+            height: 10px;
+            background-color: #1890ff;
+            border-radius: 2px;
+            transition: transform 2s linear;
+        }
+        .packet.collision {
+            background-color: #ff4d4f;
+        }
+        .channel {
+            height: 4px;
+            background-color: #d9d9d9;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #096dd9;
+        }
+        button:disabled {
+            background-color: #d9d9d9;
+            cursor: not-allowed;
+        }
+        .log-container {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .stat-box {
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            min-width: 120px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .medium-label {
+            text-align: center;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .receiver-icon {
+            width: 50px;
+            height: 50px;
+            background-color: #52c41a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        .receiver-icon.collision {
+            background-color: #ff4d4f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pure ALOHA</h1>
+        
+        <div class="controls">
+            <button id="start-btn">Start Simulation</button>
+            <button id="stop-btn" disabled>Stop Simulation</button>
+            <button id="reset-btn">Reset</button>
+            <div>
+                <label for="lambda">λ (packets/time unit): </label>
+                <input type="number" id="lambda" min="0.1" max="10" step="0.1" value="0.5">
+            </div>
+        </div>
+        
+        <div class="network">
+            <div class="senders">
+                <div class="sender" id="sender-1">
+                    Sender 1
+                    <div class="sender-status" id="status-1">Idle</div>
+                </div>
+                <div class="sender" id="sender-2">
+                    Sender 2
+                    <div class="sender-status" id="status-2">Idle</div>
+                </div>
+                <div class="sender" id="sender-3">
+                    Sender 3
+                    <div class="sender-status" id="status-3">Idle</div>
+                </div>
+                <div class="sender" id="sender-4">
+                    Sender 4
+                    <div class="sender-status" id="status-4">Idle</div>
+                </div>
+            </div>
+            
+            <div class="medium">
+                <div class="medium-label">Transmission Medium</div>
+                <div class="channel"></div>
+                <!-- Packets will be added here dynamically -->
+            </div>
+            
+            <div class="receiver">
+                <div class="receiver-icon" id="receiver-icon">R</div>
+                <div>Receiver</div>
+                <div id="receiver-status">Idle</div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div>Total Packets</div>
+                <div class="stat-value" id="total-packets">0</div>
+            </div>
+            <div class="stat-box">
+                <div>Successful</div>
+                <div class="stat-value" id="successful-packets">0</div>
+            </div>
+            <div class="stat-box">
+                <div>Collisions</div>
+                <div class="stat-value" id="collision-packets">0</div>
+            </div>
+            <div class="stat-box">
+                <div>Throughput</div>
+                <div class="stat-value" id="throughput">0%</div>
+            </div>
+        </div>
+        
+        <div class="log-container" id="log">
+            <div class="log-entry">Pure ALOHA simulation initialized.</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const PACKET_DURATION = 1; // Time units
+        const PROPAGATION_DELAY = 0.1; // Time units
+        const TIME_UNIT = 2000; // milliseconds in simulation
+        
+        // State variables
+        let running = false;
+        let packets = [];
+        let senders = [1, 2, 3, 4].map(id => ({
+            id,
+            status: 'idle',
+            nextTransmissionTime: null,
+            backoff: 0
+        }));
+        let stats = {
+            totalPackets: 0,
+            successfulPackets: 0,
+            collisionPackets: 0
+        };
+        let simulationTime = 0;
+        let simulationInterval;
+        
+        // DOM elements
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const lambdaInput = document.getElementById('lambda');
+        const logElement = document.getElementById('log');
+        const medium = document.querySelector('.medium');
+        const receiverIcon = document.getElementById('receiver-icon');
+        const receiverStatus = document.getElementById('receiver-status');
+        
+        // Event listeners
+        startBtn.addEventListener('click', startSimulation);
+        stopBtn.addEventListener('click', stopSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+        
+        // Utility functions
+        function log(message) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${simulationTime.toFixed(2)}] ${message}`;
+            logElement.appendChild(entry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function updateSenderUI(sender) {
+            const senderElement = document.getElementById(`sender-${sender.id}`);
+            const statusElement = document.getElementById(`status-${sender.id}`);
+            
+            senderElement.className = 'sender';
+            if (sender.status === 'transmitting') {
+                senderElement.classList.add('active');
+            } else if (sender.status === 'collision') {
+                senderElement.classList.add('collision');
+            }
+            
+            statusElement.textContent = sender.status.charAt(0).toUpperCase() + sender.status.slice(1);
+            if (sender.backoff > 0) {
+                statusElement.textContent += ` (backoff: ${sender.backoff.toFixed(1)})`;
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('total-packets').textContent = stats.totalPackets;
+            document.getElementById('successful-packets').textContent = stats.successfulPackets;
+            document.getElementById('collision-packets').textContent = stats.collisionPackets;
+            
+            const throughput = stats.totalPackets > 0 
+                ? (stats.successfulPackets / stats.totalPackets * 100).toFixed(1) 
+                : '0';
+            document.getElementById('throughput').textContent = `${throughput}%`;
+        }
+        
+        function createPacket(senderId, startTime) {
+            const id = `packet-${senderId}-${startTime}`;
+            const packetElement = document.createElement('div');
+            packetElement.id = id;
+            packetElement.className = 'packet';
+            packetElement.style.width = `${PACKET_DURATION * 100}px`;
+            packetElement.style.left = '0';
+            packetElement.style.top = `${(senderId - 1) * 60 + 50}px`;
+            medium.appendChild(packetElement);
+            
+            const packet = {
+                id,
+                senderId,
+                startTime,
+                endTime: startTime + PACKET_DURATION,
+                element: packetElement,
+                hasCollision: false
+            };
+            
+            // Animate the packet
+            setTimeout(() => {
+                packetElement.style.transform = 'translateX(540px)';
+            }, 10);
+            
+            return packet;
+        }
+        
+        function checkCollisions() {
+            // Mark packets that overlap in time
+            for (let i = 0; i < packets.length; i++) {
+                for (let j = i + 1; j < packets.length; j++) {
+                    const a = packets[i];
+                    const b = packets[j];
+                    
+                    // Check if packets overlap in time
+                    if (!(a.endTime <= b.startTime || a.startTime >= b.endTime)) {
+                        a.hasCollision = true;
+                        b.hasCollision = true;
+                        
+                        // Update UI
+                        a.element.classList.add('collision');
+                        b.element.classList.add('collision');
+                        
+                        // Update sender status
+                        const senderA = senders.find(s => s.id === a.senderId);
+                        const senderB = senders.find(s => s.id === b.senderId);
+                        
+                        if (senderA.status === 'transmitting') {
+                            senderA.status = 'collision';
+                            updateSenderUI(senderA);
+                        }
+                        
+                        if (senderB.status === 'transmitting') {
+                            senderB.status = 'collision';
+                            updateSenderUI(senderB);
+                        }
+                        
+                        // Log collision
+                        log(`Collision detected between Sender ${a.senderId} and Sender ${b.senderId}`);
+                    }
+                }
+            }
+            
+            // Update receiver status
+            let activePackets = packets.filter(p => 
+                simulationTime >= p.startTime + PROPAGATION_DELAY && 
+                simulationTime <= p.endTime + PROPAGATION_DELAY
+            );
+            
+            if (activePackets.length > 0) {
+                let hasCollision = activePackets.some(p => p.hasCollision);
+                receiverIcon.className = `receiver-icon ${hasCollision ? 'collision' : ''}`;
+                receiverStatus.textContent = hasCollision ? 'Collision Detected' : 'Receiving';
+            } else {
+                receiverIcon.className = 'receiver-icon';
+                receiverStatus.textContent = 'Idle';
+            }
+        }
+        
+        function cleanupCompletedPackets() {
+            // Remove completed packets from the array and DOM
+            const completedPackets = packets.filter(p => simulationTime > p.endTime + PROPAGATION_DELAY + 0.2);
+            
+            for (const packet of completedPackets) {
+                // Update stats
+                stats.totalPackets++;
+                if (packet.hasCollision) {
+                    stats.collisionPackets++;
+                } else {
+                    stats.successfulPackets++;
+                    log(`Packet from Sender ${packet.senderId} successfully received`);
+                }
+                
+                // Remove the element
+                if (packet.element && packet.element.parentNode) {
+                    packet.element.parentNode.removeChild(packet.element);
+                }
+                
+                // Update UI
+                updateStats();
+            }
+            
+            // Filter out completed packets
+            packets = packets.filter(p => simulationTime <= p.endTime + PROPAGATION_DELAY + 0.2);
+        }
+        
+        function scheduleNextTransmission(sender) {
+            // If the sender had a collision, apply exponential backoff
+            if (sender.status === 'collision') {
+                sender.backoff = Math.min(sender.backoff * 2 + Math.random(), 10);
+                if (sender.backoff === 0) {
+                    sender.backoff = 1;
+                }
+            } else {
+                sender.backoff = 0;
+            }
+            
+            // Calculate next transmission time based on Poisson process
+            const lambda = parseFloat(lambdaInput.value);
+            const nextInterval = -Math.log(Math.random()) / lambda;
+            sender.nextTransmissionTime = simulationTime + nextInterval + sender.backoff;
+            
+            // Reset status
+            sender.status = 'idle';
+            updateSenderUI(sender);
+        }
+        
+        function simulationStep() {
+            simulationTime += 0.1;
+            
+            // Check if any sender should start transmitting
+            for (const sender of senders) {
+                if (sender.status === 'idle' && sender.nextTransmissionTime !== null && simulationTime >= sender.nextTransmissionTime) {
+                    // Start transmission
+                    sender.status = 'transmitting';
+                    log(`Sender ${sender.id} starts transmitting`);
+                    updateSenderUI(sender);
+                    
+                    // Create a new packet
+                    const packet = createPacket(sender.id, simulationTime);
+                    packets.push(packet);
+                    
+                    // Schedule next transmission
+                    scheduleNextTransmission(sender);
+                }
+            }
+            
+            // Check for collisions
+            checkCollisions();
+            
+            // Cleanup completed packets
+            cleanupCompletedPackets();
+        }
+        
+        function startSimulation() {
+            if (running) return;
+            running = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            log('Simulation started');
+            
+            // Initialize sender transmission times
+            for (const sender of senders) {
+                scheduleNextTransmission(sender);
+            }
+            
+            // Start simulation loop
+            simulationInterval = setInterval(simulationStep, TIME_UNIT / 10);
+        }
+        
+        function stopSimulation() {
+            if (!running) return;
+            running = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            clearInterval(simulationInterval);
+            log('Simulation paused');
+        }
+        
+        function resetSimulation() {
+            stopSimulation();
+            
+            // Clear packets
+            packets.forEach(packet => {
+                if (packet.element && packet.element.parentNode) {
+                    packet.element.parentNode.removeChild(packet.element);
+                }
+            });
+            packets = [];
+            
+            // Reset senders
+            senders.forEach(sender => {
+                sender.status = 'idle';
+                sender.nextTransmissionTime = null;
+                sender.backoff = 0;
+                updateSenderUI(sender);
+            });
+            
+            // Reset stats
+            stats.totalPackets = 0;
+            stats.successfulPackets = 0;
+            stats.collisionPackets = 0;
+            updateStats();
+            
+            // Reset simulation time
+            simulationTime = 0;
+            
+            // Reset receiver
+            receiverIcon.className = 'receiver-icon';
+            receiverStatus.textContent = 'Idle';
+            
+            // Clear log
+            logElement.innerHTML = '<div class="log-entry">Simulation reset.</div>';
+        }
+        
+        // Initialize the simulation
+        resetSimulation();
+    </script>
+</body>
+</html>
