@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrier Sense Multiple Access with Collision Detection (CSMA/CD)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .network {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 40px 0;
+            position: relative;
+        }
+        
+        .bus-line {
+            width: 80%;
+            height: 10px;
+            background-color: #555;
+            position: relative;
+            margin: 40px 0;
+            border-radius: 5px;
+        }
+        
+        .bus-terminator {
+            width: 8px;
+            height: 20px;
+            background-color: #222;
+            position: absolute;
+            top: -5px;
+            border-radius: 2px;
+        }
+        
+        .bus-terminator.left {
+            left: -4px;
+        }
+        
+        .bus-terminator.right {
+            right: -4px;
+        }
+        
+        .stations-container {
+            display: flex;
+            width: 80%;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .station {
+            width: 90px;
+            height: 80px;
+            border-radius: 8px;
+            border: 2px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #fff;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .connector {
+            width: 3px;
+            height: 40px;
+            background-color: #555;
+            position: absolute;
+            bottom: -40px;
+        }
+        
+        .station.sending {
+            background-color: #a8e6cf;
+            box-shadow: 0 0 10px rgba(0,200,0,0.5);
+        }
+        
+        .station.collision {
+            background-color: #ffb2b2;
+            box-shadow: 0 0 10px rgba(255,0,0,0.5);
+        }
+        
+        .station.waiting {
+            background-color: #ffd3b6;
+        }
+        
+        .station-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .status {
+            font-size: 12px;
+            text-align: center;
+            height: 30px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .packet {
+            position: absolute;
+            width: 25px;
+            height: 8px;
+            background-color: #4CAF50;
+            top: 1px;
+            border-radius: 2px;
+            z-index: 1;
+            transition: left 0.1s linear;
+        }
+        
+        .packet.jamming {
+            background-color: #f44336;
+            animation: blink 0.3s infinite;
+        }
+        
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .log-container {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .log-entry.collision {
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        .log-entry.success {
+            color: #4CAF50;
+        }
+        
+        .settings {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .setting {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .setting label {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .setting input, .setting select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .legend {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 3px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Carrier Sense Multiple Access with Collision Detection (CSMA/CD)</h1>
+        
+        <div class="settings">
+            <div class="setting">
+                <label for="propagation-delay">Propagation Delay (ms):</label>
+                <input type="number" id="propagation-delay" min="100" max="2000" value="800">
+            </div>
+            <div class="setting">
+                <label for="transmission-time">Transmission Time (ms):</label>
+                <input type="number" id="transmission-time" min="500" max="5000" value="2000">
+            </div>
+            <div class="setting">
+                <label for="kmax">Kmax:</label>
+                <input type="number" id="kmax" min="1" max="15" value="15" readonly>
+            </div>
+        </div>
+        
+        <div class="network" id="network">
+            <div class="stations-container">
+                <div class="station" id="station1" onclick="sendPacket(1)">
+                    <div class="station-name">Station 1</div>
+                    <div class="status" id="status1">Idle</div>
+                    <div class="connector"></div>
+                </div>
+                <div class="station" id="station2" onclick="sendPacket(2)">
+                    <div class="station-name">Station 2</div>
+                    <div class="status" id="status2">Idle</div>
+                    <div class="connector"></div>
+                </div>
+                <div class="station" id="station3" onclick="sendPacket(3)">
+                    <div class="station-name">Station 3</div>
+                    <div class="status" id="status3">Idle</div>
+                    <div class="connector"></div>
+                </div>
+                <div class="station" id="station4" onclick="sendPacket(4)">
+                    <div class="station-name">Station 4</div>
+                    <div class="status" id="status4">Idle</div>
+                    <div class="connector"></div>
+                </div>
+            </div>
+            <div class="bus-line" id="bus-line">
+                <div class="bus-terminator left"></div>
+                <div class="bus-terminator right"></div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fff;"></div>
+                <span>Idle</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #a8e6cf;"></div>
+                <span>Sending</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffb2b2;"></div>
+                <span>Collision</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffd3b6;"></div>
+                <span>Waiting (Backoff)</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="reset-btn" onclick="resetSimulation()">Reset Simulation</button>
+            <button id="auto-btn" onclick="toggleAutoMode()">Start Auto Mode</button>
+        </div>
+        
+        <div class="log-container" id="log-container">
+            <div class="log-entry">Click on a station to send a packet. If two stations send simultaneously, a collision will occur.</div>
+        </div>
+    </div>
+    
+    <script>
+        // Simulation parameters
+        const KMAX = 15;
+        const SLOT_TIME = 100; // ms
+        
+        // Simulation state
+        let autoMode = false;
+        let simulationRunning = false;
+        let packets = [];
+        let stationState = {
+            1: { status: 'idle', collisions: 0, backoffTime: 0, timeoutId: null },
+            2: { status: 'idle', collisions: 0, backoffTime: 0, timeoutId: null },
+            3: { status: 'idle', collisions: 0, backoffTime: 0, timeoutId: null },
+            4: { status: 'idle', collisions: 0, backoffTime: 0, timeoutId: null }
+        };
+        
+        // DOM elements
+        const busLine = document.getElementById('bus-line');
+        const logContainer = document.getElementById('log-container');
+        
+        // Station positions on the bus (in percentage)
+        const stationPositions = {
+            1: 10,
+            2: 36,
+            3: 63,
+            4: 90
+        };
+        
+        function getNetworkParameters() {
+            return {
+                propagationDelay: parseInt(document.getElementById('propagation-delay').value),
+                transmissionTime: parseInt(document.getElementById('transmission-time').value)
+            };
+        }
+        
+        function sendPacket(stationId) {
+            if (stationState[stationId].status !== 'idle') {
+                return; // Station is already active
+            }
+            
+            const params = getNetworkParameters();
+            
+            // Create and add packet to the medium
+            const packet = {
+                id: `packet-${stationId}-${Date.now()}`,
+                stationId: stationId,
+                position: stationPositions[stationId], // starting position on bus (%)
+                direction: 'both', // for bus topology, packets propagate in both directions
+                leftHead: stationPositions[stationId],
+                rightHead: stationPositions[stationId],
+                element: document.createElement('div')
+            };
+            
+            packet.element.className = 'packet';
+            packet.element.id = packet.id;
+            packet.element.style.left = `${packet.position}%`;
+            busLine.appendChild(packet.element);
+            packets.push(packet);
+            
+            // Update station state
+            stationState[stationId].status = 'sending';
+            updateStationUI(stationId);
+            
+            // Log the event
+            addLogEntry(`Station ${stationId} starts transmitting a packet`);
+            
+            // Setup transmission success after transmissionTime if no collision
+            stationState[stationId].timeoutId = setTimeout(() => {
+                if (stationState[stationId].status === 'sending') {
+                    // Successful transmission
+                    stationState[stationId].status = 'idle';
+                    stationState[stationId].collisions = 0;
+                    updateStationUI(stationId);
+                    removePacket(packet.id);
+                    addLogEntry(`Station ${stationId} successfully transmitted a packet`, 'success');
+                }
+            }, params.transmissionTime);
+            
+            // Start moving the packet
+            movePackets();
+        }
+        
+        function movePackets() {
+            if (packets.length === 0) return;
+            
+            const params = getNetworkParameters();
+            const moveInterval = 20; // Update packet position every 20ms
+            const stepSize = 100 / (params.propagationDelay / moveInterval); // Movement speed based on propagation delay
+            
+            // Check for collisions
+            checkCollisions();
+            
+            // Move each packet
+            packets.forEach(packet => {
+                // In bus topology, the packet propagates in both directions from source
+                if (packet.direction === 'both') {
+                    // Move left head
+                    packet.leftHead = Math.max(0, packet.leftHead - stepSize);
+                    
+                    // Move right head
+                    packet.rightHead = Math.min(100, packet.rightHead + stepSize);
+                    
+                    // Visualize the packet (use the rightHead position for visualization)
+                    // In a more complex simulation, we would visualize both heads
+                    packet.element.style.left = `${packet.leftHead}%`;
+                    
+                    // Create a second packet element for the right propagation if it doesn't exist
+                    if (!packet.rightElement && packet.leftHead !== packet.rightHead) {
+                        packet.rightElement = document.createElement('div');
+                        packet.rightElement.className = 'packet';
+                        packet.rightElement.id = `${packet.id}-right`;
+                        busLine.appendChild(packet.rightElement);
+                    }
+                    
+                    // Update right element position
+                    if (packet.rightElement) {
+                        packet.rightElement.style.left = `${packet.rightHead}%`;
+                    }
+                }
+            });
+            
+            // Continue moving packets
+            setTimeout(movePackets, moveInterval);
+        }
+        
+        function checkCollisions() {
+            if (packets.length < 2) return;
+            
+            // Check if packets are overlapping
+            let collision = false;
+            const collidedStations = new Set();
+            
+            // For bus topology, packets collide if their propagation areas overlap
+            for (let i = 0; i < packets.length; i++) {
+                for (let j = i + 1; j < packets.length; j++) {
+                    const p1 = packets[i];
+                    const p2 = packets[j];
+                    
+                    // Check if propagation regions overlap
+                    const p1LeftEdge = Math.min(p1.leftHead, p1.rightHead);
+                    const p1RightEdge = Math.max(p1.leftHead, p1.rightHead);
+                    const p2LeftEdge = Math.min(p2.leftHead, p2.rightHead);
+                    const p2RightEdge = Math.max(p2.leftHead, p2.rightHead);
+                    
+                    // Calculate collision (if propagation areas overlap)
+                    if (!(p1RightEdge < p2LeftEdge || p1LeftEdge > p2RightEdge)) {
+                        // Mark packets as collided
+                        p1.element.classList.add('jamming');
+                        if (p1.rightElement) p1.rightElement.classList.add('jamming');
+                        p2.element.classList.add('jamming');
+                        if (p2.rightElement) p2.rightElement.classList.add('jamming');
+                        
+                        // Add stations to collision set
+                        collidedStations.add(p1.stationId);
+                        collidedStations.add(p2.stationId);
+                        
+                        collision = true;
+                    }
+                }
+            }
+            
+            // If we have a new collision, handle it
+            if (collision && collidedStations.size >= 2) {
+                const stationIds = Array.from(collidedStations);
+                // Check if stations are both in sending state (not already handled)
+                if (stationIds.every(id => stationState[id].status === 'sending')) {
+                    handleCollision(stationIds);
+                }
+            }
+            
+            return collision;
+        }
+        
+        function handleCollision(stationIds) {
+            addLogEntry(`COLLISION detected between Stations ${stationIds.join(', ')}!`, 'collision');
+            
+            // Update states for all collided stations
+            stationIds.forEach(stationId => {
+                // Clear transmission timeout
+                clearTimeout(stationState[stationId].timeoutId);
+                
+                // Update collision count
+                stationState[stationId].collisions++;
+                
+                // Calculate backoff time
+                const k = Math.min(stationState[stationId].collisions, KMAX);
+                const r = Math.floor(Math.random() * Math.pow(2, k));
+                const backoffTime = r * SLOT_TIME;
+                
+                stationState[stationId].backoffTime = backoffTime;
+                stationState[stationId].status = 'waiting';
+                
+                // Update UI
+                updateStationUI(stationId);
+                
+                // Log backoff information
+                addLogEntry(`Station ${stationId} backing off for ${backoffTime}ms (attempt ${stationState[stationId].collisions})`);
+                
+                // Schedule retransmission
+                stationState[stationId].timeoutId = setTimeout(() => {
+                    if (stationState[stationId].status === 'waiting') {
+                        // Retry transmission
+                        stationState[stationId].status = 'idle';
+                        updateStationUI(stationId);
+                        addLogEntry(`Station ${stationId} retry after backoff`);
+                        
+                        // Auto resend
+                        if (autoMode) {
+                            setTimeout(() => sendPacket(stationId), 10);
+                        }
+                    }
+                }, backoffTime);
+            });
+            
+            // Remove all packets involved in the collision
+            removeAllPackets();
+        }
+        
+        function removePacket(packetId) {
+            packets = packets.filter(packet => {
+                if (packet.id === packetId) {
+                    if (packet.element.parentNode) {
+                        packet.element.parentNode.removeChild(packet.element);
+                    }
+                    if (packet.rightElement && packet.rightElement.parentNode) {
+                        packet.rightElement.parentNode.removeChild(packet.rightElement);
+                    }
+                    return false;
+                }
+                return true;
+            });
+        }
+        
+        function removeAllPackets() {
+            packets.forEach(packet => {
+                if (packet.element.parentNode) {
+                    packet.element.parentNode.removeChild(packet.element);
+                }
+                if (packet.rightElement && packet.rightElement.parentNode) {
+                    packet.rightElement.parentNode.removeChild(packet.rightElement);
+                }
+            });
+            packets = [];
+        }
+        
+        function updateStationUI(stationId) {
+            const stationElement = document.getElementById(`station${stationId}`);
+            const statusElement = document.getElementById(`status${stationId}`);
+            
+            stationElement.className = 'station';
+            
+            switch (stationState[stationId].status) {
+                case 'idle':
+                    statusElement.textContent = 'Idle';
+                    break;
+                case 'sending':
+                    stationElement.classList.add('sending');
+                    statusElement.textContent = 'Sending';
+                    break;
+                case 'waiting':
+                    stationElement.classList.add('waiting');
+                    statusElement.textContent = `Waiting (${stationState[stationId].backoffTime}ms)`;
+                    break;
+                case 'collision':
+                    stationElement.classList.add('collision');
+                    statusElement.textContent = 'Collision!';
+                    break;
+            }
+        }
+        
+        function addLogEntry(message, type = '') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Keep only the last 50 messages
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+        
+        function resetSimulation() {
+            // Clear all timeouts
+            Object.keys(stationState).forEach(stationId => {
+                clearTimeout(stationState[stationId].timeoutId);
+                stationState[stationId] = { 
+                    status: 'idle', 
+                    collisions: 0, 
+                    backoffTime: 0, 
+                    timeoutId: null 
+                };
+                updateStationUI(stationId);
+            });
+            
+            // Remove all packets
+            removeAllPackets();
+            
+            // Clear log
+            logContainer.innerHTML = '';
+            addLogEntry('Simulation reset. Click on a station to send a packet.');
+            
+            // Reset auto mode
+            autoMode = false;
+            document.getElementById('auto-btn').textContent = 'Start Auto Mode';
+            
+            simulationRunning = false;
+        }
+        
+        function toggleAutoMode() {
+            autoMode = !autoMode;
+            document.getElementById('auto-btn').textContent = autoMode ? 'Stop Auto Mode' : 'Start Auto Mode';
+            
+            if (autoMode && !simulationRunning) {
+                simulationRunning = true;
+                runAutoMode();
+            }
+        }
+        
+        function runAutoMode() {
+            if (!autoMode) return;
+            
+            // Randomly choose a station to send
+            const activeStations = Object.keys(stationState).filter(
+                id => stationState[id].status === 'idle'
+            );
+            
+            if (activeStations.length > 0) {
+                // Randomly select 1 or 2 stations to send simultaneously
+                const numStationsToActivate = Math.min(
+                    activeStations.length, 
+                    Math.random() < 0.4 ? 2 : 1
+                );
+                
+                // Shuffle and take the first 1 or 2 stations
+                const shuffled = activeStations.sort(() => 0.5 - Math.random());
+                const stationsToActivate = shuffled.slice(0, numStationsToActivate);
+                
+                // Activate the selected stations
+                stationsToActivate.forEach(stationId => {
+                    sendPacket(parseInt(stationId));
+                });
+            }
+            
+            // Schedule next auto mode action
+            setTimeout(runAutoMode, 1000 + Math.random() * 2000);
+        }
+        
+        // Initialize the simulation
+        resetSimulation();
+    </script>
+</body>
+</html>
