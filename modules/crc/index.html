@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRC Encoding and Decoding </title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+        }
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .process-section {
+            margin-top: 30px;
+        }
+        .process-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .animation-area {
+            font-family: monospace;
+            font-size: 18px;
+            line-height: 1.8;
+            white-space: pre;
+            overflow-x: auto;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .animation-step {
+            margin-bottom: 15px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .animation-step.visible {
+            opacity: 1;
+        }
+        .bit {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            line-height: 30px;
+            margin: 0 2px;
+            border-radius: 4px;
+        }
+        .data-bit {
+            background-color: #2ecc71;
+        }
+        .remainder-bit {
+            background-color: #e74c3c;
+        }
+        .result-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+        }
+        .result-bit {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            line-height: 30px;
+            margin: 0 2px;
+            border-radius: 4px;
+        }
+        .explanation {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #eef8ff;
+            border-radius: 4px;
+            border-left: 5px solid #3498db;
+        }
+        .error-message {
+            color: #e74c3c;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            margin-bottom: -1px;
+        }
+        .tab.active {
+            border: 1px solid #ddd;
+            border-bottom-color: white;
+            background-color: white;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab:hover:not(.active) {
+            background-color: #f5f5f5;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CRC Encoding and Decoding</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="encode">Encode</div>
+            <div class="tab" data-tab="decode">Decode</div>
+        </div>
+        
+        <div id="encode-content" class="tab-content active">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="dataword">Dataword (4 bits):</label>
+                    <input type="text" id="dataword" placeholder="e.g., 1011" maxlength="4">
+                    <div id="dataword-error" class="error-message"></div>
+                </div>
+                <div class="input-group">
+                    <label for="divisor">Divisor (4 bits):</label>
+                    <input type="text" id="divisor" placeholder="e.g., 1101" maxlength="4">
+                    <div id="divisor-error" class="error-message"></div>
+                </div>
+                <div>
+                    <button id="encode-btn">Encode</button>
+                </div>
+            </div>
+            
+            <div class="process-section">
+                <h2>Encoding Process</h2>
+                <div class="process-container">
+                    <div id="encode-animation" class="animation-area"></div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Codeword (7 bits)</h3>
+                    <div id="codeword-result"></div>
+                </div>
+            </div>
+            
+            <div class="explanation">
+                <h3>How CRC Encoding Works</h3>
+                <p>1. Append (n-k) zeros to the dataword, where n is codeword length and k is dataword length.</p>
+                <p>2. Divide the result by the divisor using binary division (XOR).</p>
+                <p>3. The remainder from this division becomes the checksum.</p>
+                <p>4. Replace the appended zeros with the checksum to create the final codeword.</p>
+            </div>
+        </div>
+        
+        <div id="decode-content" class="tab-content">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="codeword">Codeword (7 bits):</label>
+                    <input type="text" id="codeword" placeholder="e.g., 1011010" maxlength="7">
+                    <div id="codeword-error" class="error-message"></div>
+                </div>
+                <div class="input-group">
+                    <label for="decode-divisor">Divisor (4 bits):</label>
+                    <input type="text" id="decode-divisor" placeholder="e.g., 1101" maxlength="4">
+                    <div id="decode-divisor-error" class="error-message"></div>
+                </div>
+                <div>
+                    <button id="decode-btn">Decode</button>
+                </div>
+            </div>
+            
+            <div class="process-section">
+                <h2>Decoding Process</h2>
+                <div class="process-container">
+                    <div id="decode-animation" class="animation-area"></div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Decoding Result</h3>
+                    <div id="decode-result"></div>
+                </div>
+            </div>
+            
+            <div class="explanation">
+                <h3>How CRC Decoding Works</h3>
+                <p>1. Divide the received codeword by the same divisor used in encoding.</p>
+                <p>2. If the remainder is zero, no errors were detected.</p>
+                <p>3. If the remainder is non-zero, errors were detected.</p>
+                <p>4. The original dataword is the first k bits of the codeword.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching functionality
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Update active tab
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show corresponding content
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.getElementById(`${tabId}-content`).classList.add('active');
+                });
+            });
+            
+            // Encode button click handler
+            document.getElementById('encode-btn').addEventListener('click', function() {
+                encodeData();
+            });
+            
+            // Decode button click handler
+            document.getElementById('decode-btn').addEventListener('click', function() {
+                decodeData();
+            });
+            
+            // CRC Encoding function
+            function encodeData() {
+                // Clear previous animations and errors
+                document.getElementById('encode-animation').innerHTML = '';
+                document.getElementById('codeword-result').innerHTML = '';
+                clearErrors();
+                
+                // Get input values
+                const dataword = document.getElementById('dataword').value.trim();
+                const divisor = document.getElementById('divisor').value.trim();
+                
+                // Validate inputs
+                if (!validateBinary(dataword, 4, 'dataword-error', 'Dataword must be 4 bits of 0s and 1s') || 
+                    !validateBinary(divisor, 4, 'divisor-error', 'Divisor must be 4 bits of 0s and 1s')) {
+                    return;
+                }
+                
+                // Check if divisor starts with 1
+                if (divisor[0] !== '1') {
+                    document.getElementById('divisor-error').textContent = 'Divisor must start with 1';
+                    return;
+                }
+                
+                // Append zeros to dataword (for a 7-bit codeword from 4-bit dataword, append 3 zeros)
+                const datawordWithZeros = dataword + '000';
+                
+                // Perform CRC division
+                const steps = performCRCDivision(datawordWithZeros, divisor);
+                
+                // Get remainder (last 3 bits of the last result)
+                const remainder = steps[steps.length - 1].slice(-3);
+                
+                // Form the codeword (dataword + remainder)
+                const codeword = dataword + remainder;
+                
+                // Animate the CRC calculation
+                animateEncoding(dataword, divisor, steps, remainder, codeword);
+            }
+            
+            // CRC Decoding function
+            function decodeData() {
+                // Clear previous animations and errors
+                document.getElementById('decode-animation').innerHTML = '';
+                document.getElementById('decode-result').innerHTML = '';
+                clearErrors();
+                
+                // Get input values
+                const codeword = document.getElementById('codeword').value.trim();
+                const divisor = document.getElementById('decode-divisor').value.trim();
+                
+                // Validate inputs
+                if (!validateBinary(codeword, 7, 'codeword-error', 'Codeword must be 7 bits of 0s and 1s') || 
+                    !validateBinary(divisor, 4, 'decode-divisor-error', 'Divisor must be 4 bits of 0s and 1s')) {
+                    return;
+                }
+                
+                // Check if divisor starts with 1
+                if (divisor[0] !== '1') {
+                    document.getElementById('decode-divisor-error').textContent = 'Divisor must start with 1';
+                    return;
+                }
+                
+                // Perform CRC division
+                const steps = performCRCDivision(codeword, divisor);
+                
+                // Get remainder (last 3 bits of the last result)
+                const remainder = steps[steps.length - 1].slice(-3);
+                
+                // Check if remainder is all zeros (no error)
+                const noError = remainder === '000';
+                
+                // Get original dataword (first 4 bits of codeword)
+                const dataword = codeword.slice(0, 4);
+                
+                // Animate the decoding process
+                animateDecoding(codeword, divisor, steps, remainder, dataword, noError);
+            }
+            
+            // Function to validate binary input
+            function validateBinary(input, length, errorElementId, errorMessage) {
+                const errorElement = document.getElementById(errorElementId);
+                
+                // Check if input is a binary number of correct length
+                if (input.length !== length) {
+                    errorElement.textContent = `Input must be exactly ${length} bits`;
+                    return false;
+                }
+                
+                // Check if input only contains 0s and 1s
+                if (!/^[01]+$/.test(input)) {
+                    errorElement.textContent = 'Input must contain only 0s and 1s';
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            // Function to clear all error messages
+            function clearErrors() {
+                const errorElements = document.querySelectorAll('.error-message');
+                errorElements.forEach(element => {
+                    element.textContent = '';
+                });
+            }
+            
+            // Perform CRC division and return steps
+            function performCRCDivision(dividend, divisor) {
+                const steps = [];
+                let currentDividend = dividend;
+                let position = 0;
+                
+                // Continue division until we process all bits except last (divisor.length - 1) bits
+                while (position <= currentDividend.length - divisor.length) {
+                    steps.push(currentDividend);
+                    
+                    // If the current bit is 0, shift to next position (no XOR needed)
+                    if (currentDividend[position] === '0') {
+                        position++;
+                        continue;
+                    }
+                    
+                    // Perform XOR with divisor
+                    let result = '';
+                    for (let i = 0; i < divisor.length; i++) {
+                        if (position + i < currentDividend.length) {
+                            // XOR operation: 1⊕1=0, 1⊕0=1, 0⊕1=1, 0⊕0=0
+                            result += (currentDividend[position + i] === divisor[i]) ? '0' : '1';
+                        } else {
+                            result += '0';
+                        }
+                    }
+                    
+                    // Create new dividend by replacing the XORed part
+                    currentDividend = 
+                        currentDividend.substring(0, position) + 
+                        result + 
+                        currentDividend.substring(position + divisor.length);
+                    
+                    position++;
+                }
+                
+                // Add the final result
+                steps.push(currentDividend);
+                
+                return steps;
+            }
+            
+            // Animate the encoding process
+            function animateEncoding(dataword, divisor, steps, remainder, codeword) {
+                const animationArea = document.getElementById('encode-animation');
+                const codewordResult = document.getElementById('codeword-result');
+                
+                // Create animation steps
+                const animationSteps = [];
+                
+                // Step 1: Show dataword
+                animationSteps.push(`Dataword: ${dataword}`);
+                
+                // Step 2: Append zeros
+                animationSteps.push(`Append 3 zeros: ${dataword}000`);
+                
+                // Step 3: Show divisor
+                animationSteps.push(`Divisor: ${divisor}`);
+                
+                // Step 4: Division steps
+                animationSteps.push(`Starting CRC division...`);
+                
+                for (let i = 0; i < steps.length - 1; i++) {
+                    const currentStep = steps[i];
+                    const nextStep = steps[i + 1];
+                    
+                    // Find the position where XOR happened
+                    let position = 0;
+                    while (position < currentStep.length && currentStep[position] === '0') {
+                        position++;
+                    }
+                    
+                    if (position < currentStep.length) {
+                        // Show the current step with the divisor aligned
+                        let line1 = currentStep;
+                        let line2 = ' '.repeat(position) + divisor;
+                        let line3 = ' '.repeat(position) + '-'.repeat(divisor.length);
+                        let line4 = nextStep;
+                        
+                        animationSteps.push(`${line1}\n${line2}\n${line3}\n${line4}`);
+                    }
+                }
+                
+                // Step 5: Show remainder
+                animationSteps.push(`Remainder (checksum): ${remainder}`);
+                
+                // Step 6: Show final codeword
+                animationSteps.push(`Codeword: ${codeword} (dataword + remainder)`);
+                
+                // Create animation elements
+                animationSteps.forEach((step, index) => {
+                    const stepElement = document.createElement('div');
+                    stepElement.className = 'animation-step';
+                    stepElement.textContent = step;
+                    animationArea.appendChild(stepElement);
+                });
+                
+                // Create codeword display
+                for (let i = 0; i < codeword.length; i++) {
+                    const bitElement = document.createElement('div');
+                    bitElement.className = i < 4 ? 'result-bit data-bit' : 'result-bit remainder-bit';
+                    bitElement.textContent = codeword[i];
+                    codewordResult.appendChild(bitElement);
+                }
+                
+                // Animate steps with delay
+                const stepElements = document.querySelectorAll('#encode-animation .animation-step');
+                animateSteps(stepElements, 0);
+            }
+            
+            // Animate the decoding process
+            function animateDecoding(codeword, divisor, steps, remainder, dataword, noError) {
+                const animationArea = document.getElementById('decode-animation');
+                const decodeResult = document.getElementById('decode-result');
+                
+                // Create animation steps
+                const animationSteps = [];
+                
+                // Step 1: Show received codeword
+                animationSteps.push(`Received codeword: ${codeword}`);
+                
+                // Step 2: Show divisor
+                animationSteps.push(`Divisor: ${divisor}`);
+                
+                // Step 3: Division steps
+                animationSteps.push(`Starting CRC division...`);
+                
+                for (let i = 0; i < steps.length - 1; i++) {
+                    const currentStep = steps[i];
+                    const nextStep = steps[i + 1];
+                    
+                    // Find the position where XOR happened
+                    let position = 0;
+                    while (position < currentStep.length && currentStep[position] === '0') {
+                        position++;
+                    }
+                    
+                    if (position < currentStep.length) {
+                        // Show the current step with the divisor aligned
+                        let line1 = currentStep;
+                        let line2 = ' '.repeat(position) + divisor;
+                        let line3 = ' '.repeat(position) + '-'.repeat(divisor.length);
+                        let line4 = nextStep;
+                        
+                        animationSteps.push(`${line1}\n${line2}\n${line3}\n${line4}`);
+                    }
+                }
+                
+                // Step 4: Show remainder and check result
+                animationSteps.push(`Remainder: ${remainder}`);
+                
+                if (noError) {
+                    animationSteps.push(`Remainder is all zeros: No errors detected!`);
+                } else {
+                    animationSteps.push(`Remainder is not all zeros: Errors detected!`);
+                }
+                
+                // Step 5: Show original dataword
+                animationSteps.push(`Original dataword: ${dataword} (first 4 bits of codeword)`);
+                
+                // Create animation elements
+                animationSteps.forEach((step, index) => {
+                    const stepElement = document.createElement('div');
+                    stepElement.className = 'animation-step';
+                    stepElement.textContent = step;
+                    animationArea.appendChild(stepElement);
+                });
+                
+                // Create result display
+                const resultText = document.createElement('div');
+                resultText.style.marginBottom = '10px';
+                
+                if (noError) {
+                    resultText.innerHTML = `<strong>No errors detected.</strong> The dataword is: `;
+                } else {
+                    resultText.innerHTML = `<strong style="color: #e74c3c;">Errors detected!</strong> The transmitted dataword was: `;
+                }
+                
+                decodeResult.appendChild(resultText);
+                
+                // Display dataword bits
+                const bitsContainer = document.createElement('div');
+                
+                for (let i = 0; i < dataword.length; i++) {
+                    const bitElement = document.createElement('div');
+                    bitElement.className = 'result-bit data-bit';
+                    bitElement.textContent = dataword[i];
+                    bitsContainer.appendChild(bitElement);
+                }
+                
+                decodeResult.appendChild(bitsContainer);
+                
+                // Animate steps with delay
+                const stepElements = document.querySelectorAll('#decode-animation .animation-step');
+                animateSteps(stepElements, 0);
+            }
+            
+            // Function to animate steps with delay
+            function animateSteps(elements, index) {
+                if (index < elements.length) {
+                    setTimeout(() => {
+                        elements[index].classList.add('visible');
+                        animateSteps(elements, index + 1);
+                    }, 800);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
