@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrier Sense Multiple Access</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        select, button {
+            padding: 8px 12px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .simulation-area {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            overflow: hidden;
+        }
+        
+        .bus {
+            position: absolute;
+            width: 100%;
+            height: 10px;
+            background-color: #333;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .station {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .station-info {
+            position: absolute;
+            top: 100%;
+            width: 80px;
+            text-align: center;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #333;
+        }
+        
+        .station-backoff {
+            position: absolute;
+            bottom: 100%;
+            width: 80px;
+            text-align: center;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #f44336;
+        }
+        
+        .frame {
+            position: absolute;
+            height: 8px;
+            background-color: #2196F3;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .collision {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #f44336;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+        }
+        
+        .stats {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Carrier Sense Multiple Access</h1>
+        
+        <div class="controls">
+            <div>
+                <label for="persistence-type">Persistence Method:</label>
+                <select id="persistence-type">
+                    <option value="1-persistent">1-Persistent</option>
+                    <option value="non-persistent">Non-Persistent</option>
+                    <option value="p-persistent">p-Persistent</option>
+                </select>
+                
+                <div id="p-value-container" style="display: none; margin-top: 10px;">
+                    <label for="p-value">p value:</label>
+                    <input type="range" id="p-value" min="0.1" max="0.9" step="0.1" value="0.5">
+                    <span id="p-value-display">0.5</span>
+                </div>
+            </div>
+            
+            <div>
+                <button id="start-btn">Start Simulation</button>
+                <button id="reset-btn">Reset</button>
+            </div>
+        </div>
+        
+        <div class="simulation-area">
+            <div class="bus"></div>
+            
+            <div class="station" id="station1" style="left: 20%;">
+                A
+                <div class="station-info">Ready</div>
+                <div class="station-backoff"></div>
+            </div>
+            
+            <div class="station" id="station2" style="left: 50%;">
+                B
+                <div class="station-info">Ready</div>
+                <div class="station-backoff"></div>
+            </div>
+            
+            <div class="station" id="station3" style="left: 80%;">
+                C
+                <div class="station-info">Ready</div>
+                <div class="station-backoff"></div>
+            </div>
+            
+            <div class="collision" id="collision"></div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4CAF50;"></div>
+                <span>Ready</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FFC107;"></div>
+                <span>Sensing</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #2196F3;"></div>
+                <span>Transmitting</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f44336;"></div>
+                <span>Backoff</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #2196F3;"></div>
+                <span>Frame</span>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <h3>How to use:</h3>
+            <p>1. Select the CSMA persistence type from the dropdown.</p>
+            <p>2. Click on any station to attempt to send a frame.</p>
+            <p>3. Watch how the protocol handles medium access.</p>
+            <p>4. The simulation will pause when a collision occurs.</p>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const PROPAGATION_SPEED = 1; // pixels per millisecond
+        const SLOT_TIME = 1000; // milliseconds
+        const MAX_RETRIES = 10;
+        
+        // DOM Elements
+        const simulationArea = document.querySelector('.simulation-area');
+        const stations = document.querySelectorAll('.station');
+        const persistenceType = document.getElementById('persistence-type');
+        const pValueContainer = document.getElementById('p-value-container');
+        const pValue = document.getElementById('p-value');
+        const pValueDisplay = document.getElementById('p-value-display');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const collisionIndicator = document.getElementById('collision');
+        
+        // Simulation variables
+        let frames = [];
+        let simulating = false;
+        let busIsBusy = false;
+        let animationFrameId = null;
+        let stationStates = {
+            station1: { state: 'ready', backoffTime: 0, retries: 0 },
+            station2: { state: 'ready', backoffTime: 0, retries: 0 },
+            station3: { state: 'ready', backoffTime: 0, retries: 0 }
+        };
+        
+        // Event listeners
+        persistenceType.addEventListener('change', function() {
+            if (this.value === 'p-persistent') {
+                pValueContainer.style.display = 'block';
+            } else {
+                pValueContainer.style.display = 'none';
+            }
+        });
+        
+        pValue.addEventListener('input', function() {
+            pValueDisplay.textContent = this.value;
+        });
+        
+        startBtn.addEventListener('click', function() {
+            if (!simulating) {
+                simulating = true;
+                this.disabled = true;
+                resetBtn.disabled = false;
+                persistenceType.disabled = true;
+                pValue.disabled = true;
+                
+                // Add click event listeners to stations
+                stations.forEach(station => {
+                    station.addEventListener('click', handleStationClick);
+                });
+                
+                // Start animation loop
+                animate();
+            }
+        });
+        
+        resetBtn.addEventListener('click', resetSimulation);
+        
+        // Functions
+        function handleStationClick(event) {
+            const stationId = event.currentTarget.id;
+            const stationState = stationStates[stationId];
+            
+            if (stationState.state !== 'ready') {
+                return; // Only respond to clicks if station is ready
+            }
+            
+            const protocol = persistenceType.value;
+            
+            // Check if bus is busy
+            if (busIsBusy) {
+                switch(protocol) {
+                    case '1-persistent':
+                        // For 1-persistent, station waits until bus is free
+                        setStationState(stationId, 'sensing');
+                        break;
+                        
+                    case 'non-persistent':
+                        // For non-persistent, station backs off immediately
+                        startBackoff(stationId);
+                        break;
+                        
+                    case 'p-persistent':
+                        // For p-persistent, station either waits or backs off based on probability
+                        const p = parseFloat(pValue.value);
+                        if (Math.random() < p) {
+                            setStationState(stationId, 'sensing');
+                        } else {
+                            startBackoff(stationId);
+                        }
+                        break;
+                }
+            } else {
+                // Bus is free, start transmission
+                transmitFrame(stationId);
+            }
+        }
+        
+        function transmitFrame(stationId) {
+            setStationState(stationId, 'transmitting');
+            
+            // Get station position
+            const station = document.getElementById(stationId);
+            const stationPosition = parseFloat(station.style.left) / 100 * simulationArea.clientWidth;
+            
+            // Create frame propagating left
+            const frameLeft = document.createElement('div');
+            frameLeft.className = 'frame';
+            frameLeft.dataset.direction = 'left';
+            frameLeft.dataset.sourceStation = stationId;
+            frameLeft.style.left = stationPosition + 'px';
+            frameLeft.style.width = '20px';
+            simulationArea.appendChild(frameLeft);
+            
+            // Create frame propagating right
+            const frameRight = document.createElement('div');
+            frameRight.className = 'frame';
+            frameRight.dataset.direction = 'right';
+            frameRight.dataset.sourceStation = stationId;
+            frameRight.style.left = stationPosition + 'px';
+            frameRight.style.width = '20px';
+            simulationArea.appendChild(frameRight);
+            
+            // Add frames to array
+            frames.push(frameLeft, frameRight);
+            
+            // Set bus as busy
+            busIsBusy = true;
+        }
+        
+        function animate() {
+            if (!simulating) return;
+            
+            // Move frames
+            let collisionDetected = false;
+            
+            // Check for collisions before moving frames
+            for (let i = 0; i < frames.length; i++) {
+                for (let j = i + 1; j < frames.length; j++) {
+                    const frame1 = frames[i];
+                    const frame2 = frames[j];
+                    
+                    // Skip frames from the same source
+                    if (frame1.dataset.sourceStation === frame2.dataset.sourceStation) {
+                        continue;
+                    }
+                    
+                    // Check if frames overlap
+                    const frame1Left = parseInt(frame1.style.left);
+                    const frame1Right = frame1Left + parseInt(frame1.style.width);
+                    const frame2Left = parseInt(frame2.style.left);
+                    const frame2Right = frame2Left + parseInt(frame2.style.width);
+                    
+                    if (frame1Right >= frame2Left && frame1Left <= frame2Right) {
+                        collisionDetected = true;
+                        showCollision((frame1Left + frame2Left) / 2);
+                        break;
+                    }
+                }
+                if (collisionDetected) break;
+            }
+            
+            if (collisionDetected) {
+                // Handle collision
+                handleCollision();
+            } else {
+                // Move frames if no collision
+                moveFrames();
+                
+                // Check if any sensing station should start transmitting
+                if (busIsBusy === false) {
+                    for (const stationId in stationStates) {
+                        if (stationStates[stationId].state === 'sensing') {
+                            if (persistenceType.value === 'p-persistent') {
+                                const p = parseFloat(pValue.value);
+                                if (Math.random() < p) {
+                                    transmitFrame(stationId);
+                                    break; // Only one station transmits
+                                } else {
+                                    startBackoff(stationId);
+                                }
+                            } else {
+                                // For 1-persistent, transmit immediately
+                                transmitFrame(stationId);
+                                break; // Only one station transmits
+                            }
+                        }
+                    }
+                }
+                
+                // Update backoff times
+                updateBackoffTimes();
+                
+                // Continue animation
+                animationFrameId = requestAnimationFrame(animate);
+            }
+        }
+        
+        function moveFrames() {
+            const frameSpeed = PROPAGATION_SPEED;
+            let activeBus = false;
+            
+            frames.forEach((frame, index) => {
+                activeBus = true;
+                const direction = frame.dataset.direction;
+                const currentLeft = parseInt(frame.style.left);
+                const currentWidth = parseInt(frame.style.width);
+                
+                if (direction === 'left') {
+                    // Moving left and expanding
+                    frame.style.left = (currentLeft - frameSpeed) + 'px';
+                    frame.style.width = (currentWidth + frameSpeed) + 'px';
+                    
+                    // Remove frame if it reached the left edge
+                    if (currentLeft <= 0) {
+                        frame.remove();
+                        frames.splice(index, 1);
+                    }
+                } else {
+                    // Moving right and expanding
+                    frame.style.width = (currentWidth + frameSpeed) + 'px';
+                    
+                    // Remove frame if it reached the right edge
+                    if (currentLeft + currentWidth >= simulationArea.clientWidth) {
+                        frame.remove();
+                        frames.splice(index, 1);
+                    }
+                }
+            });
+            
+            // Check if bus is still active
+            busIsBusy = activeBus && frames.length > 0;
+            
+            // If bus is no longer busy, check if any transmitting stations should return to ready
+            if (!busIsBusy) {
+                for (const stationId in stationStates) {
+                    if (stationStates[stationId].state === 'transmitting') {
+                        setStationState(stationId, 'ready');
+                    }
+                }
+            }
+        }
+        
+        function showCollision(position) {
+            collisionIndicator.style.left = position + 'px';
+            collisionIndicator.style.opacity = '1';
+            
+            // Flash the collision indicator
+            let flashCount = 0;
+            const flashInterval = setInterval(() => {
+                collisionIndicator.style.opacity = collisionIndicator.style.opacity === '1' ? '0' : '1';
+                flashCount++;
+                if (flashCount >= 6) {
+                    clearInterval(flashInterval);
+                    collisionIndicator.style.opacity = '0';
+                }
+            }, 300);
+        }
+        
+        function handleCollision() {
+            // Stop animation
+            cancelAnimationFrame(animationFrameId);
+            
+            // Set all transmitting stations to backoff
+            for (const stationId in stationStates) {
+                if (stationStates[stationId].state === 'transmitting') {
+                    startBackoff(stationId);
+                }
+            }
+            
+            // Remove all frames
+            frames.forEach(frame => frame.remove());
+            frames = [];
+            
+            // Bus is no longer busy
+            busIsBusy = false;
+            
+            // Wait a moment before continuing
+            setTimeout(() => {
+                if (simulating) {
+                    animationFrameId = requestAnimationFrame(animate);
+                }
+            }, 2000);
+        }
+        
+        function startBackoff(stationId) {
+            const stationState = stationStates[stationId];
+            
+            // Increment retry count
+            stationState.retries++;
+            
+            if (stationState.retries > MAX_RETRIES) {
+                // Too many retries, set station to ready
+                setStationState(stationId, 'ready');
+                stationState.retries = 0;
+                return;
+            }
+            
+            // Calculate backoff time using binary exponential backoff
+            const backoffWindow = Math.min(Math.pow(2, stationState.retries) - 1, 1023);
+            const slots = Math.floor(Math.random() * (backoffWindow + 1));
+            stationState.backoffTime = slots * SLOT_TIME;
+            
+            // Set station state to backoff
+            setStationState(stationId, 'backoff');
+            
+            // Update backoff time display
+            updateStationBackoffDisplay(stationId);
+        }
+        
+        function updateBackoffTimes() {
+            const updateInterval = 100; // milliseconds
+            
+            for (const stationId in stationStates) {
+                const stationState = stationStates[stationId];
+                
+                if (stationState.state === 'backoff') {
+                    stationState.backoffTime -= updateInterval;
+                    updateStationBackoffDisplay(stationId);
+                    
+                    if (stationState.backoffTime <= 0) {
+                        // Backoff complete, try again based on protocol
+                        const protocol = persistenceType.value;
+                        
+                        if (busIsBusy) {
+                            switch(protocol) {
+                                case '1-persistent':
+                                    setStationState(stationId, 'sensing');
+                                    break;
+                                    
+                                case 'non-persistent':
+                                    startBackoff(stationId);
+                                    break;
+                                    
+                                case 'p-persistent':
+                                    const p = parseFloat(pValue.value);
+                                    if (Math.random() < p) {
+                                        setStationState(stationId, 'sensing');
+                                    } else {
+                                        startBackoff(stationId);
+                                    }
+                                    break;
+                            }
+                        } else {
+                            // Bus is free, start transmission
+                            transmitFrame(stationId);
+                        }
+                    }
+                }
+            }
+        }
+        
+        function updateStationBackoffDisplay(stationId) {
+            const station = document.getElementById(stationId);
+            const backoffDisplay = station.querySelector('.station-backoff');
+            const backoffTime = Math.max(0, Math.ceil(stationStates[stationId].backoffTime / 1000));
+            
+            backoffDisplay.textContent = backoffTime > 0 ? `Backoff: ${backoffTime}s` : '';
+        }
+        
+        function setStationState(stationId, newState) {
+            const station = document.getElementById(stationId);
+            const stateDisplay = station.querySelector('.station-info');
+            stationStates[stationId].state = newState;
+            
+            // Update display
+            stateDisplay.textContent = capitalizeFirstLetter(newState);
+            
+            // Update station color based on state
+            switch(newState) {
+                case 'ready':
+                    station.style.backgroundColor = '#4CAF50';
+                    break;
+                case 'sensing':
+                    station.style.backgroundColor = '#FFC107';
+                    break;
+                case 'transmitting':
+                    station.style.backgroundColor = '#2196F3';
+                    break;
+                case 'backoff':
+                    station.style.backgroundColor = '#f44336';
+                    break;
+            }
+        }
+        
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+        
+        function resetSimulation() {
+            // Stop animation
+            cancelAnimationFrame(animationFrameId);
+            simulating = false;
+            
+            // Reset UI elements
+            startBtn.disabled = false;
+            resetBtn.disabled = false;
+            persistenceType.disabled = false;
+            pValue.disabled = false;
+            
+            // Remove all frames
+            frames.forEach(frame => frame.remove());
+            frames = [];
+            
+            // Reset station states
+            for (const stationId in stationStates) {
+                stationStates[stationId] = { state: 'ready', backoffTime: 0, retries: 0 };
+                const station = document.getElementById(stationId);
+                station.style.backgroundColor = '#4CAF50';
+                station.querySelector('.station-info').textContent = 'Ready';
+                station.querySelector('.station-backoff').textContent = '';
+                
+                // Remove click event listeners
+                station.removeEventListener('click', handleStationClick);
+            }
+            
+            // Reset collision indicator
+            collisionIndicator.style.opacity = '0';
+            
+            // Reset bus state
+            busIsBusy = false;
+        }
+        
+        // Initialize p-value display
+        pValueDisplay.textContent = pValue.value;
+        
+        // Initialize stats display
+        resetBtn.disabled = true;
+    </script>
+</body>
+</html>
