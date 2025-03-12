@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XOR Binary Division Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .input-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+        .input-group {
+            flex: 1;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .step {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .step:last-child {
+            border-bottom: none;
+        }
+        .step-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        .step-content {
+            font-family: monospace;
+            white-space: pre;
+            line-height: 1.4;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .step-explanation {
+            margin-top: 10px;
+            color: #666;
+        }
+        .invalid {
+            border-color: #e74c3c !important;
+        }
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        .bit {
+            display: inline-block;
+            width: 18px;
+            text-align: center;
+        }
+        .highlight {
+            background-color: #fcf8e3;
+            color: #8a6d3b;
+        }
+        .info-box {
+            background-color: #d9edf7;
+            border: 1px solid #bce8f1;
+            color: #31708f;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>XOR Binary Division Simulator</h1>
+        
+        <div class="info-box">
+            <p>This simulator demonstrates binary division using the XOR method. The process is similar to long division but uses XOR operations instead of subtraction.</p>
+        </div>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label for="dividend">Dividend (Binary Number to be Divided):</label>
+                <input type="text" id="dividend" placeholder="e.g., 1101001">
+                <div class="error-message" id="dividend-error">Please enter a valid binary number.</div>
+            </div>
+            <div class="input-group">
+                <label for="divisor">Divisor (Binary Number to Divide By):</label>
+                <input type="text" id="divisor" placeholder="e.g., 1011">
+                <div class="error-message" id="divisor-error">Please enter a valid binary number.</div>
+            </div>
+            <button id="calculate">Calculate</button>
+        </div>
+        
+        <div class="result" id="result">
+            <div class="step">
+                <div class="step-title">Enter binary values above and click "Calculate" to start.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('calculate').addEventListener('click', performDivision);
+
+        function performDivision() {
+            // Clear any previous results
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+            
+            // Validate inputs
+            const dividendInput = document.getElementById('dividend');
+            const divisorInput = document.getElementById('divisor');
+            const dividendError = document.getElementById('dividend-error');
+            const divisorError = document.getElementById('divisor-error');
+            
+            let valid = true;
+            
+            // Check dividend
+            const dividend = dividendInput.value.trim();
+            if (!isValidBinary(dividend)) {
+                dividendInput.classList.add('invalid');
+                dividendError.style.display = 'block';
+                valid = false;
+            } else {
+                dividendInput.classList.remove('invalid');
+                dividendError.style.display = 'none';
+            }
+            
+            // Check divisor
+            const divisor = divisorInput.value.trim();
+            if (!isValidBinary(divisor) || divisor === '0') {
+                divisorInput.classList.add('invalid');
+                divisorError.style.display = 'block';
+                valid = false;
+            } else {
+                divisorInput.classList.remove('invalid');
+                divisorError.style.display = 'none';
+            }
+            
+            if (!valid) return;
+            
+            // Perform division
+            const result = xorBinaryDivision(dividend, divisor);
+            
+            // Display the step-by-step process
+            const steps = result.steps;
+            const quotient = result.quotient;
+            const remainder = result.remainder;
+            
+            // Introduction step
+            addStep(
+                'Step 0: Setup',
+                `Dividend: ${dividend}\nDivisor:  ${divisor}`,
+                'We start with the dividend (number to be divided) and divisor (number to divide by).'
+            );
+            
+            // Show each calculation step
+            steps.forEach((step, index) => {
+                addStep(
+                    `Step ${index + 1}: Working on position ${step.position}`,
+                    step.workingArea,
+                    step.explanation
+                );
+            });
+            
+            // Show final result
+            addStep(
+                'Final Result',
+                `Quotient:  ${quotient}\nRemainder: ${remainder}`,
+                'The quotient represents how many times the divisor goes into the dividend. The remainder is what\'s left over after division.'
+            );
+        }
+        
+        function isValidBinary(str) {
+            return /^[01]+$/.test(str);
+        }
+        
+        function xorBinaryDivision(dividend, divisor) {
+            // Ensure inputs are strings of binary digits
+            dividend = dividend.trim();
+            divisor = divisor.trim();
+            
+            const steps = [];
+            let workingArea = dividend;
+            let quotient = '';
+            
+            // Initial divisor length
+            const divisorLength = divisor.length;
+            
+            // Ensure divisor isn't longer than dividend
+            if (divisorLength > dividend.length) {
+                return {
+                    quotient: '0',
+                    remainder: dividend,
+                    steps: [{
+                        position: 'N/A',
+                        workingArea: `Dividend: ${dividend}\nDivisor:  ${divisor}`,
+                        explanation: 'The divisor is larger than the dividend, so the quotient is 0 and the remainder is the dividend.'
+                    }]
+                };
+            }
+            
+            // Take the first segment of dividend equal to divisor length
+            let currentSegment = workingArea.substring(0, divisorLength);
+            let position = 0;
+            
+            // Process each bit of the dividend
+            while (position <= workingArea.length - divisorLength) {
+                // Extract the current working segment
+                currentSegment = workingArea.substring(position, position + divisorLength);
+                
+                // If current segment is shorter than divisor (at the end)
+                if (currentSegment.length < divisorLength) {
+                    break;
+                }
+                
+                // Compare the most significant bits
+                if (currentSegment[0] === '1') {
+                    // XOR current segment with divisor
+                    const xorResult = xorStrings(currentSegment, divisor);
+                    
+                    // Build visual representation for this step
+                    const before = formatWorkingArea(workingArea, position, divisorLength);
+                    
+                    // Update working area with XOR result
+                    workingArea = 
+                        workingArea.substring(0, position) + 
+                        xorResult + 
+                        workingArea.substring(position + divisorLength);
+                    
+                    const after = formatWorkingArea(workingArea, position, divisorLength);
+                    
+                    // Record this step
+                    steps.push({
+                        position: position,
+                        workingArea: 
+                            `Before XOR:\n${before}\n\nDivisor:   ${' '.repeat(position)}${divisor}\n` +
+                            `XOR Result: ${' '.repeat(position)}${xorResult}\n\nAfter XOR:\n${after}`,
+                        explanation: `The current segment starts with 1, so we XOR it with the divisor. This is equivalent to subtraction in binary division. After XOR, we add a 1 to our quotient.`
+                    });
+                    
+                    // Add 1 to quotient
+                    quotient += '1';
+                } else {
+                    // Build visual representation for this step
+                    const visual = formatWorkingArea(workingArea, position, divisorLength);
+                    
+                    // Record this step - no XOR performed
+                    steps.push({
+                        position: position,
+                        workingArea: visual,
+                        explanation: `The current segment starts with 0, so we don't XOR it with the divisor. We add a 0 to our quotient and move to the next position.`
+                    });
+                    
+                    // Add 0 to quotient
+                    quotient += '0';
+                }
+                
+                // Move to next position
+                position++;
+            }
+            
+            // Calculate remainder
+            const remainder = workingArea.substring(workingArea.length - divisorLength + 1);
+            
+            return {
+                quotient: quotient,
+                remainder: remainder,
+                steps: steps
+            };
+        }
+        
+        function xorStrings(a, b) {
+            // Ensure strings are the same length
+            if (a.length !== b.length) {
+                throw new Error('Strings must be of equal length for XOR operation');
+            }
+            
+            let result = '';
+            for (let i = 0; i < a.length; i++) {
+                // XOR each character: 1⊕1=0, 0⊕0=0, 1⊕0=1, 0⊕1=1
+                result += (a[i] === b[i]) ? '0' : '1';
+            }
+            
+            return result;
+        }
+        
+        function formatWorkingArea(workingArea, position, divisorLength) {
+            // Create a visual representation of the working area
+            let formatted = 'Working: ';
+            
+            for (let i = 0; i < workingArea.length; i++) {
+                let bit = workingArea[i];
+                
+                // Highlight the current segment
+                if (i >= position && i < position + divisorLength) {
+                    formatted += `<span class="bit highlight">${bit}</span>`;
+                } else {
+                    formatted += `<span class="bit">${bit}</span>`;
+                }
+            }
+            
+            return formatted;
+        }
+        
+        function addStep(title, content, explanation) {
+            const resultDiv = document.getElementById('result');
+            
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step';
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'step-title';
+            titleDiv.textContent = title;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'step-content';
+            contentDiv.innerHTML = content;
+            
+            const explanationDiv = document.createElement('div');
+            explanationDiv.className = 'step-explanation';
+            explanationDiv.textContent = explanation;
+            
+            stepDiv.appendChild(titleDiv);
+            stepDiv.appendChild(contentDiv);
+            stepDiv.appendChild(explanationDiv);
+            
+            resultDiv.appendChild(stepDiv);
+        }
+    </script>
+</body>
+</html>
