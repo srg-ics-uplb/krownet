@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4-Bit Checksum Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        #clearBtn {
+            background-color: #e74c3c;
+        }
+        #clearBtn:hover {
+            background-color: #c0392b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .bit {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            text-align: center;
+            margin: 0 2px;
+            border-radius: 4px;
+            background-color: #ecf0f1;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .bit-1 {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .checksum-row {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .step-by-step {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .explanation {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #eef8ff;
+            border-radius: 4px;
+            border-left: 4px solid #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <h1>4-Bit Checksum Simulator</h1>
+    
+    <div class="container">
+        <div class="controls">
+            <button id="addRandomBtn">Add Random 4-Bit String</button>
+            <button id="computeBtn" disabled>Compute Checksum</button>
+            <button id="clearBtn">Clear All</button>
+        </div>
+        
+        <div id="dataContainer">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>4-Bit String</th>
+                        <th>Decimal Value</th>
+                    </tr>
+                </thead>
+                <tbody id="dataBody">
+                    <!-- Data rows will be added here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="stepByStep" class="step-by-step" style="display: none;">
+            <h3>Step-by-Step Computation</h3>
+            <div id="steps"></div>
+        </div>
+        
+        <div class="explanation">
+            <h3>About 4-Bit Checksums</h3>
+            <p>A 4-bit checksum is a simple error detection mechanism that works by:</p>
+            <ol>
+                <li>Adding all the values</li>
+                <li>Taking only the 4 least significant bits (using modulo 16)</li>
+                <li>Performing a ones' complement (flipping all bits from 0 to 1 and vice versa)</li>
+            </ol>
+            <p>The checksum can be used to verify data integrity. If all data (including the checksum) is added together, it should result in all 1s if the data is error-free.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const addRandomBtn = document.getElementById('addRandomBtn');
+            const computeBtn = document.getElementById('computeBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const dataBody = document.getElementById('dataBody');
+            const stepByStep = document.getElementById('stepByStep');
+            const stepsDiv = document.getElementById('steps');
+            
+            let bitStrings = [];
+            const MAX_STRINGS = 10;
+            
+            // Generate a random 4-bit string
+            function generateRandomBitString() {
+                let bits = '';
+                for (let i = 0; i < 4; i++) {
+                    bits += Math.round(Math.random());
+                }
+                return bits;
+            }
+            
+            // Convert binary string to decimal
+            function binaryToDecimal(binary) {
+                return parseInt(binary, 2);
+            }
+            
+            // Format bit string for display with spans
+            function formatBitString(bits) {
+                return bits.split('').map(bit => 
+                    `<span class="bit${bit === '1' ? ' bit-1' : ''}">${bit}</span>`
+                ).join('');
+            }
+            
+            // Add a new random bit string
+            addRandomBtn.addEventListener('click', function() {
+                if (bitStrings.length >= MAX_STRINGS) {
+                    alert('Maximum of 10 bit strings reached!');
+                    return;
+                }
+                
+                const bits = generateRandomBitString();
+                bitStrings.push(bits);
+                
+                const row = document.createElement('tr');
+                row.className = 'fade-in';
+                row.innerHTML = `
+                    <td>${bitStrings.length}</td>
+                    <td>${formatBitString(bits)}</td>
+                    <td>${binaryToDecimal(bits)}</td>
+                `;
+                
+                dataBody.appendChild(row);
+                
+                // Enable compute button if we have at least one bit string
+                computeBtn.disabled = false;
+                
+                // Disable add button if we reached the max
+                if (bitStrings.length >= MAX_STRINGS) {
+                    addRandomBtn.disabled = true;
+                }
+            });
+            
+            // Compute the 4-bit checksum
+            computeBtn.addEventListener('click', function() {
+                // Remove existing checksum row if any
+                const existingChecksum = document.querySelector('.checksum-row');
+                if (existingChecksum) {
+                    existingChecksum.remove();
+                }
+                
+                // Calculate checksum
+                let sum = 0;
+                for (const bits of bitStrings) {
+                    sum += binaryToDecimal(bits);
+                }
+                
+                // Take modulo 16 to get 4-bit result
+                sum = sum % 16;
+                
+                // Convert to binary and pad to 4 bits
+                let sumBinary = sum.toString(2);
+                while (sumBinary.length < 4) {
+                    sumBinary = '0' + sumBinary;
+                }
+                
+                // Ones' complement (invert all bits)
+                let checksum = '';
+                for (let i = 0; i < sumBinary.length; i++) {
+                    checksum += sumBinary[i] === '0' ? '1' : '0';
+                }
+                
+                // Add checksum row
+                const row = document.createElement('tr');
+                row.className = 'checksum-row fade-in';
+                row.innerHTML = `
+                    <td>CS</td>
+                    <td>${formatBitString(checksum)}</td>
+                    <td>${binaryToDecimal(checksum)}</td>
+                `;
+                
+                dataBody.appendChild(row);
+                
+                // Show step-by-step calculation
+                showStepByStep(bitStrings, sumBinary, checksum);
+            });
+            
+            // Display step-by-step calculation
+            function showStepByStep(bitStrings, sumBinary, checksum) {
+                stepByStep.style.display = 'block';
+                
+                let html = '<p><strong>Step 1:</strong> Add all decimal values</p>';
+                html += '<div style="margin-left: 20px;">';
+                
+                let sum = 0;
+                for (let i = 0; i < bitStrings.length; i++) {
+                    const decimal = binaryToDecimal(bitStrings[i]);
+                    sum += decimal;
+                    html += `${decimal}${i < bitStrings.length - 1 ? ' + ' : ' = ' + sum}`;
+                }
+                html += '</div>';
+                
+                html += '<p><strong>Step 2:</strong> Take modulo 16 (keep only 4 bits)</p>';
+                html += `<div style="margin-left: 20px;">${sum} % 16 = ${sum % 16} (binary: ${formatBitString(sumBinary)})</div>`;
+                
+                html += '<p><strong>Step 3:</strong> Compute ones\' complement (invert all bits)</p>';
+                html += `<div style="margin-left: 20px;">
+                    ${formatBitString(sumBinary)} → ${formatBitString(checksum)}
+                </div>`;
+                
+                html += '<p><strong>Step 4:</strong> Verify (add all values including checksum)</p>';
+                
+                let verificationSum = 0;
+                html += '<div style="margin-left: 20px;">';
+                for (let i = 0; i < bitStrings.length; i++) {
+                    const decimal = binaryToDecimal(bitStrings[i]);
+                    verificationSum += decimal;
+                    html += `${decimal}${i < bitStrings.length - 1 ? ' + ' : ''}`;
+                }
+                const checksumDecimal = binaryToDecimal(checksum);
+                verificationSum += checksumDecimal;
+                html += ` + ${checksumDecimal} = ${verificationSum}`;
+                
+                const verificationBinary = (verificationSum % 16).toString(2).padStart(4, '0');
+                html += ` (mod 16) = ${verificationSum % 16} (binary: ${formatBitString(verificationBinary)})`;
+                
+                if (verificationBinary === '1111') {
+                    html += '<p style="color: green; font-weight: bold;">✓ Checksum verified! All 1s means data integrity is intact.</p>';
+                }
+                
+                html += '</div>';
+                
+                stepsDiv.innerHTML = html;
+                stepByStep.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Clear all data
+            clearBtn.addEventListener('click', function() {
+                bitStrings = [];
+                dataBody.innerHTML = '';
+                stepByStep.style.display = 'none';
+                addRandomBtn.disabled = false;
+                computeBtn.disabled = true;
+            });
+        });
+    </script>
+</body>
+</html>
