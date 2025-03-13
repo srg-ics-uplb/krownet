@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stop-and-Wait ARQ </title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #resetBtn {
+            background-color: #f44336;
+        }
+        #resetBtn:hover {
+            background-color: #d32f2f;
+        }
+        label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        select, input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .visualization {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            height: 400px;
+            position: relative;
+            overflow: hidden;
+            background-color: #f9f9f9;
+        }
+        .sender, .receiver {
+            width: 120px;
+            height: 120px;
+            background-color: #2196F3;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 4px;
+            position: absolute;
+            z-index: 2;
+        }
+        .sender {
+            left: 20px;
+            top: 140px;
+        }
+        .receiver {
+            right: 20px;
+            top: 140px;
+        }
+        .timeline {
+            position: absolute;
+            top: 200px;
+            left: 140px;
+            right: 140px;
+            height: 2px;
+            background-color: #333;
+        }
+        .frame {
+            position: absolute;
+            width: 50px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            z-index: 1;
+            transition: left 0.5s linear, top 0.2s ease-in-out;
+        }
+        .frame.data {
+            background-color: #4CAF50;
+        }
+        .frame.ack {
+            background-color: #FF9800;
+        }
+        .frame.damaged {
+            background-color: #9C27B0;
+        }
+        .frame.lost {
+            opacity: 0.3;
+        }
+        .timer-container {
+            position: absolute;
+            left: 20px;
+            top: 280px;
+            width: 120px;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .timer-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #F44336;
+            transition: width 0.1s linear;
+        }
+        .frame-info {
+            display: flex;
+            margin-top: 20px;
+            gap: 20px;
+        }
+        .info-column {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: white;
+        }
+        .frame-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .frame-list li {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .frame-list li.success {
+            background-color: #E8F5E9;
+        }
+        .frame-list li.damaged {
+            background-color: #F3E5F5;
+        }
+        .frame-list li.lost {
+            background-color: #FFEBEE;
+        }
+        .frame-list li.pending {
+            background-color: #E3F2FD;
+        }
+        .frame-status {
+            font-size: 12px;
+            color: #666;
+        }
+        .legend {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            justify-content: space-around;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .timeout {
+            animation: blink 0.5s linear infinite;
+        }
+        .simulation-speed {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Stop-and-Wait ARQ </h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="numFrames">Number of Frames:</label>
+                <input type="number" id="numFrames" min="1" max="20" value="10">
+            </div>
+            
+            <div class="control-group">
+                <label for="lossRate">Frame Loss Rate (%):</label>
+                <input type="number" id="lossRate" min="0" max="50" value="20">
+            </div>
+            
+            <div class="control-group">
+                <label for="damageRate">Frame Damage Rate (%):</label>
+                <input type="number" id="damageRate" min="0" max="50" value="10">
+            </div>
+            
+            <div class="control-group">
+                <label for="timeout">Timeout (ms):</label>
+                <input type="number" id="timeout" min="500" max="5000" step="500" value="2000">
+            </div>
+            
+            <div class="control-group simulation-speed">
+                <label for="speed">Speed:</label>
+                <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
+                <span id="speedValue">1x</span>
+            </div>
+            
+            <div class="button-group">
+                <button id="startBtn">Start Simulation</button>
+                <button id="pauseBtn" disabled>Pause</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+        </div>
+        
+        <div class="visualization">
+            <div class="sender">
+                <div>Sender</div>
+                <div id="senderStatus">Idle</div>
+            </div>
+            <div class="receiver">
+                <div>Receiver</div>
+                <div id="receiverStatus">Idle</div>
+            </div>
+            <div class="timeline"></div>
+            <div class="timer-container">
+                <div class="timer-bar" id="timerBar"></div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4CAF50;"></div>
+                <span>Data Frame</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #FF9800;"></div>
+                <span>ACK Frame</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #9C27B0;"></div>
+                <span>Damaged Frame</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4CAF50; opacity: 0.3;"></div>
+                <span>Lost Frame</span>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="framesSent">0</div>
+                <div class="stat-label">Frames Sent</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="framesReceived">0</div>
+                <div class="stat-label">Frames Received</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="framesLost">0</div>
+                <div class="stat-label">Frames Lost</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="framesDamaged">0</div>
+                <div class="stat-label">Frames Damaged</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="timeouts">0</div>
+                <div class="stat-label">Timeouts</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="efficiency">0%</div>
+                <div class="stat-label">Efficiency</div>
+            </div>
+        </div>
+        
+        <div class="frame-info">
+            <div class="info-column">
+                <h3>Frames to Send</h3>
+                <ul class="frame-list" id="framesToSend"></ul>
+            </div>
+            <div class="info-column">
+                <h3>Transmission Log</h3>
+                <ul class="frame-list" id="transmissionLog"></ul>
+            </div>
+            <div class="info-column">
+                <h3>Frames Received</h3>
+                <ul class="frame-list" id="framesReceivedList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const numFramesInput = document.getElementById('numFrames');
+        const lossRateInput = document.getElementById('lossRate');
+        const damageRateInput = document.getElementById('damageRate');
+        const timeoutInput = document.getElementById('timeout');
+        const speedInput = document.getElementById('speed');
+        const speedValueDisplay = document.getElementById('speedValue');
+        const visualization = document.querySelector('.visualization');
+        const senderStatus = document.getElementById('senderStatus');
+        const receiverStatus = document.getElementById('receiverStatus');
+        const timerBar = document.getElementById('timerBar');
+        const framesSentDisplay = document.getElementById('framesSent');
+        const framesReceivedDisplay = document.getElementById('framesReceived');
+        const framesLostDisplay = document.getElementById('framesLost');
+        const framesDamagedDisplay = document.getElementById('framesDamaged');
+        const timeoutsDisplay = document.getElementById('timeouts');
+        const efficiencyDisplay = document.getElementById('efficiency');
+        const framesToSendList = document.getElementById('framesToSend');
+        const transmissionLogList = document.getElementById('transmissionLog');
+        const framesReceivedList = document.getElementById('framesReceivedList');
+
+        // Simulation state
+        let frames = [];
+        let currentFrameIndex = 0;
+        let currentSeqNum = 0;
+        let simulationRunning = false;
+        let timerInterval = null;
+        let frameInTransit = null;
+        let ackInTransit = null;
+        let simulationSpeed = 1;
+        let simulationPaused = false;
+        let stats = {
+            framesSent: 0,
+            framesResent: 0,
+            framesReceived: 0,
+            framesLost: 0,
+            framesDamaged: 0,
+            timeouts: 0,
+            totalTransmissions: 0
+        };
+
+        // Update speed display when slider changes
+        speedInput.addEventListener('input', function() {
+            simulationSpeed = parseFloat(this.value);
+            speedValueDisplay.textContent = simulationSpeed.toFixed(1) + 'x';
+        });
+
+        // Initialize the simulation
+        function initializeSimulation() {
+            const numFrames = parseInt(numFramesInput.value);
+            
+            // Generate frames to send
+            frames = Array.from({ length: numFrames }, (_, i) => ({
+                id: i + 1,
+                data: `Data ${i + 1}`,
+                sent: false,
+                received: false,
+                attempts: 0
+            }));
+            
+            // Reset simulation state
+            currentFrameIndex = 0;
+            currentSeqNum = 0;
+            simulationRunning = false;
+            stats = {
+                framesSent: 0,
+                framesResent: 0,
+                framesReceived: 0,
+                framesLost: 0,
+                framesDamaged: 0,
+                timeouts: 0,
+                totalTransmissions: 0
+            };
+            
+            // Update UI
+            updateStatsDisplay();
+            renderFramesToSend();
+            transmissionLogList.innerHTML = '';
+            framesReceivedList.innerHTML = '';
+            senderStatus.textContent = 'Idle';
+            receiverStatus.textContent = 'Idle';
+            
+            // Clear any existing frames and timers
+            clearTimeout(frameInTransit);
+            clearTimeout(ackInTransit);
+            clearInterval(timerInterval);
+            document.querySelectorAll('.frame').forEach(el => el.remove());
+            timerBar.style.width = '0%';
+        }
+
+        // Render the list of frames to send
+        function renderFramesToSend() {
+            framesToSendList.innerHTML = '';
+            frames.forEach((frame, index) => {
+                const li = document.createElement('li');
+                li.className = frame.received ? 'success' : (index === currentFrameIndex && !frame.received ? 'pending' : '');
+                li.innerHTML = `
+                    <span>Frame ${frame.id}</span>
+                    <span class="frame-status">${frame.received ? 'Received' : (frame.sent ? 'Sent' : 'Pending')}</span>
+                `;
+                framesToSendList.appendChild(li);
+            });
+        }
+
+        // Add entry to transmission log
+        function addToTransmissionLog(frameId, type, status) {
+            const li = document.createElement('li');
+            li.className = status;
+            
+            let statusText = '';
+            if (status === 'success') statusText = 'Successfully transmitted';
+            else if (status === 'damaged') statusText = 'Damaged during transmission';
+            else if (status === 'lost') statusText = 'Lost during transmission';
+            else if (status === 'timeout') statusText = 'Timed out';
+            
+            li.innerHTML = `
+                <span>${type === 'data' ? 'Frame' : 'ACK'} ${frameId}</span>
+                <span class="frame-status">${statusText}</span>
+            `;
+            transmissionLogList.appendChild(li);
+            transmissionLogList.scrollTop = transmissionLogList.scrollHeight;
+        }
+
+        // Add to received frames list
+        function addToReceivedFrames(frameId) {
+            const li = document.createElement('li');
+            li.className = 'success';
+            li.innerHTML = `
+                <span>Frame ${frameId}</span>
+                <span class="frame-status">Received in order</span>
+            `;
+            framesReceivedList.appendChild(li);
+            framesReceivedList.scrollTop = framesReceivedList.scrollHeight;
+        }
+
+        // Update stats display
+        function updateStatsDisplay() {
+            framesSentDisplay.textContent = stats.framesSent;
+            framesReceivedDisplay.textContent = stats.framesReceived;
+            framesLostDisplay.textContent = stats.framesLost;
+            framesDamagedDisplay.textContent = stats.framesDamaged;
+            timeoutsDisplay.textContent = stats.timeouts;
+            
+            // Calculate efficiency
+            if (stats.totalTransmissions > 0) {
+                const efficiency = (stats.framesReceived / stats.totalTransmissions * 100).toFixed(1);
+                efficiencyDisplay.textContent = `${efficiency}%`;
+            } else {
+                efficiencyDisplay.textContent = '0%';
+            }
+        }
+
+        // Start the timer
+        function startTimer() {
+            let timeElapsed = 0;
+            const timeout = parseInt(timeoutInput.value);
+            clearInterval(timerInterval);
+            
+            timerBar.style.width = '0%';
+            senderStatus.textContent = 'Waiting for ACK';
+            
+            timerInterval = setInterval(() => {
+                if (simulationPaused) return;
+                
+                timeElapsed += 100 * simulationSpeed;
+                const progress = (timeElapsed / timeout) * 100;
+                timerBar.style.width = `${Math.min(progress, 100)}%`;
+                
+                if (timeElapsed >= timeout) {
+                    handleTimeout();
+                    clearInterval(timerInterval);
+                }
+            }, 100);
+        }
+
+        // Handle timeout
+        function handleTimeout() {
+            if (!simulationRunning) return;
+            
+            stats.timeouts++;
+            updateStatsDisplay();
+            
+            senderStatus.textContent = 'Timeout!';
+            senderStatus.classList.add('timeout');
+            
+            setTimeout(() => {
+                senderStatus.classList.remove('timeout');
+                if (simulationRunning) {
+                    sendFrame(currentFrameIndex, true);
+                }
+            }, 500 / simulationSpeed);
+            
+            addToTransmissionLog(frames[currentFrameIndex].id, 'data', 'timeout');
+        }
+
+        // Create and animate a frame element
+        function createFrameElement(type, seqNum, isDamaged = false, isLost = false) {
+            const frame = document.createElement('div');
+            frame.className = `frame ${type} ${isDamaged ? 'damaged' : ''} ${isLost ? 'lost' : ''}`;
+            frame.textContent = seqNum;
+            
+            visualization.appendChild(frame);
+            
+            if (type === 'data') {
+                // Position at sender
+                frame.style.left = '95px';
+                frame.style.top = '175px';
+                
+                // Animate to receiver unless lost
+                if (!isLost) {
+                    setTimeout(() => {
+                        frame.style.left = `${visualization.clientWidth - 170}px`;
+                    }, 50);
+                } else {
+                    // For lost frames, animate partway then fade out
+                    setTimeout(() => {
+                        frame.style.left = `${visualization.clientWidth / 2}px`;
+                        setTimeout(() => {
+                            frame.style.opacity = '0';
+                            setTimeout(() => {
+                                frame.remove();
+                            }, 500 / simulationSpeed);
+                        }, 500 / simulationSpeed);
+                    }, 50);
+                }
+            } else { // ACK frame
+                // Position at receiver
+                frame.style.left = `${visualization.clientWidth - 170}px`;
+                frame.style.top = '175px';
+                
+                // Animate to sender unless lost
+                if (!isLost) {
+                    setTimeout(() => {
+                        frame.style.left = '95px';
+                    }, 50);
+                } else {
+                    // For lost frames, animate partway then fade out
+                    setTimeout(() => {
+                        frame.style.left = `${visualization.clientWidth / 2}px`;
+                        setTimeout(() => {
+                            frame.style.opacity = '0';
+                            setTimeout(() => {
+                                frame.remove();
+                            }, 500 / simulationSpeed);
+                        }, 500 / simulationSpeed);
+                    }, 50);
+                }
+            }
+            
+            return frame;
+        }
+
+        // Send a frame
+        function sendFrame(frameIndex, isResend = false) {
+            if (!simulationRunning || frameIndex >= frames.length) return;
+            
+            const frame = frames[frameIndex];
+            const lossRate = parseInt(lossRateInput.value);
+            const damageRate = parseInt(damageRateInput.value);
+            
+            // Update sender status
+            senderStatus.textContent = `Sending Frame ${frame.id}`;
+            
+            // Mark as sent
+            frame.sent = true;
+            frame.attempts++;
+            
+            // Update stats
+            stats.framesSent++;
+            stats.totalTransmissions++;
+            if (isResend) stats.framesResent++;
+            updateStatsDisplay();
+            
+            // Determine if frame will be lost or damaged
+            const isLost = Math.random() * 100 < lossRate;
+            const isDamaged = !isLost && Math.random() * 100 < damageRate;
+            
+            // Create and animate frame element
+            const frameElement = createFrameElement('data', currentSeqNum, isDamaged, isLost);
+            
+            // Update frame list
+            renderFramesToSend();
+            
+            // Start timer for ACK
+            startTimer();
+            
+            // Handle frame transmission
+            const transmissionTime = (1500 / simulationSpeed) * (0.8 + Math.random() * 0.4);
+            
+            if (isLost) {
+                // For lost frames, no need to handle receiver logic
+                stats.framesLost++;
+                updateStatsDisplay();
+                addToTransmissionLog(frame.id, 'data', 'lost');
+                
+                // Schedule frame removal
+                setTimeout(() => {
+                    frameElement.remove();
+                }, transmissionTime);
+                
+                return;
+            }
+            
+            // Schedule frame arrival at receiver
+            frameInTransit = setTimeout(() => {
+                if (!simulationRunning || simulationPaused) return;
+                
+                receiverStatus.textContent = isDamaged ? 
+                    `Received Damaged Frame` : 
+                    `Received Frame ${frame.id} (Seq=${currentSeqNum})`;
+                
+                if (isDamaged) {
+                    // Handle damaged frame
+                    stats.framesDamaged++;
+                    updateStatsDisplay();
+                    addToTransmissionLog(frame.id, 'data', 'damaged');
+                    
+                    // Send NAK (we'll reuse ACK animation but with seq num unchanged)
+                    setTimeout(() => {
+                        if (!simulationRunning || simulationPaused) return;
+                        
+                        receiverStatus.textContent = `Sending NAK (Seq=${1-currentSeqNum})`;
+                        const ackElement = createFrameElement('ack', 1-currentSeqNum);
+                        
+                        // Schedule ACK arrival (or loss)
+                        const ackLost = Math.random() * 100 < lossRate;
+                        if (ackLost) {
+                            setTimeout(() => {
+                                ackElement.classList.add('lost');
+                                stats.framesLost++;
+                                updateStatsDisplay();
+                                addToTransmissionLog(frame.id, 'ack', 'lost');
+                            }, 500 / simulationSpeed);
+                        } else {
+                            ackInTransit = setTimeout(() => {
+                                if (!simulationRunning || simulationPaused) return;
+                                
+                                // Handling NAK (negative acknowledgment for damaged frame)
+                                clearInterval(timerInterval);
+                                timerBar.style.width = '0%';
+                                senderStatus.textContent = `Received NAK, resending`;
+                                
+                                setTimeout(() => {
+                                    ackElement.remove();
+                                    sendFrame(frameIndex, true);
+                                }, 500 / simulationSpeed);
+                                
+                                addToTransmissionLog(frame.id, 'ack', 'success');
+                            }, (1500 / simulationSpeed) * (0.8 + Math.random() * 0.4));
+                        }
+                    }, 500 / simulationSpeed);
+                } else {
+                    // Handle successful frame
+                    addToTransmissionLog(frame.id, 'data', 'success');
+                    
+                    // Send ACK
+                    setTimeout(() => {
+                        if (!simulationRunning || simulationPaused) return;
+                        
+                        receiverStatus.textContent = `Sending ACK (Seq=${currentSeqNum})`;
+                        const ackElement = createFrameElement('ack', currentSeqNum);
+                        
+                        // Schedule ACK arrival (or loss)
+                        const ackLost = Math.random() * 100 < lossRate;
+                        if (ackLost) {
+                            setTimeout(() => {
+                                ackElement.classList.add('lost');
+                                stats.framesLost++;
+                                updateStatsDisplay();
+                                addToTransmissionLog(frame.id, 'ack', 'lost');
+                            }, 500 / simulationSpeed);
+                        } else {
+                            ackInTransit = setTimeout(() => {
+                                if (!simulationRunning || simulationPaused) return;
+                                
+                                // ACK received, move to next frame
+                                clearInterval(timerInterval);
+                                timerBar.style.width = '0%';
+                                senderStatus.textContent = `Received ACK for Frame ${frame.id}`;
+                                
+                                // Mark frame as received
+                                frame.received = true;
+                                stats.framesReceived++;
+                                updateStatsDisplay();
+                                addToReceivedFrames(frame.id);
+                                
+                                // Move to next frame and flip sequence number
+                                currentFrameIndex++;
+                                currentSeqNum = 1 - currentSeqNum; // Toggle between 0 and 1
+                                
+                                // Remove ACK element after a short delay
+                                setTimeout(() => {
+                                    ackElement.remove();
+                                    
+                                    // Check if simulation is complete
+                                    if (currentFrameIndex >= frames.length) {
+                                        simulationRunning = false;
+                                        senderStatus.textContent = 'Complete';
+                                        receiverStatus.textContent = 'Complete';
+                                        startBtn.disabled = false;
+                                        pauseBtn.disabled = true;
+                                    } else if (simulationRunning) {
+                                        // Send next frame
+                                        setTimeout(() => {
+                                            if (simulationRunning && !simulationPaused) {
+                                                sendFrame(currentFrameIndex);
+                                            }
+                                        }, 1000 / simulationSpeed);
+                                    }
+                                }, 500 / simulationSpeed);
+                                
+                                renderFramesToSend();
+                                addToTransmissionLog(frame.id, 'ack', 'success');
+                            }, (1500 / simulationSpeed) * (0.8 + Math.random() * 0.4));
+                        }
+                    }, 500 / simulationSpeed);
+                }
+                
+                // Schedule frame removal
+                setTimeout(() => {
+                    frameElement.remove();
+                }, 2000 / simulationSpeed);
+            }, transmissionTime);
+        }
+
+        // Start simulation
+        function startSimulation() {
+            if (simulationPaused) {
+                simulationPaused = false;
+                pauseBtn.textContent = 'Pause';
+            } else {
+                initializeSimulation();
+                simulationRunning = true;
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                
+                // Start sending first frame
+                setTimeout(() => {
+                    sendFrame(currentFrameIndex);
+                }, 500);
+            }
+        }
+
+        // Pause simulation
+        function pauseSimulation() {
+            simulationPaused = !simulationPaused;
+            pauseBtn.textContent = simulationPaused ? 'Resume' : 'Pause';
+        }
+
+        // Reset simulation
+        function resetSimulation() {
+            clearTimeout(frameInTransit);
+            clearTimeout(ackInTransit);
+            clearInterval(timerInterval);
+            simulationRunning = false;
+            simulationPaused = false;
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = 'Pause';
+            
+            // Remove all frame elements
+            document.querySelectorAll('.frame').forEach(el => el.remove());
+            
+            initializeSimulation();
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', startSimulation);
+        pauseBtn.addEventListener('click', pauseSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+
+        // Initialize on load
+        initializeSimulation();
+    </script>
+</body>
+</html>
