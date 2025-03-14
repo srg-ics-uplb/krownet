@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridged Ethernet Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        
+        .toggle-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin: 0 10px;
+        }
+        
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .network {
+            position: relative;
+            height: 300px;
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .bus {
+            position: absolute;
+            height: 10px;
+            background-color: #333;
+            top: 150px;
+            left: 0;
+            right: 0;
+        }
+        
+        .bridge {
+            position: absolute;
+            top: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 50px;
+            background-color: #ff6b6b;
+            border-radius: 5px;
+            z-index: 10;
+            transition: opacity 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .station {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            top: 100px;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 5;
+        }
+        
+        .segment0 {
+            background-color: #4CAF50; /* Green for segment 0 */
+        }
+        
+        .segment1 {
+            background-color: #2196F3; /* Blue for segment 1 */
+        }
+        
+        .packet {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #ff9800;
+            border-radius: 50%;
+            top: 147.5px;
+            z-index: 2;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            margin: 10px;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-card h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        
+        .legend {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 15px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+        
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .active-station {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+        }
+        
+        .collision {
+            animation: flash 0.5s;
+        }
+        
+        @keyframes flash {
+            0% { background-color: #ff9800; }
+            50% { background-color: #ff0000; }
+            100% { background-color: #ff9800; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bridged Ethernet Simulation</h1>
+        
+        <div class="controls">
+            <div class="toggle-container">
+                <span>Bridge Off</span>
+                <label class="toggle">
+                    <input type="checkbox" id="bridge-toggle">
+                    <span class="slider"></span>
+                </label>
+                <span>Bridge On</span>
+            </div>
+            
+            <div>
+                <button id="start-btn">Start Simulation</button>
+                <button id="reset-btn">Reset</button>
+            </div>
+            
+            <div>
+                <label for="activity-level">Activity Level: </label>
+                <select id="activity-level">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="network">
+            <div class="bus"></div>
+            <div class="bridge" id="bridge">Bridge</div>
+            <!-- Stations will be added dynamically -->
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Packets</h3>
+                <div class="stat-value" id="total-packets">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Collisions</h3>
+                <div class="stat-value" id="collisions">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Available Bandwidth</h3>
+                <div class="stat-value" id="bandwidth">100%</div>
+            </div>
+            <div class="stat-card">
+                <h3>Segment 1 Load</h3>
+                <div class="stat-value" id="segment1-load">0%</div>
+            </div>
+            <div class="stat-card">
+                <h3>Segment 2 Load</h3>
+                <div class="stat-value" id="segment2-load">0%</div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4CAF50;"></div>
+                <span>Segment 1 Station</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #2196F3;"></div>
+                <span>Segment 2 Station</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ff9800;"></div>
+                <span>Packet</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ff6b6b;"></div>
+                <span>Bridge</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #333;"></div>
+                <span>Bus</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const NUM_STATIONS = 12;
+        const NETWORK_WIDTH = document.querySelector('.network').clientWidth;
+        const BUS_Y = 150;
+        const MAX_PACKETS = 50;
+        
+        // Variables
+        let stations = [];
+        let packets = [];
+        let bridgeEnabled = false;
+        let totalPackets = 0;
+        let collisions = 0;
+        let isSimulationRunning = false;
+        let currentBandwidth = 100;
+        let segment1Load = 0;
+        let segment2Load = 0;
+        let packetQueue = [];
+        let activityLevels = {
+            low: 1000,
+            medium: 500,
+            high: 200
+        };
+        let currentActivityInterval = activityLevels.medium;
+        let simulationInterval;
+        
+        // DOM Elements
+        const bridgeToggle = document.getElementById('bridge-toggle');
+        const bridgeElement = document.getElementById('bridge');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const totalPacketsElement = document.getElementById('total-packets');
+        const collisionsElement = document.getElementById('collisions');
+        const bandwidthElement = document.getElementById('bandwidth');
+        const segment1LoadElement = document.getElementById('segment1-load');
+        const segment2LoadElement = document.getElementById('segment2-load');
+        const activityLevelSelect = document.getElementById('activity-level');
+        const networkElement = document.querySelector('.network');
+        
+        // Initialize
+        function init() {
+            createStations();
+            updateBridgeVisibility();
+            
+            // Event Listeners
+            bridgeToggle.addEventListener('change', function() {
+                bridgeEnabled = this.checked;
+                updateBridgeVisibility();
+                calculateBandwidth();
+            });
+            
+            startBtn.addEventListener('click', toggleSimulation);
+            resetBtn.addEventListener('click', resetSimulation);
+            
+            activityLevelSelect.addEventListener('change', function() {
+                currentActivityInterval = activityLevels[this.value];
+                if (isSimulationRunning) {
+                    clearInterval(simulationInterval);
+                    simulationInterval = setInterval(generateRandomPacket, currentActivityInterval);
+                }
+            });
+            
+            // Make stations clickable to send packets
+            stations.forEach(station => {
+                station.element.addEventListener('click', () => {
+                    if (isSimulationRunning) {
+                        const randomDestination = Math.floor(Math.random() * NUM_STATIONS);
+                        if (randomDestination !== station.id) {
+                            createPacket(station.id, randomDestination);
+                        }
+                    }
+                });
+            });
+            
+            window.addEventListener('resize', () => {
+                repositionStations();
+            });
+        }
+        
+        function createStations() {
+            const networkDiv = document.querySelector('.network');
+            const stationSpacing = NETWORK_WIDTH / (NUM_STATIONS + 1);
+            
+            for (let i = 0; i < NUM_STATIONS; i++) {
+                const stationDiv = document.createElement('div');
+                const segmentClass = i < 6 ? 'segment0' : 'segment1';
+                stationDiv.className = `station ${segmentClass}`;
+                stationDiv.textContent = i + 1;
+                
+                const xPos = (i + 1) * stationSpacing;
+                stationDiv.style.left = `${xPos}px`;
+                
+                // Alternate between top and bottom of the bus
+                if (i % 2 === 0) {
+                    stationDiv.style.top = '100px';
+                } else {
+                    stationDiv.style.top = '180px';
+                }
+                
+                networkDiv.appendChild(stationDiv);
+                
+                stations.push({
+                    id: i,
+                    element: stationDiv,
+                    x: xPos,
+                    segment: i < 6 ? 0 : 1 // Segment 0 or 1
+                });
+            }
+        }
+        
+        function repositionStations() {
+            const networkWidth = document.querySelector('.network').clientWidth;
+            const stationSpacing = networkWidth / (NUM_STATIONS + 1);
+            
+            stations.forEach((station, i) => {
+                const xPos = (i + 1) * stationSpacing;
+                station.x = xPos;
+                station.element.style.left = `${xPos}px`;
+            });
+        }
+        
+        function updateBridgeVisibility() {
+            bridgeElement.style.opacity = bridgeEnabled ? '1' : '0.3';
+        }
+        
+        function toggleSimulation() {
+            if (!isSimulationRunning) {
+                startSimulation();
+                startBtn.textContent = 'Stop Simulation';
+            } else {
+                stopSimulation();
+                startBtn.textContent = 'Start Simulation';
+            }
+        }
+        
+        function startSimulation() {
+            isSimulationRunning = true;
+            simulationInterval = setInterval(generateRandomPacket, currentActivityInterval);
+            resetBtn.disabled = true;
+        }
+        
+        function stopSimulation() {
+            isSimulationRunning = false;
+            clearInterval(simulationInterval);
+            resetBtn.disabled = false;
+        }
+        
+        function resetSimulation() {
+            // Remove all packets
+            packets.forEach(packet => {
+                if (packet.element) {
+                    packet.element.remove();
+                }
+            });
+            
+            packets = [];
+            totalPackets = 0;
+            collisions = 0;
+            currentBandwidth = 100;
+            segment1Load = 0;
+            segment2Load = 0;
+            
+            // Update display
+
+            totalPacketsElement.textContent = totalPackets;
+            collisionsElement.textContent = collisions;
+            bandwidthElement.textContent = '100%';
+            segment1LoadElement.textContent = '0%';
+            segment2LoadElement.textContent = '0%';
+        }
+        
+        function generateRandomPacket() {
+            if (packets.length > MAX_PACKETS) return;
+            
+            const sourceStation = Math.floor(Math.random() * NUM_STATIONS);
+            let destinationStation;
+            
+            do {
+                destinationStation = Math.floor(Math.random() * NUM_STATIONS);
+            } while (destinationStation === sourceStation);
+            
+            createPacket(sourceStation, destinationStation);
+        }
+        
+        function createPacket(sourceId, destId) {
+            const source = stations[sourceId];
+            const dest = stations[destId];
+            
+            // Check if bridge is enabled and packet is crossing segments
+            let canCross = true;
+            if (bridgeEnabled && source.segment !== dest.segment) {
+                // The bridge will filter packets between segments
+                // We still create the packet but it will be handled differently
+            }
+            
+            // Create packet element
+            const packetElement = document.createElement('div');
+            packetElement.className = 'packet';
+            packetElement.style.left = `${source.x}px`;
+            networkElement.appendChild(packetElement);
+            
+            // Highlight the source station
+            source.element.classList.add('active-station');
+            setTimeout(() => {
+                source.element.classList.remove('active-station');
+            }, 500);
+            
+            // Create packet object
+            const packet = {
+                id: totalPackets++,
+                sourceId: sourceId,
+                destinationId: destId,
+                element: packetElement,
+                x: source.x,
+                direction: sourceId < destId ? 1 : -1,
+                sourceSegment: source.segment,
+                destSegment: dest.segment,
+                active: true
+            };
+            
+            // Add to packets array
+            packets.push(packet);
+            
+            // Update stats
+            totalPacketsElement.textContent = totalPackets;
+            
+            // Check for collisions
+            checkCollisions(packet);
+            
+            // Update bandwidth
+            calculateBandwidth();
+            
+            return packet;
+        }
+        
+        function movePackets() {
+            const packetsToRemove = [];
+            
+            packets.forEach(packet => {
+                if (!packet.active) return;
+                
+                // Move packet
+                packet.x += packet.direction * 5;
+                packet.element.style.left = `${packet.x}px`;
+                
+                // Check if packet has reached the bridge
+                if (bridgeEnabled) {
+                    const bridgeX = NETWORK_WIDTH / 2;
+                    
+                    // If packet is crossing segments
+                    if (packet.sourceSegment !== packet.destSegment) {
+                        // When it reaches the bridge
+                        if ((packet.direction === 1 && packet.x >= bridgeX && packet.sourceSegment === 0) ||
+                            (packet.direction === -1 && packet.x <= bridgeX && packet.sourceSegment === 1)) {
+                            
+                            // The bridge analyzes the packet and only passes it if it's meant for the other segment
+                            // This is already determined when we create the packet
+                        }
+                    }
+                }
+                
+                // Check if packet has reached its destination
+                const dest = stations[packet.destinationId];
+                if ((packet.direction === 1 && packet.x >= dest.x) ||
+                    (packet.direction === -1 && packet.x <= dest.x)) {
+                    
+                    // Highlight destination station
+                    dest.element.classList.add('active-station');
+                    setTimeout(() => {
+                        dest.element.classList.remove('active-station');
+                    }, 500);
+                    
+                    // Schedule for removal
+                    packetsToRemove.push(packet);
+                }
+                
+                // Check if packet has reached the end of the network
+                if (packet.x < 0 || packet.x > NETWORK_WIDTH) {
+                    packetsToRemove.push(packet);
+                }
+            });
+            
+            // Remove packets that reached their destination
+            for (const packet of packetsToRemove) {
+                removePacket(packet);
+            }
+            
+            // Update bandwidth
+            calculateBandwidth();
+        }
+        
+        function removePacket(packet) {
+            packet.active = false;
+            packet.element.remove();
+            packets = packets.filter(p => p !== packet);
+        }
+        
+        function checkCollisions(newPacket) {
+            let collisionDetected = false;
+            
+            packets.forEach(packet => {
+                if (packet !== newPacket && packet.active) {
+                    // Check if packets are in the same segment
+                    const sameSegment = !bridgeEnabled || packet.sourceSegment === newPacket.sourceSegment;
+                    
+                    // If bridge is enabled, packets in different segments don't collide
+                    if (sameSegment) {
+                        collisionDetected = true;
+                        packet.element.classList.add('collision');
+                        newPacket.element.classList.add('collision');
+                        
+                        setTimeout(() => {
+                            packet.element.classList.remove('collision');
+                            newPacket.element.classList.remove('collision');
+                        }, 500);
+                        
+                        collisions++;
+                        collisionsElement.textContent = collisions;
+                    }
+                }
+            });
+            
+            return collisionDetected;
+        }
+        
+        function calculateBandwidth() {
+            // Calculate load on each segment
+            let segment1PacketCount = 0;
+            let segment2PacketCount = 0;
+            
+            packets.forEach(packet => {
+                if (packet.active) {
+                    if (!bridgeEnabled || packet.sourceSegment === 0) {
+                        segment1PacketCount++;
+                    }
+                    if (!bridgeEnabled || packet.sourceSegment === 1) {
+                        segment2PacketCount++;
+                    }
+                }
+            });
+            
+            // Calculate percentage of bandwidth used
+            const maxPacketsPerSegment = 20;
+            segment1Load = Math.min(100, Math.round((segment1PacketCount / maxPacketsPerSegment) * 100));
+            segment2Load = Math.min(100, Math.round((segment2PacketCount / maxPacketsPerSegment) * 100));
+            
+            // Update display
+            segment1LoadElement.textContent = `${segment1Load}%`;
+            segment2LoadElement.textContent = `${segment2Load}%`;
+            
+            // If bridge is enabled, separate the bandwidth calculations
+            if (bridgeEnabled) {
+                currentBandwidth = Math.max(0, 100 - Math.max(segment1Load, segment2Load));
+            } else {
+                // If no bridge, the entire network shares bandwidth
+                currentBandwidth = Math.max(0, 100 - (segment1Load + segment2Load)/2);
+            }
+            
+            bandwidthElement.textContent = `${currentBandwidth}%`;
+            
+            // Visual feedback through color
+            if (currentBandwidth > 70) {
+                bandwidthElement.style.color = '#2196F3';
+            } else if (currentBandwidth > 30) {
+                bandwidthElement.style.color = '#ff9800';
+            } else {
+                bandwidthElement.style.color = '#f44336';
+            }
+        }
+        
+        // Animation loop
+        function animate() {
+            movePackets();
+            requestAnimationFrame(animate);
+        }
+        
+        // Start the animation loop
+        animate();
+        
+        // Initialize the simulation
+        init();
+    </script>
+</body>
+</html>
