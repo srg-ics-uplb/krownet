@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireless NAV Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #eef;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .simulation-area {
+            position: relative;
+            height: 500px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        .station {
+            position: absolute;
+            width: 80px;
+            text-align: center;
+        }
+        .station img {
+            width: 60px;
+            height: 45px;
+        }
+        .station-label {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .timeline {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background-color: #333;
+            bottom: 50px;
+        }
+        .packet {
+            position: absolute;
+            height: 30px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            line-height: 30px;
+            font-size: 14px;
+        }
+        .rts-packet {
+            background-color: #000;
+        }
+        .cts-packet {
+            background-color: #000;
+        }
+        .data-packet {
+            background-color: #0099ff;
+        }
+        .ack-packet {
+            background-color: #000;
+        }
+        .nav-region {
+            position: absolute;
+            background-color: rgba(200, 200, 200, 0.5);
+            height: 30px;
+            font-weight: bold;
+            text-align: center;
+            line-height: 30px;
+            font-size: 14px;
+        }
+        .sifs {
+            position: absolute;
+            height: 15px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px dashed #999;
+            font-size: 12px;
+            text-align: center;
+            line-height: 15px;
+        }
+        .difs {
+            position: absolute;
+            height: 15px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px dashed #999;
+            font-size: 12px;
+            text-align: center;
+            line-height: 15px;
+        }
+        .log-area {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            height: 150px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #fff8e1;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wireless NAV Simulation</h1>
+        <p>This simulation demonstrates how the Network Allocation Vector (NAV) works in wireless networks using RTS/CTS mechanism.</p>
+        
+        <div class="controls">
+            <button id="startBtn">Start Simulation</button>
+            <button id="resetBtn">Reset</button>
+            <button id="explainBtn">Show Explanation</button>
+            <span id="statusText" style="margin-left: 20px;">Ready to start</span>
+        </div>
+        
+        <div class="simulation-area" id="simulationArea">
+            <!-- Stations will be added dynamically -->
+        </div>
+        
+        <div class="log-area" id="logArea">
+            <div class="log-entry">Simulation log will appear here...</div>
+        </div>
+        
+        <div class="explanation" id="explanation" style="display: none;">
+            <h2>Network Allocation Vector (NAV) Explanation</h2>
+            <p>The NAV is a virtual carrier-sensing mechanism used in wireless networks to minimize collisions. Here's how it works:</p>
+            <ol>
+                <li><strong>RTS (Request to Send):</strong> The source station (A) sends an RTS frame after waiting for a DIFS period, indicating it wants to send data to a specific destination (B).</li>
+                <li><strong>CTS (Clear to Send):</strong> The destination (B) responds with a CTS after a SIFS period, granting permission to the source.</li>
+                <li><strong>NAV Setting:</strong> Other stations (C, D) that receive the RTS and/or CTS frames set their NAV timers based on the duration field in these frames, which indicates how long the medium will be busy.</li>
+                <li><strong>Data Transmission:</strong> The source (A) sends its data to the destination (B) after a SIFS period.</li>
+                <li><strong>ACK:</strong> The destination (B) acknowledges receipt with an ACK frame after another SIFS period.</li>
+                <li><strong>NAV Timer:</strong> During this entire exchange, other stations (C, D) must wait until their NAV timers expire before attempting to access the medium, even if they detect no physical carrier.</li>
+            </ol>
+            <p>This mechanism helps prevent the "hidden node problem" where stations that cannot detect each other's transmissions might cause collisions at a common receiver.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const simulationArea = document.getElementById('simulationArea');
+            const logArea = document.getElementById('logArea');
+            const startBtn = document.getElementById('startBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const explainBtn = document.getElementById('explainBtn');
+            const statusText = document.getElementById('statusText');
+            const explanation = document.getElementById('explanation');
+            
+            let animationInProgress = false;
+            let timeoutIds = [];
+            
+            // Station coordinates
+            const stations = [
+                { id: 'A', name: 'Source', x: 50, y: 100 },
+                { id: 'B', name: 'Destination', x: 300, y: 100 },
+                { id: 'C', name: 'Station C', x: 500, y: 100 },
+                { id: 'D', name: 'Station D', x: 700, y: 100 }
+            ];
+            
+            // Create stations and timeline
+            function setupSimulation() {
+                simulationArea.innerHTML = '';
+                
+                // Create timeline
+                const timeline = document.createElement('div');
+                timeline.className = 'timeline';
+                simulationArea.appendChild(timeline);
+                
+                // Create stations
+                stations.forEach(station => {
+                    const stationDiv = document.createElement('div');
+                    stationDiv.className = 'station';
+                    stationDiv.id = `station-${station.id}`;
+                    stationDiv.style.left = `${station.x}px`;
+                    stationDiv.style.top = `${station.y}px`;
+                    
+                    const img = document.createElement('img');
+                    img.src = '/api/placeholder/60/45';
+                    img.alt = `Station ${station.id}`;
+                    
+                    const label = document.createElement('div');
+                    label.className = 'station-label';
+                    label.textContent = `${station.id}: ${station.name}`;
+                    
+                    stationDiv.appendChild(img);
+                    stationDiv.appendChild(label);
+                    simulationArea.appendChild(stationDiv);
+                });
+                
+                // Add vertical time markers for each station
+                stations.forEach(station => {
+                    const timeMarker = document.createElement('div');
+                    timeMarker.className = 'time-marker';
+                    timeMarker.style.position = 'absolute';
+                    timeMarker.style.left = `${station.x + 30}px`;
+                    timeMarker.style.top = '200px';
+                    timeMarker.style.width = '1px';
+                    timeMarker.style.height = '250px';
+                    timeMarker.style.borderLeft = '2px dashed #777';
+                    
+                    const timeLabel = document.createElement('div');
+                    timeLabel.textContent = 'Time';
+                    timeLabel.style.position = 'absolute';
+                    timeLabel.style.left = `${station.x + 15}px`;
+                    timeLabel.style.top = '460px';
+                    timeLabel.style.fontSize = '12px';
+                    
+                    simulationArea.appendChild(timeMarker);
+                    simulationArea.appendChild(timeLabel);
+                });
+            }
+            
+            // Add a log entry
+            function log(message) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = message;
+                logArea.appendChild(entry);
+                logArea.scrollTop = logArea.scrollHeight;
+            }
+            
+            // Create and animate a packet
+            function createPacket(type, from, to, delay, duration) {
+                return new Promise(resolve => {
+                    timeoutIds.push(setTimeout(() => {
+                        const fromStation = stations.find(s => s.id === from);
+                        const toStation = stations.find(s => s.id === to);
+                        
+                        const packet = document.createElement('div');
+                        packet.className = `packet ${type}-packet`;
+                        
+                        // Set appropriate text based on type
+                        let packetText = type.toUpperCase();
+                        
+                        packet.textContent = packetText;
+                        
+                        // Position and size
+                        const startX = fromStation.x + 30;
+                        const endX = toStation.x + 30;
+                        const width = Math.abs(endX - startX);
+                        const top = 250;
+                        
+                        packet.style.left = `${Math.min(startX, endX)}px`;
+                        packet.style.top = `${top}px`;
+                        packet.style.width = `${width}px`;
+                        
+                        simulationArea.appendChild(packet);
+                        
+                        log(`${fromStation.id} sends ${type.toUpperCase()} to ${toStation.id}`);
+                        
+                        timeoutIds.push(setTimeout(() => {
+                            resolve();
+                        }, duration));
+                    }, delay));
+                });
+            }
+            
+            // Create and display NAV region
+            function createNAV(station, delay, duration, width) {
+                return new Promise(resolve => {
+                    timeoutIds.push(setTimeout(() => {
+                        const stationObj = stations.find(s => s.id === station);
+                        
+                        const nav = document.createElement('div');
+                        nav.className = 'nav-region';
+                        nav.textContent = 'NAV';
+                        
+                        nav.style.left = `${stationObj.x + 30}px`;
+                        nav.style.top = '320px';
+                        nav.style.width = `${width}px`;
+                        
+                        simulationArea.appendChild(nav);
+                        
+                        log(`Station ${station} sets NAV timer`);
+                        
+                        timeoutIds.push(setTimeout(() => {
+                            resolve();
+                        }, duration));
+                    }, delay));
+                });
+            }
+            
+            // Create SIFS or DIFS spacing visual
+            function createSpacing(type, station, delay, duration) {
+                return new Promise(resolve => {
+                    timeoutIds.push(setTimeout(() => {
+                        const stationObj = stations.find(s => s.id === station);
+                        
+                        const spacing = document.createElement('div');
+                        spacing.className = type.toLowerCase();
+                        spacing.textContent = type;
+                        
+                        spacing.style.left = `${stationObj.x + 10}px`;
+                        spacing.style.width = '40px';
+                        
+                        if (type === 'DIFS') {
+                            spacing.style.top = '230px';
+                        } else { // SIFS
+                            spacing.style.top = '280px';
+                        }
+                        
+                        simulationArea.appendChild(spacing);
+                        
+                        log(`${station} waits for ${type}`);
+                        
+                        timeoutIds.push(setTimeout(() => {
+                            resolve();
+                        }, duration));
+                    }, delay));
+                });
+            }
+            
+            // Create data packet
+            function createDataPacket(delay, duration) {
+                return new Promise(resolve => {
+                    timeoutIds.push(setTimeout(() => {
+                        const fromStation = stations.find(s => s.id === 'A');
+                        const toStation = stations.find(s => s.id === 'B');
+                        
+                        const packet = document.createElement('div');
+                        packet.className = 'packet data-packet';
+                        packet.textContent = 'DATA';
+                        
+                        // Position and size
+                        const startX = fromStation.x + 30;
+                        const endX = toStation.x + 30;
+                        const width = Math.abs(endX - startX);
+                        const top = 290;
+                        
+                        packet.style.left = `${Math.min(startX, endX)}px`;
+                        packet.style.top = `${top}px`;
+                        packet.style.width = `${width}px`;
+                        
+                        simulationArea.appendChild(packet);
+                        
+                        log('A sends DATA to B');
+                        
+                        timeoutIds.push(setTimeout(() => {
+                            resolve();
+                        }, duration));
+                    }, delay));
+                });
+            }
+            
+            // Run the simulation
+            async function runSimulation() {
+                if (animationInProgress) return;
+                
+                animationInProgress = true;
+                startBtn.disabled = true;
+                statusText.textContent = 'Simulation in progress...';
+                
+                try {
+                    // Clear previous logs
+                    logArea.innerHTML = '';
+                    
+                    // 1. A waits for DIFS
+                    await createSpacing('DIFS', 'A', 0, 500);
+                    
+// 2. A sends RTS to B
+                    await createPacket('rts', 'A', 'B', 500, 1000);
+                    
+                    // 3. B waits for SIFS
+                    await createSpacing('SIFS', 'B', 500, 500);
+                    
+                    // 4. B sends CTS to A
+                    await createPacket('cts', 'B', 'A', 500, 1000);
+                    
+                    // 5. Set NAV for stations C and D after they receive RTS/CTS
+                    createNAV('C', 1000, 5000, 150);
+                    createNAV('D', 1000, 5000, 150);
+                    
+                    // 6. A waits for SIFS
+                    await createSpacing('SIFS', 'A', 500, 500);
+                    
+                    // 7. A sends DATA to B
+                    await createDataPacket(500, 2000);
+                    
+                    // 8. B waits for SIFS
+                    await createSpacing('SIFS', 'B', 500, 500);
+                    
+                    // 9. B sends ACK to A
+                    await createPacket('ack', 'B', 'A', 500, 1000);
+                    
+                    // 10. Simulation complete
+                    timeoutIds.push(setTimeout(() => {
+                        log('Simulation complete. NAV prevented C and D from transmitting during this exchange.');
+                        statusText.textContent = 'Simulation complete';
+                        animationInProgress = false;
+                        startBtn.disabled = false;
+                    }, 1000));
+                    
+                } catch (error) {
+                    console.error('Simulation error:', error);
+                    statusText.textContent = 'Simulation error';
+                    animationInProgress = false;
+                    startBtn.disabled = false;
+                }
+            }
+            
+            // Reset the simulation
+            function resetSimulation() {
+                // Clear all timeouts
+                timeoutIds.forEach(id => clearTimeout(id));
+                timeoutIds = [];
+                
+                // Reset UI
+                setupSimulation();
+                logArea.innerHTML = '<div class="log-entry">Simulation log will appear here...</div>';
+                statusText.textContent = 'Ready to start';
+                animationInProgress = false;
+                startBtn.disabled = false;
+                explanation.style.display = 'none';
+            }
+            
+            // Initialize
+            setupSimulation();
+            
+            // Event listeners
+            startBtn.addEventListener('click', runSimulation);
+            resetBtn.addEventListener('click', resetSimulation);
+            explainBtn.addEventListener('click', function() {
+                explanation.style.display = explanation.style.display === 'none' ? 'block' : 'none';
+                explainBtn.textContent = explanation.style.display === 'none' ? 'Show Explanation' : 'Hide Explanation';
+            });
+        });
+    </script>
+</body>
+</html>
+
