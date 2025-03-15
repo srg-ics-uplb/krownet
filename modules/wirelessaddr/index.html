@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IEEE 802.11 Addressing Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
+    h1, h2 {
+      color: #333;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .case-selection {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    select {
+      padding: 8px 12px;
+      font-size: 16px;
+      border-radius: 4px;
+    }
+    
+    .addressing-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+    
+    .addressing-table th, .addressing-table td {
+      border: 2px solid #e83e8c;
+      padding: 10px;
+      text-align: center;
+    }
+    
+    .addressing-table th {
+      background-color: #f8d7ea;
+    }
+    
+    .addressing-table tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    
+    .network-diagram {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0;
+      min-height: 300px;
+      position: relative;
+    }
+    
+    .device {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: absolute;
+    }
+    
+    .device-icon {
+      width: 50px;
+      height: 50px;
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    
+    .device-label {
+      font-weight: bold;
+    }
+    
+    .bss-container {
+      border: 2px dashed #999;
+      padding: 20px;
+      position: relative;
+      margin: 0 10px;
+      min-width: 120px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .bss-label {
+      position: absolute;
+      top: -10px;
+      background-color: white;
+      padding: 0 5px;
+    }
+    
+    .distribution-system {
+      border: 2px dashed #ffcc00;
+      background-color: #ffffcc;
+      padding: 10px;
+      position: relative;
+      width: 80%;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .ds-label {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #ffffcc;
+      padding: 0 5px;
+      font-weight: bold;
+    }
+    
+    .ap {
+      width: 60px;
+      height: 30px;
+      background-color: #e83e8c;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 5px;
+      margin: 10px;
+      position: absolute;
+    }
+    
+    .frame {
+      position: absolute;
+      background-color: #555;
+      height: 20px;
+      min-width: 200px;
+      display: flex;
+      color: white;
+    }
+    
+    .frame-field {
+      padding: 0 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-right: 1px solid white;
+    }
+    
+    .address-field {
+      width: 50px;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 12px;
+    }
+    
+    .address-1 {
+      background-color: #b19cd9;
+    }
+    
+    .address-2 {
+      background-color: #ff9999;
+    }
+    
+    .address-3 {
+      background-color: #99cc99;
+    }
+    
+    .address-4 {
+      background-color: #ffcc99;
+    }
+    
+    .explanation {
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-left: 4px solid #e83e8c;
+    }
+    
+    .animated-frame {
+      position: absolute;
+      transition: all 2s linear;
+    }
+    
+    button {
+      padding: 8px 16px;
+      background-color: #e83e8c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 0 5px;
+    }
+    
+    button:hover {
+      background-color: #d21e7a;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    
+    .current-step {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    
+    .frame-legend {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin: 0 10px;
+    }
+    
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>IEEE 802.11 Addressing Simulation</h1>
+    
+    <div class="case-selection">
+      <label for="case-select">Select Case: </label>
+      <select id="case-select">
+        <option value="0">Case 1: BSS (To DS=0, From DS=0)</option>
+        <option value="1">Case 2: Infrastructure Basic Service Set (To DS=0, From DS=1)</option>
+        <option value="2">Case 3: Infrastructure Basic Service Set (To DS=1, From DS=0)</option>
+        <option value="3">Case 4: Wireless Distribution System (To DS=1, From DS=1)</option>
+      </select>
+    </div>
+    
+    <table class="addressing-table">
+      <thead>
+        <tr>
+          <th>To DS</th>
+          <th>From DS</th>
+          <th>Address 1</th>
+          <th>Address 2</th>
+          <th>Address 3</th>
+          <th>Address 4</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr id="active-row-0">
+          <td>0</td>
+          <td>0</td>
+          <td>Destination</td>
+          <td>Source</td>
+          <td>BSS ID</td>
+          <td>N/A</td>
+        </tr>
+        <tr id="active-row-1">
+          <td>0</td>
+          <td>1</td>
+          <td>Destination</td>
+          <td>Sending AP</td>
+          <td>Source</td>
+          <td>N/A</td>
+        </tr>
+        <tr id="active-row-2">
+          <td>1</td>
+          <td>0</td>
+          <td>Receiving AP</td>
+          <td>Source</td>
+          <td>Destination</td>
+          <td>N/A</td>
+        </tr>
+        <tr id="active-row-3">
+          <td>1</td>
+          <td>1</td>
+          <td>Receiving AP</td>
+          <td>Sending AP</td>
+          <td>Destination</td>
+          <td>Source</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="frame-legend">
+      <div class="legend-item">
+        <div class="legend-color address-1"></div>
+        <span>Address 1</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color address-2"></div>
+        <span>Address 2</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color address-3"></div>
+        <span>Address 3</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color address-4"></div>
+        <span>Address 4</span>
+      </div>
+    </div>
+    
+    <div class="current-step" id="current-step">
+      Click "Start Animation" to begin
+    </div>
+    
+    <div class="controls">
+      <button id="start-button">Start Animation</button>
+      <button id="reset-button">Reset</button>
+    </div>
+    
+    <div class="network-diagram" id="diagram-container">
+      <!-- Diagram will be inserted here by JavaScript -->
+    </div>
+    
+    <div class="explanation" id="explanation">
+      <h3>Case 1: BSS (To DS=0, From DS=0)</h3>
+      <p>This represents direct communication between two stations within the same Basic Service Set (BSS) without going through an Access Point. Address 1 is the destination, Address 2 is the source, and Address 3 contains the BSS ID.</p>
+    </div>
+  </div>
+  
+  <script>
+// Configuration for the different cases
+const cases = [
+  {
+    // Case 1: BSS (To DS=0, From DS=0)
+    title: "Case 1: BSS (To DS=0, From DS=0)",
+    description: "This represents direct communication between two stations within the same Basic Service Set (BSS) without going through an Access Point. Address 1 is the destination, Address 2 is the source, and Address 3 contains the BSS ID.",
+    showDS: false,
+    showAP: false,
+    frameAddresses: ["A", "B", "BSS-ID", "N/A"],
+    animation: [
+      { step: "Frame being sent directly from Station B to Station A", framePos: { left: "70%", top: "50%" } },
+      { step: "Frame arrives at Station A", framePos: { left: "20%", top: "50%" } }
+    ]
+  },
+{
+    // Case 2: Infrastructure BSS (To DS=0, From DS=1)
+    title: "Case 2: Infrastructure Basic Service Set (To DS=0, From DS=1)",
+    description: "This represents communication from the Distribution System (DS) to a station within a BSS, through an Access Point (AP). Address 1 is the destination station, Address 2 is the sending AP, and Address 3 is the original source.",
+    showDS: true,
+    showAP: true,
+    hasTwoAPs: false,
+    frameAddresses: ["B", "AP", "A", "N/A"],
+    animation: [
+      { step: "Frame originating from Distribution System with source A", framePos: { left: "50%", top: "25%" } },
+      { step: "Frame going through AP to Station B", framePos: { left: "50%", top: "45%" } },
+      { step: "Frame arrives at Station B", framePos: { left: "20%", top: "60%" } }
+    ]
+},
+  {
+    // Case 3: Infrastructure BSS (To DS=1, From DS=0)
+    title: "Case 3: Infrastructure Basic Service Set (To DS=1, From DS=0)",
+    description: "This represents communication from a station to the Distribution System through an Access Point. Address 1 is the receiving AP, Address 2 is the source station, and Address 3 is the final destination.",
+    showDS: true,
+    showAP: true,
+    hasTwoAPs: false,
+    frameAddresses: ["AP", "A", "B", "N/A"],
+    animation: [
+      { step: "Frame originating from Station A", framePos: { left: "75%", top: "60%" } },
+      { step: "Frame going to AP", framePos: { left: "60%", top: "50%" } },
+      { step: "Frame enters Distribution System", framePos: { left: "25%", top: "25%" } }
+    ]
+  },
+  {
+    // Case 4: Wireless Distribution System (To DS=1, From DS=1)
+    title: "Case 4: Wireless Distribution System (To DS=1, From DS=1)",
+    description: "This represents communication between two Access Points in a Wireless Distribution System. Address 1 is the receiving AP, Address 2 is the sending AP, Address 3 is the destination station, and Address 4 is the source station.",
+    showDS: true,
+    showAP: true,
+    hasTwoAPs: true,
+    frameAddresses: ["AP1", "AP2", "A", "B"],
+    animation: [
+      { step: "Frame originating from Station B", framePos: { left: "20%", top: "60%" } },
+      { step: "Frame going through AP2", framePos: { left: "30%", top: "45%" } },
+      { step: "Frame transmitted to AP1", framePos: { left: "65%", top: "45%" } },
+      { step: "Frame arrives at Station A", framePos: { left: "75%", top: "60%" } }
+    ]
+  }
+];
+
+// DOM Elements
+const caseSelect = document.getElementById('case-select');
+const diagramContainer = document.getElementById('diagram-container');
+const startButton = document.getElementById('start-button');
+const resetButton = document.getElementById('reset-button');
+const currentStepElement = document.getElementById('current-step');
+const explanationElement = document.getElementById('explanation');
+const tableRows = [
+  document.getElementById('active-row-0'),
+  document.getElementById('active-row-1'),
+  document.getElementById('active-row-2'),
+  document.getElementById('active-row-3')
+];
+
+let currentCase = 0;
+let animationStep = 0;
+let animating = false;
+let frameElement = null;
+
+// Function to render the network diagram
+function renderDiagram() {
+  const caseData = cases[currentCase];
+  diagramContainer.innerHTML = '';
+  
+  // Create the diagram structure
+  if (caseData.showDS) {
+    // Create distribution system
+    const ds = document.createElement('div');
+    ds.className = 'distribution-system';
+    ds.innerHTML = '<div class="ds-label">Distribution System</div>';
+    diagramContainer.appendChild(ds);
+    
+    // Create BSS containers
+    const bssContainer1 = document.createElement('div');
+    bssContainer1.className = 'bss-container';
+    bssContainer1.style.left = '10%';
+    bssContainer1.style.top = '120px';
+    bssContainer1.innerHTML = '<div class="bss-label">BSS</div>';
+    
+    const bssContainer2 = document.createElement('div');
+    bssContainer2.className = 'bss-container';
+    bssContainer2.style.left = '70%';
+    bssContainer2.style.top = '120px';
+    bssContainer2.innerHTML = '<div class="bss-label">BSS</div>';
+    
+    diagramContainer.appendChild(bssContainer1);
+    diagramContainer.appendChild(bssContainer2);
+    
+    // Create station B
+    const stationB = createDevice('B', '20%', '60%');
+    diagramContainer.appendChild(stationB);
+    
+    // Create station A
+    const stationA = createDevice('A', '75%', '60%');
+    diagramContainer.appendChild(stationA);
+    
+    // Create APs
+    if (caseData.showAP) {
+      if (caseData.hasTwoAPs) {
+        const ap1 = createAP('AP1', '65%', '45%');
+        const ap2 = createAP('AP2', '30%', '45%');
+        diagramContainer.appendChild(ap1);
+        diagramContainer.appendChild(ap2);
+      } else {
+        const ap = createAP('AP', '50%', '45%');
+        diagramContainer.appendChild(ap);
+      }
+    }
+  } else {
+    // Create BSS container
+    const bssContainer = document.createElement('div');
+    bssContainer.className = 'bss-container';
+    bssContainer.style.width = '80%';
+    bssContainer.style.height = '200px';
+    bssContainer.innerHTML = '<div class="bss-label">BSS-ID</div>';
+    diagramContainer.appendChild(bssContainer);
+    
+    // Create station B
+    const stationB = createDevice('B', '70%', '50%');
+    diagramContainer.appendChild(stationB);
+    
+    // Create station A
+    const stationA = createDevice('A', '20%', '50%');
+    diagramContainer.appendChild(stationA);
+  }
+  
+  // Create frame
+  createFrame();
+}
+
+// Function to create a network device (station)
+function createDevice(label, left, top) {
+  const device = document.createElement('div');
+  device.className = 'device';
+  device.style.left = left;
+  device.style.top = top;
+  
+  const icon = document.createElement('div');
+  icon.className = 'device-icon';
+  icon.innerText = '💻';
+  
+  const labelElement = document.createElement('div');
+  labelElement.className = 'device-label';
+  labelElement.innerText = `Station ${label}`;
+  
+  device.appendChild(icon);
+  device.appendChild(labelElement);
+  
+  return device;
+}
+
+// Function to create an access point
+function createAP(label, left, top) {
+  const ap = document.createElement('div');
+  ap.className = 'ap';
+  ap.style.left = left;
+  ap.style.top = top;
+  ap.innerText = label;
+  
+  return ap;
+}
+
+// Function to create the frame
+function createFrame() {
+  // Remove existing frame if any
+  //if (frameElement) {
+  //  diagramContainer.removeChild(frameElement);
+ // }
+  
+  const caseData = cases[currentCase];
+  frameElement = document.createElement('div');
+  frameElement.className = 'frame';
+  
+  // Set initial position
+  if (animationStep === 0) {
+    frameElement.style.left = caseData.animation[0].framePos.left;
+    frameElement.style.top = caseData.animation[0].framePos.top;
+  }
+  
+  // Add frame fields
+  for (let i = 0; i < 4; i++) {
+    const field = document.createElement('div');
+    field.className = `address-field address-${i+1}`;
+    field.innerText = caseData.frameAddresses[i];
+    frameElement.appendChild(field);
+  }
+  
+  diagramContainer.appendChild(frameElement);
+}
+
+// Function to start the animation
+function startAnimation() {
+  if (animationStep >= cases[currentCase].animation.length - 1) {
+    resetSimulation();
+    return;
+  }
+  
+  animationStep++;
+  currentStepElement.innerText = cases[currentCase].animation[animationStep].step;
+  
+  const pos = cases[currentCase].animation[animationStep].framePos;
+  frameElement.style.left = pos.left;
+  frameElement.style.top = pos.top;
+  
+  // Add animation class
+  frameElement.classList.add('animated-frame');
+  
+  // Move to next step after animation
+  setTimeout(() => {
+    if (animationStep < cases[currentCase].animation.length - 1) {
+      startAnimation();
+    } else {
+      animating = false;
+      startButton.innerText = "Restart Animation";
+    }
+  }, 2000);
+}
+
+// Function to reset the simulation
+function resetSimulation() {
+  animationStep = 0;
+  animating = false;
+  startButton.innerText = "Start Animation";
+  currentStepElement.innerText = "Click \"Start Animation\" to begin";
+  
+  // Remove the frame
+  if (frameElement) {
+    diagramContainer.removeChild(frameElement);
+    frameElement = null;
+  }
+  
+  // Recreate the frame at the initial position
+  createFrame();
+}
+
+// Function to update the active row in the table
+function updateActiveRow() {
+  for (let i = 0; i < tableRows.length; i++) {
+    if (i === currentCase) {
+      tableRows[i].style.backgroundColor = '#f8d7ea';
+      tableRows[i].style.fontWeight = 'bold';
+    } else {
+      tableRows[i].style.backgroundColor = '';
+      tableRows[i].style.fontWeight = 'normal';
+    }
+  }
+}
+
+// Function to update the explanation text
+function updateExplanation() {
+  const caseData = cases[currentCase];
+  explanationElement.innerHTML = `<h3>${caseData.title}</h3><p>${caseData.description}</p>`;
+}
+
+// Initialize the simulation
+function initSimulation() {
+  renderDiagram();
+  updateActiveRow();
+  updateExplanation();
+}
+
+
+// Add event listeners for the buttons
+startButton.addEventListener('click', function() {
+  if (!animating) {
+    animating = true;
+    startAnimation();
+  } else {
+    resetSimulation();
+  }
+});
+
+resetButton.addEventListener('click', resetSimulation);
+
+// Add event listener for case selection
+caseSelect.addEventListener('change', function() {
+  currentCase = parseInt(this.value);
+  resetSimulation();
+  renderDiagram();
+  updateActiveRow();
+  updateExplanation();
+});
+
+// Start the simulation when the page loads
+window.addEventListener('load', initSimulation);
+</script>
+</body>
+</html>
