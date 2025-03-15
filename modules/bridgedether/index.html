@@ -1,710 +1,612 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bridged Ethernet Simulation</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            padding: 10px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
-        }
-        
-        .toggle-container {
-            display: flex;
-            align-items: center;
-        }
-        
-        .toggle {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-            margin: 0 10px;
-        }
-        
-        .toggle input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-        
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        
-        input:checked + .slider {
-            background-color: #2196F3;
-        }
-        
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-        
-        .network {
-            position: relative;
-            height: 300px;
-            margin-bottom: 30px;
-            border: 1px solid #ddd;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        
-        .bus {
-            position: absolute;
-            height: 10px;
-            background-color: #333;
-            top: 150px;
-            left: 0;
-            right: 0;
-        }
-        
-        .bridge {
-            position: absolute;
-            top: 130px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 50px;
-            background-color: #ff6b6b;
-            border-radius: 5px;
-            z-index: 10;
-            transition: opacity 0.3s;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            font-size: 12px;
-        }
-        
-        .station {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-weight: bold;
-            top: 100px;
-            cursor: pointer;
-            transition: all 0.3s;
-            z-index: 5;
-        }
-        
-        .segment0 {
-            background-color: #4CAF50; /* Green for segment 0 */
-        }
-        
-        .segment1 {
-            background-color: #2196F3; /* Blue for segment 1 */
-        }
-        
-        .packet {
-            position: absolute;
-            width: 15px;
-            height: 15px;
-            background-color: #ff9800;
-            border-radius: 50%;
-            top: 147.5px;
-            z-index: 2;
-        }
-        
-        .stats {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .stat-card {
-            flex: 1;
-            min-width: 200px;
-            margin: 10px;
-            padding: 15px;
-            background-color: #e8f4f8;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        
-        .stat-card h3 {
-            margin-top: 0;
-            color: #333;
-            font-size: 16px;
-        }
-        
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2196F3;
-        }
-        
-        .legend {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin: 0 15px;
-        }
-        
-        .legend-color {
-            width: 15px;
-            height: 15px;
-            margin-right: 5px;
-            border-radius: 3px;
-        }
-        
-        button {
-            padding: 8px 15px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #45a049;
-        }
-        
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        .active-station {
-            transform: scale(1.2);
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
-        }
-        
-        .collision {
-            animation: flash 0.5s;
-        }
-        
-        @keyframes flash {
-            0% { background-color: #ff9800; }
-            50% { background-color: #ff0000; }
-            100% { background-color: #ff9800; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ethernet Bridge Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .network-container {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      margin-bottom: 30px;
+    }
+    
+    .network {
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      position: relative;
+    }
+    
+    .title {
+      position: absolute;
+      top: -12px;
+      left: 20px;
+      background: white;
+      padding: 0 10px;
+      font-weight: bold;
+    }
+    
+    .computers {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 10px;
+    }
+    
+    .computer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    
+    .computer-icon {
+      width: 40px;
+      height: 40px;
+      background-color: #f0f0f0;
+      border: 1px solid #999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    
+    .computer-label {
+      font-size: 12px;
+      margin-top: 5px;
+    }
+    
+    .cable {
+      height: 30px;
+      border-left: 2px solid black;
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+    }
+    
+    .backbone {
+      height: 2px;
+      background-color: black;
+      margin-top: 30px;
+    }
+    
+    .domains {
+      display: flex;
+      justify-content: space-around;
+      gap: 20px;
+    }
+    
+    .domain {
+      flex: 1;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      position: relative;
+    }
+    
+    .bridge {
+      width: 80px;
+      height: 60px;
+      background-color: #b3e5fc;
+      border: 2px solid #0288d1;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      position: relative;
+    }
+    
+    .bridge-container {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    
+    .bridge-cable {
+      width: 10px;
+      height: 20px;
+      border-left: 2px solid black;
+    }
+    
+    .transmission {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: rgba(255, 0, 0, 0.3);
+      animation: pulse 1s infinite;
+      z-index: 10;
+    }
+    
+    .collision {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background-color: rgba(255, 0, 0, 0.6);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      color: white;
+      z-index: 20;
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      gap: 20px;
+    }
+    
+    .stat-box {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 15px;
+      flex: 1;
+    }
+    
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      background-color: #0288d1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background-color: #01579b;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(0.8); opacity: 0.7; }
+      50% { transform: scale(1.2); opacity: 0.5; }
+      100% { transform: scale(0.8); opacity: 0.7; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Bridged Ethernet Simulation</h1>
-        
-        <div class="controls">
-            <div class="toggle-container">
-                <span>Bridge Off</span>
-                <label class="toggle">
-                    <input type="checkbox" id="bridge-toggle">
-                    <span class="slider"></span>
-                </label>
-                <span>Bridge On</span>
-            </div>
-            
-            <div>
-                <button id="start-btn">Start Simulation</button>
-                <button id="reset-btn">Reset</button>
-            </div>
-            
-            <div>
-                <label for="activity-level">Activity Level: </label>
-                <select id="activity-level">
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
-                </select>
-            </div>
+  <h1>Ethernet Bridge Simulation</h1>
+  
+  <div class="controls">
+    <button id="toggleBtn">Toggle Bridging</button>
+    <button id="transmitBtn">Start Transmission</button>
+    <button id="resetBtn">Reset Statistics</button>
+  </div>
+  
+  <div id="networkContainer" class="network-container">
+    <!-- Single network without bridging -->
+    <div id="nonBridgedNetwork" class="network">
+      <div class="title">Without Bridging (Single Collision Domain)</div>
+      <div class="computers">
+        <div class="computer" data-id="1">
+          <div class="computer-icon">PC1</div>
+          <div class="computer-label">Computer 1</div>
+          <div class="cable"></div>
         </div>
-        
-        <div class="network">
-            <div class="bus"></div>
-            <div class="bridge" id="bridge">Bridge</div>
-            <!-- Stations will be added dynamically -->
+        <div class="computer" data-id="2">
+          <div class="computer-icon">PC2</div>
+          <div class="computer-label">Computer 2</div>
+          <div class="cable"></div>
         </div>
-        
-        <div class="stats">
-            <div class="stat-card">
-                <h3>Total Packets</h3>
-                <div class="stat-value" id="total-packets">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>Collisions</h3>
-                <div class="stat-value" id="collisions">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>Available Bandwidth</h3>
-                <div class="stat-value" id="bandwidth">100%</div>
-            </div>
-            <div class="stat-card">
-                <h3>Segment 1 Load</h3>
-                <div class="stat-value" id="segment1-load">0%</div>
-            </div>
-            <div class="stat-card">
-                <h3>Segment 2 Load</h3>
-                <div class="stat-value" id="segment2-load">0%</div>
-            </div>
+        <div class="computer" data-id="3">
+          <div class="computer-icon">PC3</div>
+          <div class="computer-label">Computer 3</div>
+          <div class="cable"></div>
         </div>
-        
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #4CAF50;"></div>
-                <span>Segment 1 Station</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #2196F3;"></div>
-                <span>Segment 2 Station</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #ff9800;"></div>
-                <span>Packet</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #ff6b6b;"></div>
-                <span>Bridge</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #333;"></div>
-                <span>Bus</span>
-            </div>
+        <div class="computer" data-id="4">
+          <div class="computer-icon">PC4</div>
+          <div class="computer-label">Computer 4</div>
+          <div class="cable"></div>
         </div>
+        <div class="computer" data-id="5">
+          <div class="computer-icon">PC5</div>
+          <div class="computer-label">Computer 5</div>
+          <div class="cable"></div>
+        </div>
+        <div class="computer" data-id="6">
+          <div class="computer-icon">PC6</div>
+          <div class="computer-label">Computer 6</div>
+          <div class="cable"></div>
+        </div>
+      </div>
+      <div class="backbone"></div>
     </div>
+    
+    <!-- Bridged network - hidden initially -->
+    <div id="bridgedNetwork" class="network" style="display: none;">
+      <div class="title">With Bridging (Multiple Collision Domains)</div>
+      <div class="domains">
+        <div class="domain">
+          <div class="title">Domain 1</div>
+          <div class="computers">
+            <div class="computer" data-id="1">
+              <div class="computer-icon">PC1</div>
+              <div class="computer-label">Computer 1</div>
+              <div class="cable"></div>
+            </div>
+            <div class="computer" data-id="2">
+              <div class="computer-icon">PC2</div>
+              <div class="computer-label">Computer 2</div>
+              <div class="cable"></div>
+            </div>
+            <div class="computer" data-id="3">
+              <div class="computer-icon">PC3</div>
+              <div class="computer-label">Computer 3</div>
+              <div class="cable"></div>
+            </div>
+          </div>
+          <div class="backbone"></div>
+        </div>
+        <div class="domain">
+          <div class="title">Domain 2</div>
+          <div class="computers">
+            <div class="computer" data-id="4">
+              <div class="computer-icon">PC4</div>
+              <div class="computer-label">Computer 4</div>
+              <div class="cable"></div>
+            </div>
+            <div class="computer" data-id="5">
+              <div class="computer-icon">PC5</div>
+              <div class="computer-label">Computer 5</div>
+              <div class="cable"></div>
+            </div>
+            <div class="computer" data-id="6">
+              <div class="computer-icon">PC6</div>
+              <div class="computer-label">Computer 6</div>
+              <div class="cable"></div>
+            </div>
+          </div>
+          <div class="backbone"></div>
+        </div>
+      </div>
+      <div class="bridge-container">
+        <div class="bridge-cable"></div>
+        <div class="bridge">Bridge</div>
+        <div class="bridge-cable"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-box">
+      <h3>Network Statistics</h3>
+      <p>Mode: <span id="mode">Without Bridging</span></p>
+      <p>Collision Domains: <span id="collisionDomains">1</span></p>
+      <p>Bandwidth per Domain: <span id="bandwidth">10 Mbps shared</span></p>
+      <p>Effective Bandwidth: <span id="effectiveBw">0.83 Mbps per device</span></p>
+    </div>
+    <div class="stat-box">
+      <h3>Traffic Statistics</h3>
+      <p>Transmissions: <span id="transmissions">0</span></p>
+      <p>Collisions: <span id="collisions">0</span></p>
+      <p>Successful Transfers: <span id="transfers">0</span></p>
+      <p>Collision Rate: <span id="collisionRate">0%</span></p>
+    </div>
+  </div>
 
-    <script>
-        // Constants
-        const NUM_STATIONS = 12;
-        const NETWORK_WIDTH = document.querySelector('.network').clientWidth;
-        const BUS_Y = 150;
-        const MAX_PACKETS = 50;
-        
-        // Variables
-        let stations = [];
-        let packets = [];
-        let bridgeEnabled = false;
-        let totalPackets = 0;
-        let collisions = 0;
-        let isSimulationRunning = false;
-        let currentBandwidth = 100;
-        let segment1Load = 0;
-        let segment2Load = 0;
-        let packetQueue = [];
-        let activityLevels = {
-            low: 1000,
-            medium: 500,
-            high: 200
-        };
-        let currentActivityInterval = activityLevels.medium;
-        let simulationInterval;
-        
-        // DOM Elements
-        const bridgeToggle = document.getElementById('bridge-toggle');
-        const bridgeElement = document.getElementById('bridge');
-        const startBtn = document.getElementById('start-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const totalPacketsElement = document.getElementById('total-packets');
-        const collisionsElement = document.getElementById('collisions');
-        const bandwidthElement = document.getElementById('bandwidth');
-        const segment1LoadElement = document.getElementById('segment1-load');
-        const segment2LoadElement = document.getElementById('segment2-load');
-        const activityLevelSelect = document.getElementById('activity-level');
-        const networkElement = document.querySelector('.network');
-        
-        // Initialize
-        function init() {
-            createStations();
-            updateBridgeVisibility();
-            
-            // Event Listeners
-            bridgeToggle.addEventListener('change', function() {
-                bridgeEnabled = this.checked;
-                updateBridgeVisibility();
-                calculateBandwidth();
-            });
-            
-            startBtn.addEventListener('click', toggleSimulation);
-            resetBtn.addEventListener('click', resetSimulation);
-            
-            activityLevelSelect.addEventListener('change', function() {
-                currentActivityInterval = activityLevels[this.value];
-                if (isSimulationRunning) {
-                    clearInterval(simulationInterval);
-                    simulationInterval = setInterval(generateRandomPacket, currentActivityInterval);
-                }
-            });
-            
-            // Make stations clickable to send packets
-            stations.forEach(station => {
-                station.element.addEventListener('click', () => {
-                    if (isSimulationRunning) {
-                        const randomDestination = Math.floor(Math.random() * NUM_STATIONS);
-                        if (randomDestination !== station.id) {
-                            createPacket(station.id, randomDestination);
-                        }
-                    }
-                });
-            });
-            
-            window.addEventListener('resize', () => {
-                repositionStations();
-            });
-        }
-        
-        function createStations() {
-            const networkDiv = document.querySelector('.network');
-            const stationSpacing = NETWORK_WIDTH / (NUM_STATIONS + 1);
-            
-            for (let i = 0; i < NUM_STATIONS; i++) {
-                const stationDiv = document.createElement('div');
-                const segmentClass = i < 6 ? 'segment0' : 'segment1';
-                stationDiv.className = `station ${segmentClass}`;
-                stationDiv.textContent = i + 1;
-                
-                const xPos = (i + 1) * stationSpacing;
-                stationDiv.style.left = `${xPos}px`;
-                
-                // Alternate between top and bottom of the bus
-                if (i % 2 === 0) {
-                    stationDiv.style.top = '100px';
-                } else {
-                    stationDiv.style.top = '180px';
-                }
-                
-                networkDiv.appendChild(stationDiv);
-                
-                stations.push({
-                    id: i,
-                    element: stationDiv,
-                    x: xPos,
-                    segment: i < 6 ? 0 : 1 // Segment 0 or 1
-                });
-            }
-        }
-        
-        function repositionStations() {
-            const networkWidth = document.querySelector('.network').clientWidth;
-            const stationSpacing = networkWidth / (NUM_STATIONS + 1);
-            
-            stations.forEach((station, i) => {
-                const xPos = (i + 1) * stationSpacing;
-                station.x = xPos;
-                station.element.style.left = `${xPos}px`;
-            });
-        }
-        
-        function updateBridgeVisibility() {
-            bridgeElement.style.opacity = bridgeEnabled ? '1' : '0.3';
-        }
-        
-        function toggleSimulation() {
-            if (!isSimulationRunning) {
-                startSimulation();
-                startBtn.textContent = 'Stop Simulation';
-            } else {
-                stopSimulation();
-                startBtn.textContent = 'Start Simulation';
-            }
-        }
-        
-        function startSimulation() {
-            isSimulationRunning = true;
-            simulationInterval = setInterval(generateRandomPacket, currentActivityInterval);
-            resetBtn.disabled = true;
-        }
-        
-        function stopSimulation() {
-            isSimulationRunning = false;
-            clearInterval(simulationInterval);
-            resetBtn.disabled = false;
-        }
-        
-        function resetSimulation() {
-            // Remove all packets
-            packets.forEach(packet => {
-                if (packet.element) {
-                    packet.element.remove();
-                }
-            });
-            
-            packets = [];
-            totalPackets = 0;
-            collisions = 0;
-            currentBandwidth = 100;
-            segment1Load = 0;
-            segment2Load = 0;
-            
-            // Update display
+  <script>
 
-            totalPacketsElement.textContent = totalPackets;
-            collisionsElement.textContent = collisions;
-            bandwidthElement.textContent = '100%';
-            segment1LoadElement.textContent = '0%';
-            segment2LoadElement.textContent = '0%';
+// DOM Elements
+const toggleBtn = document.getElementById('toggleBtn');
+const transmitBtn = document.getElementById('transmitBtn');
+const resetBtn = document.getElementById('resetBtn');
+const nonBridgedNetwork = document.getElementById('nonBridgedNetwork');
+const bridgedNetwork = document.getElementById('bridgedNetwork');
+
+// Stats elements
+const modeEl = document.getElementById('mode');
+const collisionDomainsEl = document.getElementById('collisionDomains');
+const bandwidthEl = document.getElementById('bandwidth');
+const effectiveBwEl = document.getElementById('effectiveBw');
+const transmissionsEl = document.getElementById('transmissions');
+const collisionsEl = document.getElementById('collisions');
+const transfersEl = document.getElementById('transfers');
+const collisionRateEl = document.getElementById('collisionRate');
+
+// Simulation state
+let bridgingEnabled = false;
+let transmitting = false;
+let stats = {
+  transmissions: 0,
+  collisions: 0,
+  transfers: 0
+};
+let activeTransmissions = [];
+let collisionProbability = 30; // Default 30%
+// Toggle between bridged and non-bridged networks
+toggleBtn.addEventListener('click', () => {
+  bridgingEnabled = !bridgingEnabled;
+  
+  if (bridgingEnabled) {
+    nonBridgedNetwork.style.display = 'none';
+    bridgedNetwork.style.display = 'block';
+    modeEl.textContent = 'With Bridging';
+    collisionDomainsEl.textContent = '2';
+    bandwidthEl.textContent = '10 Mbps per domain';
+    effectiveBwEl.textContent = '3.33 Mbps per device';
+  } else {
+    nonBridgedNetwork.style.display = 'block';
+    bridgedNetwork.style.display = 'none';
+    modeEl.textContent = 'Without Bridging';
+    collisionDomainsEl.textContent = '1';
+    bandwidthEl.textContent = '10 Mbps shared';
+    effectiveBwEl.textContent = '1.67 Mbps per device';
+  }
+});
+
+// Start a new transmission
+transmitBtn.addEventListener('click', () => {
+  if (transmitting) return;
+  
+  transmitting = true;
+  stats.transmissions++;
+  transmissionsEl.textContent = stats.transmissions;
+  
+  // Select random computers for transmission
+  const currentNetwork = bridgingEnabled ? bridgedNetwork : nonBridgedNetwork;
+  const computers = currentNetwork.querySelectorAll('.computer');
+  const randomIndex1 = Math.floor(Math.random() * computers.length);
+  let randomIndex2;
+  do {
+    randomIndex2 = Math.floor(Math.random() * computers.length);
+  } while (randomIndex2 === randomIndex1);
+  
+  const sender = computers[randomIndex1];
+  const receiver = computers[randomIndex2];
+  
+  // Check if transmission will cause collision
+  let willCollide = false;
+  
+  if (!bridgingEnabled) {
+    // In non-bridged network, any simultaneous transmission causes collision
+    //willCollide = activeTransmissions.length > 0;
+    willCollide=Math.random() * 100 < collisionProbability;
+  } else {
+    // In bridged network, only transmissions in same domain collide
+    const senderId = parseInt(sender.getAttribute('data-id'));
+    const senderDomain = senderId <= 3 ? 1 : 2;
+    
+    const domainCollisionProbability = collisionProbability / 2; // Lower probability in bridged mode
+    willCollide = Math.random() * 100 < domainCollisionProbability;
+    
+    activeTransmissions.some(t => {
+      const tId = parseInt(t.sender.getAttribute('data-id'));
+      const tDomain = tId <= 3 ? 1 : 2;
+      return tDomain === senderDomain;
+    });
+  }
+  
+  // Create transmission object
+  const transmission = {
+    sender,
+    receiver,
+    element: document.createElement('div')
+  };
+  
+  transmission.element.className = 'transmission';
+  sender.appendChild(transmission.element);
+  
+  activeTransmissions.push(transmission);
+  
+  if (willCollide) {
+    // Handle collision
+    stats.collisions++;
+    collisionsEl.textContent = stats.collisions;
+    
+    const collision = document.createElement('div');
+    collision.className = 'collision';
+    collision.textContent = '!';
+    
+    const senderBounds = sender.getBoundingClientRect();
+    const backbone = sender.parentElement.nextElementSibling;
+    const backboneBounds = backbone.getBoundingClientRect();
+    
+    backbone.appendChild(collision);
+    
+    setTimeout(() => {
+      collision.remove();
+      transmission.element.remove();
+      activeTransmissions = activeTransmissions.filter(t => t !== transmission);
+      
+      if (activeTransmissions.length === 0) {
+        transmitting = false;
+      }
+      
+      updateCollisionRate();
+    }, 1500);
+  } else {
+    // Successful transmission
+    setTimeout(() => {
+      transmission.element.remove();
+      
+      // Create new transmission at receiver
+      const recvTransmission = document.createElement('div');
+      recvTransmission.className = 'transmission';
+      receiver.appendChild(recvTransmission);
+      
+      setTimeout(() => {
+        recvTransmission.remove();
+        activeTransmissions = activeTransmissions.filter(t => t !== transmission);
+        
+        stats.transfers++;
+        transfersEl.textContent = stats.transfers;
+        
+        if (activeTransmissions.length === 0) {
+          transmitting = false;
         }
         
-        function generateRandomPacket() {
-            if (packets.length > MAX_PACKETS) return;
-            
-            const sourceStation = Math.floor(Math.random() * NUM_STATIONS);
-            let destinationStation;
-            
-            do {
-                destinationStation = Math.floor(Math.random() * NUM_STATIONS);
-            } while (destinationStation === sourceStation);
-            
-            createPacket(sourceStation, destinationStation);
+        updateCollisionRate();
+      }, 1000);
+    }, 1000);
+  }
+});
+
+// Reset simulation statistics
+resetBtn.addEventListener('click', () => {
+  stats = {
+    transmissions: 0,
+    collisions: 0,
+    transfers: 0
+  };
+  
+  transmissionsEl.textContent = '0';
+  collisionsEl.textContent = '0';
+  transfersEl.textContent = '0';
+  collisionRateEl.textContent = '0%';
+  
+  // Clear any active transmissions
+  activeTransmissions.forEach(t => {
+    if (t.element) t.element.remove();
+  });
+  activeTransmissions = [];
+  transmitting = false;
+  
+  // Remove any collision elements
+  document.querySelectorAll('.collision').forEach(el => el.remove());
+});
+
+// Update collision rate statistic
+function updateCollisionRate() {
+  const rate = stats.transmissions > 0 
+    ? Math.round((stats.collisions / stats.transmissions) * 100) 
+    : 0;
+  collisionRateEl.textContent = `${rate}%`;
+}
+
+// Initialize the simulation
+document.addEventListener('DOMContentLoaded', () => {
+  // Set initial state
+  nonBridgedNetwork.style.display = 'block';
+  bridgedNetwork.style.display = 'none';
+  
+  // Add click event to computer icons to trigger manual transmissions
+  document.querySelectorAll('.computer-icon').forEach(computer => {
+    computer.addEventListener('click', (event) => {
+      if (transmitting) return;
+      
+      const selectedComputer = event.target.closest('.computer');
+      const currentNetwork = bridgingEnabled ? bridgedNetwork : nonBridgedNetwork;
+      const computers = Array.from(currentNetwork.querySelectorAll('.computer'));
+      
+      // Filter out the selected computer
+      const availableComputers = computers.filter(c => c !== selectedComputer);
+      
+      // Select a random receiver
+      const randomIndex = Math.floor(Math.random() * availableComputers.length);
+      const receiver = availableComputers[randomIndex];
+      
+      // Start manual transmission
+      startManualTransmission(selectedComputer, receiver);
+    });
+  });
+});
+
+// Function to start a manual transmission between two computers
+function startManualTransmission(sender, receiver) {
+  if (transmitting) return;
+  
+  transmitting = true;
+  stats.transmissions++;
+  transmissionsEl.textContent = stats.transmissions;
+  
+  // Check if transmission will cause collision
+  let willCollide = false;
+  
+  if (!bridgingEnabled) {
+    // In non-bridged network, any simultaneous transmission causes collision
+    willCollide = activeTransmissions.length > 0;
+  } else {
+    // In bridged network, only transmissions in same domain collide
+    const senderId = parseInt(sender.getAttribute('data-id'));
+    const senderDomain = senderId <= 3 ? 1 : 2;
+    
+    willCollide = activeTransmissions.some(t => {
+      const tId = parseInt(t.sender.getAttribute('data-id'));
+      const tDomain = tId <= 3 ? 1 : 2;
+      return tDomain === senderDomain;
+    });
+  }
+  
+  // Create transmission object
+  const transmission = {
+    sender,
+    receiver,
+    element: document.createElement('div')
+  };
+  
+  transmission.element.className = 'transmission';
+  sender.appendChild(transmission.element);
+  
+  activeTransmissions.push(transmission);
+  
+  if (willCollide) {
+    // Handle collision
+    stats.collisions++;
+    collisionsEl.textContent = stats.collisions;
+    
+    const collision = document.createElement('div');
+    collision.className = 'collision';
+    collision.textContent = '!';
+    
+    const backbone = sender.parentElement.nextElementSibling;
+    backbone.appendChild(collision);
+    
+    setTimeout(() => {
+      collision.remove();
+      transmission.element.remove();
+      activeTransmissions = activeTransmissions.filter(t => t !== transmission);
+      
+      if (activeTransmissions.length === 0) {
+        transmitting = false;
+      }
+      
+      updateCollisionRate();
+    }, 1500);
+  } else {
+    // Successful transmission
+    setTimeout(() => {
+      transmission.element.remove();
+      
+      // Create new transmission at receiver
+      const recvTransmission = document.createElement('div');
+      recvTransmission.className = 'transmission';
+      receiver.appendChild(recvTransmission);
+      
+      setTimeout(() => {
+        recvTransmission.remove();
+        activeTransmissions = activeTransmissions.filter(t => t !== transmission);
+        
+        stats.transfers++;
+        transfersEl.textContent = stats.transfers;
+        
+        if (activeTransmissions.length === 0) {
+          transmitting = false;
         }
         
-        function createPacket(sourceId, destId) {
-            const source = stations[sourceId];
-            const dest = stations[destId];
-            
-            // Check if bridge is enabled and packet is crossing segments
-            let canCross = true;
-            if (bridgeEnabled && source.segment !== dest.segment) {
-                // The bridge will filter packets between segments
-                // We still create the packet but it will be handled differently
-            }
-            
-            // Create packet element
-            const packetElement = document.createElement('div');
-            packetElement.className = 'packet';
-            packetElement.style.left = `${source.x}px`;
-            networkElement.appendChild(packetElement);
-            
-            // Highlight the source station
-            source.element.classList.add('active-station');
-            setTimeout(() => {
-                source.element.classList.remove('active-station');
-            }, 500);
-            
-            // Create packet object
-            const packet = {
-                id: totalPackets++,
-                sourceId: sourceId,
-                destinationId: destId,
-                element: packetElement,
-                x: source.x,
-                direction: sourceId < destId ? 1 : -1,
-                sourceSegment: source.segment,
-                destSegment: dest.segment,
-                active: true
-            };
-            
-            // Add to packets array
-            packets.push(packet);
-            
-            // Update stats
-            totalPacketsElement.textContent = totalPackets;
-            
-            // Check for collisions
-            checkCollisions(packet);
-            
-            // Update bandwidth
-            calculateBandwidth();
-            
-            return packet;
-        }
-        
-        function movePackets() {
-            const packetsToRemove = [];
-            
-            packets.forEach(packet => {
-                if (!packet.active) return;
-                
-                // Move packet
-                packet.x += packet.direction * 5;
-                packet.element.style.left = `${packet.x}px`;
-                
-                // Check if packet has reached the bridge
-                if (bridgeEnabled) {
-                    const bridgeX = NETWORK_WIDTH / 2;
-                    
-                    // If packet is crossing segments
-                    if (packet.sourceSegment !== packet.destSegment) {
-                        // When it reaches the bridge
-                        if ((packet.direction === 1 && packet.x >= bridgeX && packet.sourceSegment === 0) ||
-                            (packet.direction === -1 && packet.x <= bridgeX && packet.sourceSegment === 1)) {
-                            
-                            // The bridge analyzes the packet and only passes it if it's meant for the other segment
-                            // This is already determined when we create the packet
-                        }
-                    }
-                }
-                
-                // Check if packet has reached its destination
-                const dest = stations[packet.destinationId];
-                if ((packet.direction === 1 && packet.x >= dest.x) ||
-                    (packet.direction === -1 && packet.x <= dest.x)) {
-                    
-                    // Highlight destination station
-                    dest.element.classList.add('active-station');
-                    setTimeout(() => {
-                        dest.element.classList.remove('active-station');
-                    }, 500);
-                    
-                    // Schedule for removal
-                    packetsToRemove.push(packet);
-                }
-                
-                // Check if packet has reached the end of the network
-                if (packet.x < 0 || packet.x > NETWORK_WIDTH) {
-                    packetsToRemove.push(packet);
-                }
-            });
-            
-            // Remove packets that reached their destination
-            for (const packet of packetsToRemove) {
-                removePacket(packet);
-            }
-            
-            // Update bandwidth
-            calculateBandwidth();
-        }
-        
-        function removePacket(packet) {
-            packet.active = false;
-            packet.element.remove();
-            packets = packets.filter(p => p !== packet);
-        }
-        
-        function checkCollisions(newPacket) {
-            let collisionDetected = false;
-            
-            packets.forEach(packet => {
-                if (packet !== newPacket && packet.active) {
-                    // Check if packets are in the same segment
-                    const sameSegment = !bridgeEnabled || packet.sourceSegment === newPacket.sourceSegment;
-                    
-                    // If bridge is enabled, packets in different segments don't collide
-                    if (sameSegment) {
-                        collisionDetected = true;
-                        packet.element.classList.add('collision');
-                        newPacket.element.classList.add('collision');
-                        
-                        setTimeout(() => {
-                            packet.element.classList.remove('collision');
-                            newPacket.element.classList.remove('collision');
-                        }, 500);
-                        
-                        collisions++;
-                        collisionsElement.textContent = collisions;
-                    }
-                }
-            });
-            
-            return collisionDetected;
-        }
-        
-        function calculateBandwidth() {
-            // Calculate load on each segment
-            let segment1PacketCount = 0;
-            let segment2PacketCount = 0;
-            
-            packets.forEach(packet => {
-                if (packet.active) {
-                    if (!bridgeEnabled || packet.sourceSegment === 0) {
-                        segment1PacketCount++;
-                    }
-                    if (!bridgeEnabled || packet.sourceSegment === 1) {
-                        segment2PacketCount++;
-                    }
-                }
-            });
-            
-            // Calculate percentage of bandwidth used
-            const maxPacketsPerSegment = 20;
-            segment1Load = Math.min(100, Math.round((segment1PacketCount / maxPacketsPerSegment) * 100));
-            segment2Load = Math.min(100, Math.round((segment2PacketCount / maxPacketsPerSegment) * 100));
-            
-            // Update display
-            segment1LoadElement.textContent = `${segment1Load}%`;
-            segment2LoadElement.textContent = `${segment2Load}%`;
-            
-            // If bridge is enabled, separate the bandwidth calculations
-            if (bridgeEnabled) {
-                currentBandwidth = Math.max(0, 100 - Math.max(segment1Load, segment2Load));
-            } else {
-                // If no bridge, the entire network shares bandwidth
-                currentBandwidth = Math.max(0, 100 - (segment1Load + segment2Load)/2);
-            }
-            
-            bandwidthElement.textContent = `${currentBandwidth}%`;
-            
-            // Visual feedback through color
-            if (currentBandwidth > 70) {
-                bandwidthElement.style.color = '#2196F3';
-            } else if (currentBandwidth > 30) {
-                bandwidthElement.style.color = '#ff9800';
-            } else {
-                bandwidthElement.style.color = '#f44336';
-            }
-        }
-        
-        // Animation loop
-        function animate() {
-            movePackets();
-            requestAnimationFrame(animate);
-        }
-        
-        // Start the animation loop
-        animate();
-        
-        // Initialize the simulation
-        init();
-    </script>
+        updateCollisionRate();
+      }, 1000);
+    }, 1000);
+  }
+}
+</script>
 </body>
 </html>
