@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse Code Modulation Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        .control-panel {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .visualization {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .canvas-container {
+            position: relative;
+            height: 200px;
+            margin-bottom: 10px;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            background-color: #fafafa;
+            border: 1px solid #ddd;
+        }
+        .step {
+            background-color: #e9f5ff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #2196F3;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #0d47a1;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0d8bf2;
+        }
+        .binary-output {
+            font-family: monospace;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+        .step-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 5px;
+        }
+        .tab-container {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 15px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            cursor: pointer;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active {
+            background-color: #fff;
+            border-bottom: 1px solid #fff;
+            margin-bottom: -1px;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pulse Code Modulation (PCM) Simulation</h1>
+    
+    <div class="container">
+        <div class="control-panel">
+            <h2>Signal Configuration</h2>
+            
+            <div class="tab-container">
+                <div class="tab active" onclick="switchTab('preset-tab', this)">Preset Signals</div>
+                <div class="tab" onclick="switchTab('custom-tab', this)">Custom Signal</div>
+            </div>
+            
+            <div id="preset-tab" class="tab-content active">
+                <label for="signal-type">Signal Type:</label>
+                <select id="signal-type" onchange="updateSignalParams()">
+                    <option value="sine">Sine Wave</option>
+                    <option value="square">Square Wave</option>
+                    <option value="triangle">Triangle Wave</option>
+                    <option value="sawtooth">Sawtooth Wave</option>
+                </select>
+                
+                <label for="frequency">Frequency (Hz):</label>
+                <input type="range" id="frequency" min="1" max="10" value="2" step="0.5" oninput="updateFrequencyValue(this.value)">
+                <span id="frequency-value">2 Hz</span>
+                
+                <label for="amplitude">Amplitude:</label>
+                <input type="range" id="amplitude" min="0.1" max="1" value="0.8" step="0.1" oninput="updateAmplitudeValue(this.value)">
+                <span id="amplitude-value">0.8</span>
+            </div>
+            
+            <div id="custom-tab" class="tab-content">
+                <p>Draw your own signal by clicking and dragging on the canvas below:</p>
+                <div class="canvas-container">
+                    <canvas id="drawing-canvas" height="200"></canvas>
+                </div>
+                <button onclick="clearDrawing()">Clear Drawing</button>
+            </div>
+            
+            <h2>PCM Parameters</h2>
+            
+            <label for="sampling-method">Sampling Method:</label>
+            <select id="sampling-method">
+                <option value="ideal">Ideal (Impulse) Sampling</option>
+                <option value="natural">Natural Sampling</option>
+                <option value="flat-top">Flat-Top Sampling</option>
+            </select>
+            
+            <label for="sampling-rate">Sampling Rate:</label>
+            <input type="range" id="sampling-rate" min="8" max="64" value="16" step="4" oninput="updateSamplingRateValue(this.value)">
+            <span id="sampling-rate-value">16 samples/period</span>
+            
+            <label for="quantization-levels">Quantization Levels:</label>
+            <select id="quantization-levels" onchange="updateBitDepth()">
+                <option value="8">8 levels (3-bit)</option>
+                <option value="16" selected>16 levels (4-bit)</option>
+                <option value="32">32 levels (5-bit)</option>
+                <option value="64">64 levels (6-bit)</option>
+                <option value="128">128 levels (7-bit)</option>
+                <option value="256">256 levels (8-bit)</option>
+            </select>
+            
+            <button onclick="processSignal()">Process Signal</button>
+            <button onclick="resetSimulation()">Reset</button>
+        </div>
+        
+        <div class="visualization">
+            <div class="step">
+                <h3>Step 1: Original Analog Signal</h3>
+                <div class="canvas-container">
+                    <canvas id="original-canvas"></canvas>
+                    <div class="step-label">Analog</div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #2196F3;"></div>
+                        <span>Analog Signal</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <h3>Step 2: Sampling</h3>
+                <div class="canvas-container">
+                    <canvas id="sampling-canvas"></canvas>
+                    <div class="step-label">Sampling</div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #2196F3;"></div>
+                        <span>Original Signal</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF5722;"></div>
+                        <span>Sampled Signal</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <h3>Step 3: Quantization</h3>
+                <div class="canvas-container">
+                    <canvas id="quantization-canvas"></canvas>
+                    <div class="step-label">Quantization</div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF5722;"></div>
+                        <span>Sampled Values</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #4CAF50;"></div>
+                        <span>Quantized Values</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <h3>Step 4: Binary Coding</h3>
+                <div id="binary-output" class="binary-output"></div>
+            </div>
+            
+            <div class="step">
+                <h3>Reconstructed Signal</h3>
+                <div class="canvas-container">
+                    <canvas id="reconstructed-canvas"></canvas>
+                    <div class="step-label">Reconstructed</div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #2196F3;"></div>
+                        <span>Original Signal</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #9C27B0;"></div>
+                        <span>Reconstructed Signal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const originalCanvas = document.getElementById('original-canvas');
+        const samplingCanvas = document.getElementById('sampling-canvas');
+        const quantizationCanvas = document.getElementById('quantization-canvas');
+        const reconstructedCanvas = document.getElementById('reconstructed-canvas');
+        const drawingCanvas = document.getElementById('drawing-canvas');
+        
+        const canvases = [originalCanvas, samplingCanvas, quantizationCanvas, reconstructedCanvas];
+        const binaryOutput = document.getElementById('binary-output');
+        
+        // Set canvas dimensions
+        canvases.forEach(canvas => {
+            canvas.width = canvas.parentElement.clientWidth * 2;
+            canvas.height = canvas.parentElement.clientHeight * 2;
+        });
+        
+        drawingCanvas.width = drawingCanvas.parentElement.clientWidth * 2;
+        drawingCanvas.height = drawingCanvas.parentElement.clientHeight * 2;
+        
+        // Drawing canvas setup
+        const drawingCtx = drawingCanvas.getContext('2d');
+        let isDrawing = false;
+        let customSignalPoints = [];
+        let lastX = 0;
+        
+        // Event listeners for drawing
+        drawingCanvas.addEventListener('mousedown', startDrawing);
+        drawingCanvas.addEventListener('mousemove', draw);
+        drawingCanvas.addEventListener('mouseup', stopDrawing);
+        drawingCanvas.addEventListener('mouseout', stopDrawing);
+        drawingCanvas.addEventListener('touchstart', handleTouch);
+        drawingCanvas.addEventListener('touchmove', handleTouch);
+        drawingCanvas.addEventListener('touchend', stopDrawing);
+        
+        // Signal parameters
+        let signalType = 'sine';
+        let frequency = 2; // Hz
+        let amplitude = 0.8; // Scale factor
+        let samplingRate = 16; // Samples per period
+        let quantizationLevels = 16; // Quantization levels
+        let bitDepth = 4; // Bit depth corresponding to quantization levels
+        
+        // Signal data
+        let originalSignal = [];
+        let sampledSignal = [];
+        let quantizedSignal = [];
+        let binaryCodes = [];
+        let usingCustomSignal = false;
+        
+        // Initialize the drawing canvas
+        initDrawingCanvas();
+        
+        // Initial simulation setup
+        resetSimulation();
+        
+        // Function to handle drawing on custom signal canvas
+        function startDrawing(e) {
+            isDrawing = true;
+            customSignalPoints = [];
+            
+            const rect = drawingCanvas.getBoundingClientRect();
+            const scaleX = drawingCanvas.width / rect.width;
+            const scaleY = drawingCanvas.height / rect.height;
+            
+            lastX = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            // Add first point
+            customSignalPoints.push({
+                x: lastX / drawingCanvas.width,
+                y: 1 - y / drawingCanvas.height // Invert Y to make up positive
+            });
+            
+            redrawCustomSignal();
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = drawingCanvas.getBoundingClientRect();
+            const scaleX = drawingCanvas.width / rect.width;
+            const scaleY = drawingCanvas.height / rect.height;
+            
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            // Only add points that are at least 5px apart
+            if (Math.abs(x - lastX) > 5) {
+                customSignalPoints.push({
+                    x: x / drawingCanvas.width,
+                    y: 1 - y / drawingCanvas.height // Invert Y to make up positive
+                });
+                
+                lastX = x;
+                redrawCustomSignal();
+            }
+        }
+        
+
+function handleTouch(e) {
+    e.preventDefault();
+    
+    if (e.type === 'touchstart') {
+        isDrawing = true;
+        customSignalPoints = [];
+    }
+    
+    if (!isDrawing) return;
+    
+    const touch = e.touches[0];
+    const rect = drawingCanvas.getBoundingClientRect();
+    const scaleX = drawingCanvas.width / rect.width;
+    const scaleY = drawingCanvas.height / rect.height;
+    
+    const x = (touch.clientX - rect.left) * scaleX;
+    const y = (touch.clientY - rect.top) * scaleY;
+    
+    // Only add points that are sufficiently apart
+    if (customSignalPoints.length === 0 || Math.abs(x - lastX) > 5) {
+        customSignalPoints.push({
+            x: x / drawingCanvas.width,
+            y: 1 - y / drawingCanvas.height // Invert Y to make up positive
+        });
+        
+        lastX = x;
+        redrawCustomSignal();
+    }
+}
+
+
+function stopDrawing() {
+    if (isDrawing) {
+        isDrawing = false;
+        
+        // Sort points by x-coordinate to ensure proper order
+        customSignalPoints.sort((a, b) => a.x - b.x);
+        
+        // Normalize x values to span from 0 to 1
+        if (customSignalPoints.length > 1) {
+            const minX = customSignalPoints[0].x;
+            const maxX = customSignalPoints[customSignalPoints.length - 1].x;
+            const range = maxX - minX;
+            
+            if (range > 0) {
+                customSignalPoints = customSignalPoints.map(point => ({
+                    x: (point.x - minX) / range,
+                    y: point.y
+                }));
+            }
+        }
+        
+        redrawCustomSignal();
+    }
+}
+
+function redrawCustomSignal() {
+    drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    
+    if (customSignalPoints.length < 2) return;
+    
+    drawingCtx.strokeStyle = '#2196F3';
+    drawingCtx.lineWidth = 4;
+    drawingCtx.beginPath();
+    
+    for (let i = 0; i < customSignalPoints.length; i++) {
+        const point = customSignalPoints[i];
+        const x = point.x * drawingCanvas.width;
+        const y = (1 - point.y) * drawingCanvas.height;
+        
+        if (i === 0) {
+            drawingCtx.moveTo(x, y);
+        } else {
+            drawingCtx.lineTo(x, y);
+        }
+    }
+    
+    drawingCtx.stroke();
+}
+
+function initDrawingCanvas() {
+    drawingCtx.fillStyle = '#fafafa';
+    drawingCtx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    
+    // Draw horizontal center line
+    drawingCtx.strokeStyle = '#ddd';
+    drawingCtx.lineWidth = 2;
+    drawingCtx.beginPath();
+    drawingCtx.moveTo(0, drawingCanvas.height / 2);
+    drawingCtx.lineTo(drawingCanvas.width, drawingCanvas.height / 2);
+    drawingCtx.stroke();
+}
+
+function clearDrawing() {
+    customSignalPoints = [];
+    initDrawingCanvas();
+}
+
+function switchTab(tabId, tabElement) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Deactivate all tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Activate selected tab and content
+    document.getElementById(tabId).classList.add('active');
+    tabElement.classList.add('active');
+    
+    // Update the state of using custom signal
+    usingCustomSignal = (tabId === 'custom-tab');
+}
+
+function updateSignalParams() {
+    signalType = document.getElementById('signal-type').value;
+}
+
+function updateFrequencyValue(value) {
+    frequency = parseFloat(value);
+    document.getElementById('frequency-value').textContent = frequency + ' Hz';
+}
+
+function updateAmplitudeValue(value) {
+    amplitude = parseFloat(value);
+    document.getElementById('amplitude-value').textContent = amplitude.toFixed(1);
+}
+
+function updateSamplingRateValue(value) {
+    samplingRate = parseInt(value, 10);
+    document.getElementById('sampling-rate-value').textContent = samplingRate + ' samples/period';
+}
+
+function updateBitDepth() {
+    quantizationLevels = parseInt(document.getElementById('quantization-levels').value, 10);
+    bitDepth = Math.log2(quantizationLevels);
+}
+
+function processSignal() {
+    // Generate original signal
+    generateOriginalSignal();
+    
+    // Perform sampling
+    performSampling();
+    
+    // Perform quantization
+    performQuantization();
+    
+    // Perform binary coding
+    performBinaryCoding();
+    
+    // Draw reconstructed signal
+    drawReconstructedSignal();
+}
+
+function resetSimulation() {
+    // Reset simulation state
+    originalSignal = [];
+    sampledSignal = [];
+    quantizedSignal = [];
+    binaryCodes = [];
+    
+    // Generate and draw original signal
+    generateOriginalSignal();
+    drawOriginalSignal();
+    
+    // Clear other canvases
+    clearCanvas(samplingCanvas);
+    clearCanvas(quantizationCanvas);
+    clearCanvas(reconstructedCanvas);
+    
+    // Clear binary output
+    binaryOutput.textContent = '';
+}
+
+function clearCanvas(canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw axes
+    drawAxes(ctx, canvas.width, canvas.height);
+}
+
+function drawAxes(ctx, width, height) {
+    const centerY = height / 2;
+    
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    
+    // Draw x-axis
+    ctx.beginPath();
+    ctx.moveTo(0, centerY);
+    ctx.lineTo(width, centerY);
+    ctx.stroke();
+}
+
+function generateOriginalSignal() {
+    originalSignal = [];
+    const numPoints = 1000;
+    
+    if (usingCustomSignal && customSignalPoints.length >= 2) {
+        // Use interpolation for custom signal
+        for (let i = 0; i < numPoints; i++) {
+            const x = i / (numPoints - 1);
+            originalSignal.push(interpolateCustomSignal(x));
+        }
+    } else {
+        // Generate standard waveform
+        for (let i = 0; i < numPoints; i++) {
+            const t = i / (numPoints - 1);
+            let value = 0;
+            
+            switch (signalType) {
+                case 'sine':
+                    value = Math.sin(2 * Math.PI * frequency * t);
+                    break;
+                case 'square':
+                    value = Math.sin(2 * Math.PI * frequency * t) >= 0 ? 1 : -1;
+                    break;
+                case 'triangle':
+                    value = 2 * Math.abs((t * frequency) % 1 - 0.5) - 0.5;
+                    break;
+                case 'sawtooth':
+                    value = 2 * ((t * frequency) % 1) - 1;
+                    break;
+            }
+            
+            originalSignal.push(value * amplitude);
+        }
+    }
+    
+    drawOriginalSignal();
+}
+
+function interpolateCustomSignal(x) {
+    // Find the two points to interpolate between
+    let idx1 = 0;
+    let idx2 = 0;
+    
+    for (let i = 0; i < customSignalPoints.length - 1; i++) {
+        if (x >= customSignalPoints[i].x && x <= customSignalPoints[i + 1].x) {
+            idx1 = i;
+            idx2 = i + 1;
+            break;
+        }
+    }
+    
+    const p1 = customSignalPoints[idx1];
+    const p2 = customSignalPoints[idx2];
+    
+    // Linear interpolation: y = y1 + (x - x1) * (y2 - y1) / (x2 - x1)
+    const t = (x - p1.x) / (p2.x - p1.x);
+    return p1.y + t * (p2.y - p1.y);
+}
+
+function drawOriginalSignal() {
+    const canvas = originalCanvas;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.clearRect(0, 0, width, height);
+    drawAxes(ctx, width, height);
+    
+    if (originalSignal.length === 0) return;
+    
+    ctx.strokeStyle = '#2196F3';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    
+    for (let i = 0; i < originalSignal.length; i++) {
+        const x = (i / (originalSignal.length - 1)) * width;
+        const y = height / 2 * (1 - originalSignal[i]);
+        
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    
+    ctx.stroke();
+}
+
+function performSampling() {
+    const samplingMethod = document.getElementById('sampling-method').value;
+    sampledSignal = [];
+    
+    // Calculate sample interval
+    const sampleInterval = originalSignal.length / samplingRate;
+    
+    // Sample based on selected method
+    for (let i = 0; i < samplingRate; i++) {
+        const sampleIndex = Math.floor(i * sampleInterval);
+        const originalValue = originalSignal[sampleIndex];
+        
+        let sampledValue;
+        
+        switch (samplingMethod) {
+            case 'ideal':
+                // Ideal sampling: impulse at sample point
+                sampledValue = {
+                    index: sampleIndex,
+                    value: originalValue,
+                    width: 1 // Narrow impulse
+                };
+                break;
+                
+            case 'natural':
+                // Natural sampling: multiplies signal by pulse train
+                sampledValue = {
+                    index: sampleIndex,
+                    value: originalValue,
+                    width: Math.floor(sampleInterval * 0.5) // Half the interval width
+                };
+                break;
+                
+            case 'flat-top':
+                // Flat-top sampling: hold sample value until next sample
+                sampledValue = {
+                    index: sampleIndex,
+                    value: originalValue,
+                    width: Math.floor(sampleInterval) // Full interval width
+                };
+                break;
+        }
+        
+        sampledSignal.push(sampledValue);
+    }
+    
+    drawSampledSignal();
+}
+
+function drawSampledSignal() {
+    const canvas = samplingCanvas;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.clearRect(0, 0, width, height);
+    drawAxes(ctx, width, height);
+    
+    // Draw original signal (lighter)
+    ctx.strokeStyle = '#2196F3';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    
+    for (let i = 0; i < originalSignal.length; i++) {
+        const x = (i / (originalSignal.length - 1)) * width;
+        const y = height / 2 * (1 - originalSignal[i]);
+        
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    
+    // Draw sampled signal based on sampling method
+    const samplingMethod = document.getElementById('sampling-method').value;
+    ctx.strokeStyle = '#FF5722';
+    ctx.lineWidth = 3;
+    
+    if (samplingMethod === 'ideal') {
+        // Draw impulses for ideal sampling
+        for (const sample of sampledSignal) {
+            const x = (sample.index / (originalSignal.length - 1)) * width;
+            const centerY = height / 2;
+            const sampleY = centerY * (1 - sample.value);
+            
+            ctx.beginPath();
+            ctx.moveTo(x, centerY);
+            ctx.lineTo(x, sampleY);
+            ctx.stroke();
+            
+            // Draw circle at sample point
+            ctx.fillStyle = '#FF5722';
+            ctx.beginPath();
+            ctx.arc(x, sampleY, 6, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+    } else if (samplingMethod === 'natural') {
+        // Draw pulse-shaped samples for natural sampling
+        for (const sample of sampledSignal) {
+            const startX = ((sample.index - sample.width/2) / (originalSignal.length - 1)) * width;
+            const endX = ((sample.index + sample.width/2) / (originalSignal.length - 1)) * width;
+            const sampleY = height / 2 * (1 - sample.value);
+            
+            // Draw the pulse
+            ctx.beginPath();
+            ctx.moveTo(startX, height / 2);
+            ctx.lineTo(startX, sampleY);
+            ctx.lineTo(endX, sampleY);
+            ctx.lineTo(endX, height / 2);
+            ctx.stroke();
+            
+            // Draw circle at sample point
+            ctx.fillStyle = '#FF5722';
+            ctx.beginPath();
+            const centerX = (sample.index / (originalSignal.length - 1)) * width;
+            ctx.arc(centerX, sampleY, 6, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+    } else if (samplingMethod === 'flat-top') {
+        // Draw flat-top samples (sample and hold)
+        ctx.beginPath();
+        
+        for (let i = 0; i < sampledSignal.length; i++) {
+            const sample = sampledSignal[i];
+            const x = (sample.index / (originalSignal.length - 1)) * width;
+            const y = height / 2 * (1 - sample.value);
+            
+            // Draw line to this sample
+            if (i === 0) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(x, y);
+            } else {
+                const prevSample = sampledSignal[i - 1];
+                const prevX = (prevSample.index / (originalSignal.length - 1)) * width;
+                
+                // Draw horizontal line from previous sample to new position
+                ctx.lineTo(x, y);
+            }
+            
+            // Draw circle at sample point
+            ctx.fillStyle = '#FF5722';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+        
+        // Draw final segment to end of canvas
+        if (sampledSignal.length > 0) {
+            const lastSample = sampledSignal[sampledSignal.length - 1];
+            const lastY = height / 2 * (1 - lastSample.value);
+            ctx.lineTo(width, lastY);
+        }
+        
+        ctx.stroke();
+    }
+}
+
+function performQuantization() {
+    quantizedSignal = [];
+    
+    // Calculate quantization step size (from -amplitude to +amplitude)
+    const totalRange = 2 * amplitude;
+    const stepSize = totalRange / (quantizationLevels - 1);
+    
+    // Quantize each sample
+    for (const sample of sampledSignal) {
+        const normalizedValue = (sample.value + amplitude) / totalRange; // Normalize to 0-1
+        const quantizedLevel = Math.round(normalizedValue * (quantizationLevels - 1));
+        const quantizedValue = -amplitude + quantizedLevel * stepSize;
+        
+        quantizedSignal.push({
+            index: sample.index,
+            originalValue: sample.value,
+            quantizedValue: quantizedValue,
+            level: quantizedLevel
+        });
+    }
+    
+    drawQuantizedSignal();
+}
+
+function drawQuantizedSignal() {
+    const canvas = quantizationCanvas;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.clearRect(0, 0, width, height);
+    drawAxes(ctx, width, height);
+    
+    // Draw quantization levels
+    const totalRange = 2 * amplitude;
+    const stepSize = totalRange / (quantizationLevels - 1);
+    
+    ctx.strokeStyle = '#eee';
+    ctx.lineWidth = 1;
+    
+    for (let i = 0; i < quantizationLevels; i++) {
+        const levelValue = -amplitude + i * stepSize;
+        const y = height / 2 * (1 - levelValue);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+    
+    // Draw sampled values
+    ctx.fillStyle = '#FF5722';
+    
+    for (const point of quantizedSignal) {
+        const x = (point.index / (originalSignal.length - 1)) * width;
+        const y = height / 2 * (1 - point.originalValue);
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+    
+    // Draw quantized values
+    ctx.fillStyle = '#4CAF50';
+    
+    for (const point of quantizedSignal) {
+        const x = (point.index / (originalSignal.length - 1)) * width;
+        const y = height / 2 * (1 - point.quantizedValue);
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Draw vertical line from sample to quantized value
+        ctx.strokeStyle = '#4CAF50';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, height / 2 * (1 - point.originalValue));
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+}
+
+function performBinaryCoding() {
+    binaryCodes = [];
+    
+    for (const point of quantizedSignal) {
+        // Convert quantization level to binary string
+        let binaryCode = point.level.toString(2);
+        
+        // Pad with leading zeros to match bit depth
+        while (binaryCode.length < bitDepth) {
+            binaryCode = '0' + binaryCode;
+        }
+        
+        binaryCodes.push(binaryCode);
+    }
+    
+    displayBinaryCodes();
+}
+
+function displayBinaryCodes() {
+    let codeTable = '<table width="100%" style="border-collapse: collapse;">';
+    codeTable += '<tr><th style="border: 1px solid #ddd; padding: 8px;">Sample #</th>';
+    codeTable += '<th style="border: 1px solid #ddd; padding: 8px;">Quantized Value</th>';
+    codeTable += '<th style="border: 1px solid #ddd; padding: 8px;">Binary Code</th></tr>';
+    
+    for (let i = 0; i < quantizedSignal.length; i++) {
+        const point = quantizedSignal[i];
+        codeTable += `<tr>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${i + 1}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${point.quantizedValue.toFixed(3)}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-family: monospace;">${binaryCodes[i]}</td>
+        </tr>`;
+    }
+    
+    codeTable += '</table>';
+    
+    binaryOutput.innerHTML = codeTable;
+}
+
+function drawReconstructedSignal() {
+    const canvas = reconstructedCanvas;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.clearRect(0, 0, width, height);
+    drawAxes(ctx, width, height);
+    
+    // Draw original signal (lighter)
+    ctx.strokeStyle = '#2196F3';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    
+    for (let i = 0; i < originalSignal.length; i++) {
+        const x = (i / (originalSignal.length - 1)) * width;
+        const y = height / 2 * (1 - originalSignal[i]);
+        
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    
+    // Draw reconstructed signal (staircase)
+    ctx.strokeStyle = '#9C27B0';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    
+    if (quantizedSignal.length > 0) {
+        // Start from the first quantized value
+        const firstPoint = quantizedSignal[0];
+        const firstX = (firstPoint.index / (originalSignal.length - 1)) * width;
+        const firstY = height / 2 * (1 - firstPoint.quantizedValue);
+        
+        ctx.moveTo(0, firstY);
+        ctx.lineTo(firstX, firstY);
+        
+        for (let i = 1; i < quantizedSignal.length; i++) {
+            const prevPoint = quantizedSignal[i - 1];
+            const currentPoint = quantizedSignal[i];
+            
+            const prevX = (prevPoint.index / (originalSignal.length - 1)) * width;
+            const currentX = (currentPoint.index / (originalSignal.length - 1)) * width;
+            
+            const prevY = height / 2 * (1 - prevPoint.quantizedValue);
+            const currentY = height / 2 * (1 - currentPoint.quantizedValue);
+            
+            // Draw line to represent the staircase nature of reconstruction
+            ctx.lineTo(currentX, prevY);
+            ctx.lineTo(currentX, currentY);
+        }
+        
+        // Draw final segment to end of canvas
+        const lastPoint = quantizedSignal[quantizedSignal.length - 1];
+        const lastX = (lastPoint.index / (originalSignal.length - 1)) * width;
+        const lastY = height / 2 * (1 - lastPoint.quantizedValue);
+        
+        ctx.lineTo(width, lastY);
+    }
+    
+    ctx.stroke();
+    
+    // Draw quantized points
+    ctx.fillStyle = '#9C27B0';
+    
+    for (const point of quantizedSignal) {
+        const x = (point.index / (originalSignal.length - 1)) * width;
+        const y = height / 2 * (1 - point.quantizedValue);
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+}
+
+// Call processSignal when the page loads
+window.addEventListener('load', function() {
+    // Set initial values
+    updateFrequencyValue(document.getElementById('frequency').value);
+    updateAmplitudeValue(document.getElementById('amplitude').value);
+    updateSamplingRateValue(document.getElementById('sampling-rate').value);
+    updateBitDepth();
+    
+    // Initialize simulation
+    resetSimulation();
+});
+
+// Handle window resize
+window.addEventListener('resize', function() {
+    // Resize all canvases
+    canvases.forEach(canvas => {
+        canvas.width = canvas.parentElement.clientWidth * 2;
+        canvas.height = canvas.parentElement.clientHeight * 2;
+    });
+    
+    drawingCanvas.width = drawingCanvas.parentElement.clientWidth * 2;
+    drawingCanvas.height = drawingCanvas.parentElement.clientHeight * 2;
+    
+    // Redraw everything
+    drawOriginalSignal();
+    drawSampledSignal();
+    drawQuantizedSignal();
+    drawReconstructedSignal();
+    redrawCustomSignal();
+});
+</script>
+</body>
+</html>
