@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hidden Station Problem Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #4a7bcc;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #3a6abf;
+        }
+        #scenario-selector {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .network-visualization {
+            position: relative;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+            background-color: #f9f9f9;
+        }
+        .station {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            text-align: center;
+            font-weight: bold;
+        }
+        .station::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+        }
+        .transmission-range {
+            position: absolute;
+            border: 2px dashed rgba(100, 100, 100, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .packet {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: blue;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .hidden {
+            opacity: 0;
+        }
+        .collision {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: red;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            opacity: 0;
+            animation: boom 0.5s ease-out;
+        }
+        @keyframes boom {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .explanation {
+            padding: 15px;
+            border-left: 4px solid #4a7bcc;
+            background-color: #f0f4fa;
+            margin-bottom: 20px;
+        }
+        .log {
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            background-color: #f5f5f5;
+            margin-top: 20px;
+        }
+        .log p {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        .log p.collision {
+            color: red;
+            font-weight: bold;
+        }
+        .log p.success {
+            color: green;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            color: white;
+            margin-left: 10px;
+        }
+        .status-idle {
+            background-color: #888;
+        }
+        .status-sending {
+            background-color: #28a745;
+        }
+        .status-receiving {
+            background-color: #17a2b8;
+        }
+        .status-waiting {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .status-collision {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IEEE 802.11 Hidden Station Problem Visualization</h1>
+        
+        <div class="explanation">
+            <h3>The Hidden Station Problem</h3>
+            <p>In wireless networks, the hidden station problem occurs when two transmitters (B and C) cannot detect each other (they are "hidden" from each other) but both are in range of the same receiver (A). This leads to potential collisions as both transmitters might send packets simultaneously without being aware of each other's transmissions.</p>
+        </div>
+        
+        <div class="controls">
+            <select id="scenario-selector">
+                <option value="normal">Scenario 1: With Hidden Station Problem</option>
+                <option value="rts-cts">Scenario 2: With RTS/CTS Solution</option>
+            </select>
+            <button id="start-btn">Start Simulation</button>
+            <button id="pause-btn">Pause</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+        
+        <div class="network-visualization" id="visualization">
+            <!-- Stations and ranges will be added here by JavaScript -->
+        </div>
+        
+        <div class="log" id="event-log">
+            <p>Simulation log will appear here...</p>
+        </div>
+    </div>
+
+    <script>
+// Constants
+        const STATION_RADIUS = 30;
+        const RANGE_MULTIPLIER = 3;
+        const PACKET_SPEED = 1.5;
+        const RTS_PACKET_COLOR = '#ffc107';
+        const CTS_PACKET_COLOR = '#17a2b8';
+        const DATA_PACKET_COLOR = '#007bff';
+        const ACK_PACKET_COLOR = '#28a745';
+        
+        // Variables
+        let animationId;
+        let stations = [];
+        let packets = [];
+        let transmissionRanges = [];
+        let isSimulationRunning = false;
+        let scenarioType = 'normal';
+        let collisionCount = 0;
+        let successCount = 0;
+        
+        // DOM Elements
+        const visualization = document.getElementById('visualization');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const scenarioSelector = document.getElementById('scenario-selector');
+        const eventLog = document.getElementById('event-log');
+        
+        // Initialize the visualization
+        function initializeVisualization() {
+            const visWidth = visualization.offsetWidth;
+            const visHeight = visualization.offsetHeight;
+            
+            // Clear previous elements
+            visualization.innerHTML = '';
+            stations = [];
+            packets = [];
+            transmissionRanges = [];
+            
+            // Create stations
+            stations = [
+                { id: 'A', x: visWidth * 0.7, y: visHeight * 0.5, label: 'Station A', status: 'idle', buffer: [] },
+                { id: 'B', x: visWidth * 0.2, y: visHeight * 0.5, label: 'Station B', status: 'idle', buffer: [] },
+                { id: 'C', x: visWidth * 0.7, y: visHeight * 0.2, label: 'Station C', status: 'idle', buffer: [] }
+            ];
+            
+            // Create and append stations to visualization
+            stations.forEach(station => {
+                const stationElement = document.createElement('div');
+                stationElement.className = 'station';
+                stationElement.id = `station-${station.id}`;
+                stationElement.style.left = `${station.x - STATION_RADIUS}px`;
+                stationElement.style.top = `${station.y - STATION_RADIUS}px`;
+                stationElement.style.width = `${STATION_RADIUS * 2}px`;
+                stationElement.style.height = `${STATION_RADIUS * 2}px`;
+                stationElement.dataset.label = station.label;
+                stationElement.style.backgroundImage = 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48IS0tISBGb250IEF3ZXNvbWUgUHJvIDYuNC4wIGJ5IEBmb250YXdlc29tZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tIExpY2Vuc2UgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbS9saWNlbnNlIChDb21tZXJjaWFsIExpY2Vuc2UpIENvcHlyaWdodCAyMDIzIEZvbnRpY29ucywgSW5jLiAtLT48cGF0aCBmaWxsPSIjNGE3YmNjIiBkPSJNMTg0IDE5MmgtNjRWMTI4SDY0QzI4LjYgMTI4IDAgMTU2LjYgMCAxOTJ2MTkyYzAgMzUuNCAxMjggNjQgMTI4IDY0VjM1MmgyNTZWMzMyLjVjMC0yMi4xLTE3LjktNDAuMS00MC00MC41bC00MC0uNVYyNDMuNGMwLTEyLjctNy4yLTI0LjQtMTguNi0zMGwtMTkuOS05LjkzTDI4OC4xIDk1LjA1QTQ3LjkgNDcuOSAwIDAgMCAyODQgNzEuOTN2LS4yMjggMEM2NC43IDcxLjcgNjQuNyA1MS43OSA2NC43IDUxLjc5QzY0LjcgMjMuMTkgMzYuNiAwIDIuOCAwQzEuMiAwIDAgMS4xOSAwIDQuMTZWNjRRMCAxMjggNTIuMDYgMTU5LjVTMTcxLjMgMTkyIDE4NCAxOTJ6Ii8+PC9zdmc+")';
+                visualization.appendChild(stationElement);
+                
+                // Add status indicator
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'status-badge status-idle';
+                statusBadge.id = `status-${station.id}`;
+                statusBadge.textContent = 'IDLE';
+                stationElement.appendChild(statusBadge);
+            });
+            
+            // Create transmission ranges
+            stations.forEach(station => {
+                const range = document.createElement('div');
+                range.className = 'transmission-range';
+                range.id = `range-${station.id}`;
+                const rangeSize = STATION_RADIUS * 2 * RANGE_MULTIPLIER;
+                range.style.width = `${rangeSize}px`;
+                range.style.height = `${rangeSize}px`;
+                range.style.left = `${station.x - rangeSize/2}px`;
+                range.style.top = `${station.y - rangeSize/2}px`;
+                visualization.appendChild(range);
+                transmissionRanges.push({
+                    id: station.id,
+                    element: range,
+                    radius: rangeSize / 2
+                });
+            });
+            
+            updateEventLog('System initialized. Select a scenario and click Start.', 'info');
+        }
+        
+        // Check if a station is in range of another
+        function isInRange(station1, station2) {
+            const dx = station1.x - station2.x;
+            const dy = station1.y - station2.y;
+            const distance = Math.sqrt(dx*dx + dy*dy);
+            const rangeRadius = STATION_RADIUS * RANGE_MULTIPLIER;
+            return distance <= rangeRadius;
+        }
+        
+        // Create a packet
+        function createPacket(from, to, type = 'data') {
+            const fromStation = stations.find(s => s.id === from);
+            const toStation = stations.find(s => s.id === to);
+            
+            if (!fromStation || !toStation) return null;
+            
+            let color;
+            switch(type) {
+                case 'rts': color = RTS_PACKET_COLOR; break;
+                case 'cts': color = CTS_PACKET_COLOR; break;
+                case 'ack': color = ACK_PACKET_COLOR; break;
+                default: color = DATA_PACKET_COLOR;
+            }
+            
+            const packet = {
+                id: `packet-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                from: from,
+                to: to,
+                type: type,
+                x: fromStation.x,
+                y: fromStation.y,
+                startX: fromStation.x,
+                startY: fromStation.y,
+                targetX: toStation.x,
+                targetY: toStation.y,
+                progress: 0,
+                color: color,
+                collided: false
+            };
+            
+            const packetElement = document.createElement('div');
+            packetElement.className = 'packet';
+            packetElement.id = packet.id;
+            packetElement.style.backgroundColor = packet.color;
+            packetElement.style.left = `${packet.x - 5}px`;
+            packetElement.style.top = `${packet.y - 5}px`;
+            visualization.appendChild(packetElement);
+            
+            packets.push({ ...packet, element: packetElement });
+            return packet;
+        }
+        
+        // Update packet position
+        function updatePacketPosition(packet) {
+            const dx = packet.targetX - packet.startX;
+            const dy = packet.targetY - packet.startY;
+            
+            packet.progress += PACKET_SPEED / 100;
+            
+            if (packet.progress >= 1) {
+                // Packet reached its destination
+                return handlePacketArrival(packet);
+            }
+            
+            packet.x = packet.startX + dx * packet.progress;
+            packet.y = packet.startY + dy * packet.progress;
+            
+            packet.element.style.left = `${packet.x - 5}px`;
+            packet.element.style.top = `${packet.y - 5}px`;
+            
+            // Check for collisions
+            checkForCollisions(packet);
+            
+            return false;
+        }
+        
+        // Check for collisions between packets
+        function checkForCollisions(packet) {
+            if (packet.collided) return;
+            
+            const activePackets = packets.filter(p => 
+                !p.collided && 
+                p.id !== packet.id && 
+                p.to === packet.to
+            );
+            
+            activePackets.forEach(otherPacket => {
+                if (otherPacket.collided) return;
+                
+                // Check if packets are in the same area
+                const dx = packet.x - otherPacket.x;
+                const dy = packet.y - otherPacket.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < STATION_RADIUS * 2) {
+                    createCollision(packet, otherPacket);
+                }
+            });
+        }
+        
+        // Create visual collision effect
+        function createCollision(packet1, packet2) {
+            // Mark packets as collided
+            packet1.collided = true;
+            packet2.collided = true;
+            
+            const midX = (packet1.x + packet2.x) / 2;
+            const midY = (packet1.y + packet2.y) / 2;
+            
+            // Create collision visual effect
+            const collision = document.createElement('div');
+            collision.className = 'collision';
+            collision.textContent = '!';
+            collision.style.left = `${midX - 20}px`;
+            collision.style.top = `${midY - 20}px`;
+            visualization.appendChild(collision);
+            
+            // Update station status for receiver
+            const receiver = stations.find(s => s.id === packet1.to);
+            if (receiver) {
+                receiver.status = 'collision';
+                updateStationStatus(receiver.id, 'collision');
+                setTimeout(() => {
+                    receiver.status = 'idle';
+                    updateStationStatus(receiver.id, 'idle');
+                }, 1000);
+            }
+            
+            collisionCount++;
+            updateEventLog(`Collision detected between packets from ${packet1.from} and ${packet2.from} to ${packet1.to}!`, 'collision');
+            
+            // Remove collision effect after animation
+            setTimeout(() => {
+                visualization.removeChild(collision);
+                removePacket(packet1.id);
+                removePacket(packet2.id);
+            }, 500);
+        }
+        
+        // Handle packet arrival at destination
+        function handlePacketArrival(packet) {
+            if (packet.collided) return true;
+            
+            const receiver = stations.find(s => s.id === packet.to);
+            const sender = stations.find(s => s.id === packet.from);
+            
+            if (!receiver || !sender) return true;
+            
+            switch(packet.type) {
+                case 'rts':
+                    updateEventLog(`RTS from ${packet.from} received by ${packet.to}`, 'info');
+                    receiver.status = 'receiving';
+                    updateStationStatus(receiver.id, 'receiving');
+                    
+                    // Schedule CTS response
+                    setTimeout(() => {
+                        if (receiver.status === 'receiving') {
+                            receiver.status = 'sending';
+                            updateStationStatus(receiver.id, 'sending');
+                            createPacket(packet.to, packet.from, 'cts');
+                            updateEventLog(`${packet.to} sending CTS to ${packet.from}`, 'info');
+                        }
+                    }, 500);
+                    break;
+                    
+                case 'cts':
+                    updateEventLog(`CTS from ${packet.from} received by ${packet.to}`, 'info');
+                    sender.status = 'sending';
+                    updateStationStatus(sender.id, 'sending');
+                    
+                    // Notify all stations in range about transmission
+                    stations.forEach(station => {
+                        if (station.id !== sender.id && isInRange(station, receiver)) {
+                            station.status = 'waiting';
+                            updateStationStatus(station.id, 'waiting');
+                            updateEventLog(`${station.id} waiting due to CTS from ${packet.from}`, 'info');
+                        }
+                    });
+                    
+                    // Send data packet
+                    setTimeout(() => {
+                        createPacket(packet.to, packet.from, 'data');
+                        updateEventLog(`${packet.to} sending DATA to ${packet.from}`, 'info');
+                    }, 500);
+                    break;
+                    
+                case 'data':
+                    updateEventLog(`Data from ${packet.from} received by ${packet.to} successfully`, 'success');
+                    successCount++;
+                    
+                    // Send ACK
+                    receiver.status = 'sending';
+                    updateStationStatus(receiver.id, 'sending');
+                    setTimeout(() => {
+                        createPacket(packet.to, packet.from, 'ack');
+                        updateEventLog(`${packet.to} sending ACK to ${packet.from}`, 'info');
+                    }, 500);
+                    break;
+                    
+                case 'ack':
+                    updateEventLog(`ACK from ${packet.from} received by ${packet.to}`, 'info');
+                    
+                    // Reset statuses
+                    stations.forEach(station => {
+                        station.status = 'idle';
+                        updateStationStatus(station.id, 'idle');
+                    });
+                    
+                    // Schedule next transmission
+                    scheduleNextTransmission();
+                    break;
+            }
+            
+            // Remove packet
+            removePacket(packet.id);
+            return true;
+        }
+        
+        // Remove packet element
+        function removePacket(packetId) {
+            const packetIndex = packets.findIndex(p => p.id === packetId);
+            if (packetIndex !== -1) {
+                const packet = packets[packetIndex];
+                if (packet.element && packet.element.parentNode) {
+                    packet.element.parentNode.removeChild(packet.element);
+                }
+                packets.splice(packetIndex, 1);
+            }
+        }
+        
+        // Update station status visually
+        function updateStationStatus(stationId, status) {
+            const statusElement = document.getElementById(`status-${stationId}`);
+            statusElement.className = `status-badge status-${status}`;
+            
+            switch(status) {
+                case 'idle': statusElement.textContent = 'IDLE'; break;
+                case 'sending': statusElement.textContent = 'SENDING'; break;
+                case 'receiving': statusElement.textContent = 'RECEIVING'; break;
+                case 'waiting': statusElement.textContent = 'WAITING'; break;
+                case 'collision': statusElement.textContent = 'COLLISION'; break;
+                default: statusElement.textContent = status.toUpperCase();
+            }
+        }
+        
+        // Schedule next transmission
+        function scheduleNextTransmission() {
+            if (!isSimulationRunning) return;
+            
+            // Random delay before next transmission
+            const delay = Math.random() * 1000 + 500;
+            setTimeout(() => {
+                if (!isSimulationRunning) return;
+                
+                // Randomly select sender
+                const senderIndex = Math.floor(Math.random() * 2) + 1; // B or C
+                const sender = stations[senderIndex];
+                
+                if (sender.status === 'idle') {
+                    startTransmission(sender.id);
+                } else {
+                    scheduleNextTransmission();
+                }
+            }, delay);
+        }
+        
+        // Start a transmission from a station
+        function startTransmission(stationId) {
+            const sender = stations.find(s => s.id === stationId);
+            if (!sender || sender.status !== 'idle') return;
+            
+            sender.status = 'sending';
+            updateStationStatus(sender.id, 'sending');
+            
+            if (scenarioType === 'rts-cts') {
+                // Start with RTS/CTS mechanism
+                createPacket(stationId, 'A', 'rts');
+                updateEventLog(`${stationId} sending RTS to A`, 'info');
+            } else {
+                // Direct data transmission (normal scenario)
+                createPacket(stationId, 'A', 'data');
+                updateEventLog(`${stationId} sending DATA to A`, 'info');
+            }
+        }
+        
+        // Update the event log
+        function updateEventLog(message, type = 'info') {
+            const logEntry = document.createElement('p');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            if (type === 'collision') {
+                logEntry.className = 'collision';
+            } else if (type === 'success') {
+                logEntry.className = 'success';
+            }
+            
+            eventLog.appendChild(logEntry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+        
+        // Animation loop
+        function animate() {
+            if (!isSimulationRunning) return;
+            
+            // Update all packets
+            for (let i = packets.length - 1; i >= 0; i--) {
+                updatePacketPosition(packets[i]);
+            }
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Start the simulation
+        function startSimulation() {
+            if (isSimulationRunning) return;
+            
+            isSimulationRunning = true;
+            collisionCount = 0;
+            successCount = 0;
+            
+            updateEventLog(`Starting simulation with ${scenarioType === 'rts-cts' ? 'RTS/CTS' : 'normal'} scenario`, 'info');
+            
+            // Start with both B and C sending
+            if (scenarioType === 'normal') {
+                // In normal scenario, start both stations at same time to demonstrate collision
+                setTimeout(() => startTransmission('B'), 500);
+                setTimeout(() => startTransmission('C'), 600);
+            } else {
+                // In RTS/CTS scenario, start one station first
+                setTimeout(() => startTransmission('B'), 500);
+            }
+            
+            animate();
+        }
+        
+        // Pause the simulation
+        function pauseSimulation() {
+            isSimulationRunning = false;
+            cancelAnimationFrame(animationId);
+            updateEventLog('Simulation paused', 'info');
+        }
+        
+        // Reset the simulation
+        function resetSimulation() {
+            pauseSimulation();
+            initializeVisualization();
+            updateEventLog('Simulation reset', 'info');
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', startSimulation);
+        pauseBtn.addEventListener('click', pauseSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+        scenarioSelector.addEventListener('change', () => {
+            scenarioType = scenarioSelector.value;
+            resetSimulation();
+        });
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initializeVisualization();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            resetSimulation();
+        });
+    </script>
+</body>
+</html>
