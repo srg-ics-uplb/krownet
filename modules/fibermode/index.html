@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiber Optic Transmission Modes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1, h2 {
+            color: #2c3e50;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .mode-selector {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .mode-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            flex: 1;
+            margin: 0 5px;
+        }
+        
+        .mode-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .mode-btn.active {
+            background-color: #16a085;
+        }
+        
+        .simulation-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .fiber-section {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .fiber-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .fiber-canvas {
+            width: 100%;
+            height: 250px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        
+        .info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #edf7ff;
+            border-radius: 5px;
+        }
+        
+        .parameter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .parameter-control {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+        }
+        
+        .value-display {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fiber Optic Transmission Modes Simulation</h1>
+    
+    <div class="controls">
+        <div class="mode-selector">
+            <button class="mode-btn active" id="singleMode">Single Mode</button>
+            <button class="mode-btn" id="multimodeStep">Multimode Step Index</button>
+            <button class="mode-btn" id="multimodeGraded">Multimode Graded Index</button>
+        </div>
+        
+        <div class="parameter-controls">
+            <div class="parameter-control">
+                <label for="wavelength">Wavelength (nm)</label>
+                <input type="range" id="wavelength" min="850" max="1550" value="1310">
+                <div class="value-display">1310 nm</div>
+            </div>
+            <div class="parameter-control">
+                <label for="launchAngle">Launch Angle (degrees)</label>
+                <input type="range" id="launchAngle" min="0" max="30" value="10">
+                <div class="value-display">10°</div>
+            </div>
+            <div class="parameter-control">
+                <label for="coreSize">Core Size (μm)</label>
+                <input type="range" id="coreSize" min="8" max="62.5" value="9">
+                <div class="value-display">9 μm</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="simulation-container">
+        <div class="fiber-section">
+            <div class="fiber-header">
+                <h2 id="modeTitle">Single Mode Fiber</h2>
+                <button id="playPauseBtn">Pause</button>
+            </div>
+            <canvas id="fiberCanvas" class="fiber-canvas"></canvas>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #3498db;"></div>
+                    <span>Core</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ecf0f1;"></div>
+                    <span>Cladding</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #e74c3c;"></div>
+                    <span>Light Ray</span>
+                </div>
+            </div>
+            
+            <div class="info-panel">
+                <h3>Mode Information</h3>
+                <p id="modeDescription">
+                    Single mode fiber has a small core (8-10 μm) and transmits light in only one mode, resulting in less dispersion and higher bandwidth over long distances. It typically operates at wavelengths of 1310-1550 nm.
+                </p>
+            </div>
+        </div>
+        
+        <div class="fiber-section">
+            <div class="fiber-header">
+                <h2>Pulse Dispersion</h2>
+            </div>
+            <canvas id="dispersionCanvas" class="fiber-canvas"></canvas>
+            
+            <div class="info-panel">
+                <h3>Dispersion Effects</h3>
+                <p id="dispersionDescription">
+                    Single mode fiber exhibits minimal pulse dispersion, resulting in high bandwidth and allowing for longer transmission distances.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const singleModeBtn = document.getElementById('singleMode');
+        const multimodeStepBtn = document.getElementById('multimodeStep');
+        const multimodeGradedBtn = document.getElementById('multimodeGraded');
+        const wavelengthSlider = document.getElementById('wavelength');
+        const launchAngleSlider = document.getElementById('launchAngle');
+        const coreSizeSlider = document.getElementById('coreSize');
+        const modeTitle = document.getElementById('modeTitle');
+        const modeDescription = document.getElementById('modeDescription');
+        const dispersionDescription = document.getElementById('dispersionDescription');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const fiberCanvas = document.getElementById('fiberCanvas');
+        const dispersionCanvas = document.getElementById('dispersionCanvas');
+        
+        // Canvas setup
+        const fiberCtx = fiberCanvas.getContext('2d');
+        const dispersionCtx = dispersionCanvas.getContext('2d');
+        
+        // Set canvas dimensions
+        function setupCanvasDimensions() {
+            const setCanvasDimensions = (canvas) => {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+            };
+            
+            setCanvasDimensions(fiberCanvas);
+            setCanvasDimensions(dispersionCanvas);
+        }
+        
+        // Call once and add resize listener
+        setupCanvasDimensions();
+        window.addEventListener('resize', setupCanvasDimensions);
+        
+        // Simulation parameters
+        let currentMode = 'single';
+        let isAnimating = true;
+        let animationFrameId;
+        let rays = [];
+        let pulses = [];
+        let animationTime = 0;
+        
+        // Mode descriptions
+        const descriptions = {
+            single: {
+                mode: "Single mode fiber has a small core (8-10 μm) and transmits light in only one mode, resulting in less dispersion and higher bandwidth over long distances. It typically operates at wavelengths of 1310-1550 nm.",
+                dispersion: "Single mode fiber exhibits minimal pulse dispersion, resulting in high bandwidth and allowing for longer transmission distances."
+            },
+            multimodeStep: {
+                mode: "Multimode Step Index fiber has a larger core (50-62.5 μm) with a sharp refractive index change between core and cladding. It allows multiple light paths, causing modal dispersion and bandwidth limitations.",
+                dispersion: "Multimode Step Index fiber shows significant modal dispersion as different ray paths travel different distances, limiting bandwidth and transmission distance."
+            },
+            multimodeGraded: {
+                mode: "Multimode Graded Index fiber has a large core with a gradual decrease in refractive index from center to edge. This design reduces modal dispersion by making light travel faster at the edges than in the center.",
+                dispersion: "Multimode Graded Index fiber shows reduced modal dispersion compared to step index fiber, as the graded index compensates for different path lengths."
+            }
+        };
+        
+        // Initialize rays based on mode
+        function initializeRays() {
+            rays = [];
+            const numberOfRays = {
+                'single': 1,
+                'multimodeStep': 5,
+                'multimodeGraded': 5
+            }[currentMode];
+            
+            const launchAngle = parseInt(launchAngleSlider.value);
+            const maxAngle = {
+                'single': 5,
+                'multimodeStep': launchAngle,
+                'multimodeGraded': launchAngle
+            }[currentMode];
+            
+            for (let i = 0; i < numberOfRays; i++) {
+                const angle = (i / (numberOfRays - 1 || 1)) * maxAngle;
+                rays.push({
+                    x: 0,
+                    y: fiberCanvas.height / 2,
+                    angle: angle,
+                    speed: 2,
+                    path: []
+                });
+            }
+            
+            // Initialize pulses for dispersion visualization
+            pulses = [];
+            for (let i = 0; i < numberOfRays; i++) {
+                pulses.push({
+                    x: 50,
+                    width: 20,
+                    speed: 1 + (currentMode === 'multimodeGraded' ? 0.1 * i : 0.2 * i) * (currentMode === 'single' ? 0 : 1)
+                });
+            }
+        }
+        
+        // Draw fiber optic cable
+        function drawFiber() {
+            const ctx = fiberCtx;
+            const width = fiberCanvas.width;
+            const height = fiberCanvas.height;
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw cladding
+            ctx.fillStyle = '#ecf0f1';
+            ctx.fillRect(0, height * 0.2, width, height * 0.6);
+            
+            // Draw core
+            const coreSize = parseInt(coreSizeSlider.value);
+            let coreHeight;
+            
+            switch (currentMode) {
+                case 'single':
+                    coreHeight = height * 0.1;
+                    break;
+                case 'multimodeStep':
+                    coreHeight = height * 0.4;
+                    break;
+                case 'multimodeGraded':
+                    coreHeight = height * 0.4;
+                    break;
+            }
+            
+            // Draw core
+            if (currentMode === 'multimodeGraded') {
+                // Create gradient for graded index
+                const gradient = ctx.createRadialGradient(
+                    width / 2, height / 2, 0,
+                    width / 2, height / 2, coreHeight
+                );
+                gradient.addColorStop(0, '#2980b9');
+                gradient.addColorStop(1, '#3498db');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, height / 2 - coreHeight / 2, width, coreHeight);
+            } else {
+                ctx.fillStyle = '#3498db';
+                ctx.fillRect(0, height / 2 - coreHeight / 2, width, coreHeight);
+            }
+            
+            // Draw light rays
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#e74c3c';
+            
+            rays.forEach(ray => {
+                ctx.beginPath();
+                
+                if (ray.path.length > 0) {
+                    ctx.moveTo(ray.path[0].x, ray.path[0].y);
+                    ray.path.forEach(point => {
+                        ctx.lineTo(point.x, point.y);
+                    });
+                }
+                
+                ctx.stroke();
+            });
+        }
+        
+        // Draw dispersion visualization
+        function drawDispersion() {
+            const ctx = dispersionCtx;
+            const width = dispersionCanvas.width;
+            const height = dispersionCanvas.height;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw fiber line
+            ctx.strokeStyle = '#bdc3c7';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+            
+            // Draw input pulse
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(30, height / 2 - 40, 20, 80);
+            
+            // Draw output pulses
+            switch (currentMode) {
+                case 'single':
+                    ctx.fillStyle = '#3498db';
+                    ctx.fillRect(width - 70, height / 2 - 40, 20, 80);
+                    break;
+                    
+                case 'multimodeStep':
+                    // Draw multiple spread pulses
+                    ctx.fillStyle = 'rgba(52, 152, 219, 0.7)';
+                    ctx.fillRect(width - 110, height / 2 - 40, 20, 80);
+                    ctx.fillRect(width - 80, height / 2 - 40, 20, 80);
+                    ctx.fillRect(width - 50, height / 2 - 40, 20, 80);
+                    break;
+                    
+                case 'multimodeGraded':
+                    // Draw slightly spread pulse
+                    ctx.fillStyle = 'rgba(52, 152, 219, 0.7)';
+                    ctx.fillRect(width - 90, height / 2 - 40, 30, 80);
+                    ctx.fillRect(width - 65, height / 2 - 40, 20, 80);
+                    break;
+            }
+            
+            // Draw animated pulses
+            pulses.forEach((pulse, index) => {
+                const alpha = 0.7 - (index * 0.1);
+                ctx.fillStyle = `rgba(52, 152, 219, ${alpha})`;
+                ctx.fillRect(pulse.x, height / 2 - 20, pulse.width, 40);
+            });
+        }
+        
+        // Update ray positions
+        function updateRays() {
+            if (!isAnimating) return;
+            
+            animationTime += 0.016; // ~60fps
+            
+            // Update ray positions
+            rays.forEach(ray => {
+                ray.x += ray.speed * Math.cos(ray.angle * Math.PI / 180);
+                ray.y += ray.speed * Math.sin(ray.angle * Math.PI / 180);
+                
+                // Store path for drawing
+                ray.path.push({x: ray.x, y: ray.y});
+                
+                // Limit path length for performance
+                if (ray.path.length > 1000) {
+                    ray.path.shift();
+                }
+                
+                // Handle reflection based on mode
+                const coreSize = parseInt(coreSizeSlider.value);
+                const coreHeight = currentMode === 'single' ? 
+                    fiberCanvas.height * 0.1 : fiberCanvas.height * 0.4;
+                const coreTop = fiberCanvas.height / 2 - coreHeight / 2;
+                const coreBottom = fiberCanvas.height / 2 + coreHeight / 2;
+                
+                // Check if ray hits core boundary
+                if (ray.y <= coreTop || ray.y >= coreBottom) {
+                    // Reflection
+                    if (currentMode === 'multimodeStep') {
+                        ray.angle = -ray.angle;
+                    } else if (currentMode === 'multimodeGraded') {
+                        // Gradual bending for graded index
+                        const distanceFromCenter = Math.abs(ray.y - fiberCanvas.height / 2);
+                        const bendFactor = distanceFromCenter / (coreHeight / 2);
+                        ray.angle = -ray.angle * (1 - 0.2 * bendFactor);
+                    } else {
+                        ray.angle = -ray.angle;
+                    }
+                }
+                
+                // Reset ray if it reaches the end
+                if (ray.x > fiberCanvas.width) {
+                    ray.x = 0;
+                    ray.y = fiberCanvas.height / 2;
+                    ray.path = [];
+                }
+            });
+            
+            // Update pulses for dispersion visualization
+            pulses.forEach(pulse => {
+                pulse.x += pulse.speed;
+                if (pulse.x > dispersionCanvas.width) {
+                    pulse.x = 50;
+                }
+            });
+        }
+        
+        // Animation loop
+        function animate() {
+            updateRays();
+            drawFiber();
+            drawDispersion();
+            
+            if (isAnimating) {
+                animationFrameId = requestAnimationFrame(animate);
+            }
+        }
+        
+        // Initialize simulation
+        function initializeSimulation() {
+            // Set core size based on mode
+            switch (currentMode) {
+                case 'single':
+                    coreSizeSlider.value = 9;
+                    wavelengthSlider.value = 1310;
+                    launchAngleSlider.value = 5;
+                    break;
+                case 'multimodeStep':
+                    coreSizeSlider.value = 50;
+                    wavelengthSlider.value = 850;
+                    launchAngleSlider.value = 15;
+                    break;
+                case 'multimodeGraded':
+                    coreSizeSlider.value = 50;
+                    wavelengthSlider.value = 850;
+                    launchAngleSlider.value = 15;
+                    break;
+            }
+            
+            // Update slider displays
+            document.querySelector('#wavelength + .value-display').textContent = `${wavelengthSlider.value} nm`;
+            document.querySelector('#launchAngle + .value-display').textContent = `${launchAngleSlider.value}°`;
+            document.querySelector('#coreSize + .value-display').textContent = `${coreSizeSlider.value} μm`;
+            
+            // Update descriptions
+            modeTitle.textContent = {
+                'single': 'Single Mode Fiber',
+                'multimodeStep': 'Multimode Step Index Fiber',
+                'multimodeGraded': 'Multimode Graded Index Fiber'
+            }[currentMode];
+            
+            modeDescription.textContent = descriptions[currentMode].mode;
+            dispersionDescription.textContent = descriptions[currentMode].dispersion;
+            
+            // Initialize rays
+            initializeRays();
+        }
+        
+        // Mode selection event listeners
+        singleModeBtn.addEventListener('click', () => {
+            currentMode = 'single';
+            
+            // Update active button
+            singleModeBtn.classList.add('active');
+            multimodeStepBtn.classList.remove('active');
+            multimodeGradedBtn.classList.remove('active');
+            
+            initializeSimulation();
+        });
+        
+        multimodeStepBtn.addEventListener('click', () => {
+            currentMode = 'multimodeStep';
+            
+            // Update active button
+            singleModeBtn.classList.remove('active');
+            multimodeStepBtn.classList.add('active');
+            multimodeGradedBtn.classList.remove('active');
+            
+            initializeSimulation();
+        });
+        
+        multimodeGradedBtn.addEventListener('click', () => {
+            currentMode = 'multimodeGraded';
+            
+            // Update active button
+            singleModeBtn.classList.remove('active');
+            multimodeStepBtn.classList.remove('active');
+            multimodeGradedBtn.classList.add('active');
+            
+            initializeSimulation();
+        });
+        
+        // Parameter change event listeners
+        wavelengthSlider.addEventListener('input', function() {
+            document.querySelector('#wavelength + .value-display').textContent = `${this.value} nm`;
+        });
+        
+        launchAngleSlider.addEventListener('input', function() {
+            document.querySelector('#launchAngle + .value-display').textContent = `${this.value}°`;
+            initializeRays();
+        });
+        
+        coreSizeSlider.addEventListener('input', function() {
+            document.querySelector('#coreSize + .value-display').textContent = `${this.value} μm`;
+        });
+        
+        // Play/Pause button
+        playPauseBtn.addEventListener('click', () => {
+            isAnimating = !isAnimating;
+            playPauseBtn.textContent = isAnimating ? 'Pause' : 'Play';
+            
+            if (isAnimating) {
+                animate();
+            } else {
+                cancelAnimationFrame(animationFrameId);
+            }
+        });
+        
+        // Initialize and start animation
+        initializeSimulation();
+        animate();
+    </script>
+</body>
+</html>
