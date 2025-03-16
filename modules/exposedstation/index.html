@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exposed Station Problem Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #4a7bcc;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #3a6abf;
+        }
+        #scenario-selector {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .network-visualization {
+            position: relative;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+            background-color: #f9f9f9;
+        }
+        .station {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            text-align: center;
+            font-weight: bold;
+        }
+        .station::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+        }
+        .transmission-range {
+            position: absolute;
+            border: 2px dashed rgba(100, 100, 100, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .packet {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: blue;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .hidden {
+            opacity: 0;
+        }
+        .collision {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: red;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            opacity: 0;
+            animation: boom 0.5s ease-out;
+        }
+        @keyframes boom {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .explanation {
+            padding: 15px;
+            border-left: 4px solid #4a7bcc;
+            background-color: #f0f4fa;
+            margin-bottom: 20px;
+        }
+        .log {
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            background-color: #f5f5f5;
+            margin-top: 20px;
+        }
+        .log p {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        .log p.collision {
+            color: red;
+            font-weight: bold;
+        }
+        .log p.success {
+            color: green;
+        }
+        .log p.warning {
+            color: orange;
+            font-weight: bold;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            color: white;
+            margin-left: 10px;
+        }
+        .status-idle {
+            background-color: #888;
+        }
+        .status-sending {
+            background-color: #28a745;
+        }
+        .status-receiving {
+            background-color: #17a2b8;
+        }
+        .status-waiting {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .status-collision {
+            background-color: #dc3545;
+        }
+        .throughput-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .throughput-item {
+            padding: 10px;
+            background-color: #f0f4fa;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .throughput-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a7bcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IEEE 802.11 Exposed Station Problem Visualization</h1>
+        
+        <div class="explanation">
+            <h3>The Exposed Station Problem</h3>
+            <p>In wireless networks, the exposed station problem occurs when a node is prevented from sending because of a nearby transmitter that it can hear, even though the node's transmission would not interfere with the ongoing transmission. For example, if node B is transmitting to node A, node C will detect the transmission and defer its own transmission to node D, even though simultaneous transmissions would not cause interference since A and D are outside each other's interference range.</p>
+        </div>
+        
+        <div class="controls">
+            <select id="scenario-selector">
+                <option value="dcf">Scenario 1: Standard DCF (with Exposed Station Problem)</option>
+                <option value="dual-channel">Scenario 2: With Dual Channel Solution</option>
+            </select>
+            <button id="start-btn">Start Simulation</button>
+            <button id="pause-btn">Pause</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+        
+        <div class="throughput-info">
+            <div class="throughput-item">
+                <h4>Total Packets Sent</h4>
+                <div id="total-packets" class="throughput-value">0</div>
+            </div>
+            <div class="throughput-item">
+                <h4>Network Efficiency</h4>
+                <div id="network-efficiency" class="throughput-value">0%</div>
+            </div>
+            <div class="throughput-item">
+                <h4>Deferred Transmissions</h4>
+                <div id="deferred-count" class="throughput-value">0</div>
+            </div>
+        </div>
+        
+        <div class="network-visualization" id="visualization">
+            <!-- Stations and ranges will be added here by JavaScript -->
+        </div>
+        
+        <div class="log" id="event-log">
+            <p>Simulation log will appear here...</p>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const STATION_RADIUS = 30;
+        const RANGE_MULTIPLIER = 2.5;
+        const PACKET_SPEED = 1.5;
+        const RTS_PACKET_COLOR = '#ffc107';
+        const CTS_PACKET_COLOR = '#17a2b8';
+        const DATA_PACKET_COLOR = '#007bff';
+        const ACK_PACKET_COLOR = '#28a745';
+        const CHANNEL1_COLOR = '#007bff';
+        const CHANNEL2_COLOR = '#28a745';
+        
+        // Variables
+        let animationId;
+        let stations = [];
+        let packets = [];
+        let transmissionRanges = [];
+        let isSimulationRunning = false;
+        let scenarioType = 'dcf';
+        let totalPackets = 0;
+        let deferredCount = 0;
+        let potentialTransmissions = 0;
+        let activeTransmissions = 0;
+        let channel1Busy = false;
+        let channel2Busy = false;
+        
+        // DOM Elements
+        const visualization = document.getElementById('visualization');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const scenarioSelector = document.getElementById('scenario-selector');
+        const eventLog = document.getElementById('event-log');
+        const totalPacketsDisplay = document.getElementById('total-packets');
+        const networkEfficiencyDisplay = document.getElementById('network-efficiency');
+        const deferredCountDisplay = document.getElementById('deferred-count');
+        
+        // Initialize the visualization
+        function initializeVisualization() {
+            const visWidth = visualization.offsetWidth;
+            const visHeight = visualization.offsetHeight;
+            
+            // Clear previous elements
+            visualization.innerHTML = '';
+            stations = [];
+            packets = [];
+            transmissionRanges = [];
+            
+            // Reset counters
+            totalPackets = 0;
+            deferredCount = 0;
+            potentialTransmissions = 0;
+            activeTransmissions = 0;
+            channel1Busy = false;
+            channel2Busy = false;
+            
+            updateCounters();
+            
+            // Create stations in a configuration to demonstrate exposed station problem
+            stations = [
+                { id: 'A', x: visWidth * 0.15, y: visHeight * 0.4, label: 'Station A', status: 'idle', buffer: [], channel: 1 },
+                { id: 'B', x: visWidth * 0.4, y: visHeight * 0.4, label: 'Station B', status: 'idle', buffer: [], channel: 1 },
+                { id: 'C', x: visWidth * 0.6, y: visHeight * 0.4, label: 'Station C', status: 'idle', buffer: [], channel: 2 },
+                { id: 'D', x: visWidth * 0.85, y: visHeight * 0.4, label: 'Station D', status: 'idle', buffer: [], channel: 2 }
+            ];
+            
+            // Create and append stations to visualization
+            stations.forEach(station => {
+                const stationElement = document.createElement('div');
+                stationElement.className = 'station';
+                stationElement.id = `station-${station.id}`;
+                stationElement.style.left = `${station.x - STATION_RADIUS}px`;
+                stationElement.style.top = `${station.y - STATION_RADIUS}px`;
+                stationElement.style.width = `${STATION_RADIUS * 2}px`;
+                stationElement.style.height = `${STATION_RADIUS * 2}px`;
+                stationElement.dataset.label = station.label;
+                stationElement.style.backgroundImage = 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48IS0tISBGb250IEF3ZXNvbWUgUHJvIDYuNC4wIGJ5IEBmb250YXdlc29tZSAtIGh0dHBzOi8vZm9udGF3ZXNvbWUuY29tIExpY2Vuc2UgLSBodHRwczovL2ZvbnRhd2Vzb21lLmNvbS9saWNlbnNlIChDb21tZXJjaWFsIExpY2Vuc2UpIENvcHlyaWdodCAyMDIzIEZvbnRpY29ucywgSW5jLiAtLT48cGF0aCBmaWxsPSIjNGE3YmNjIiBkPSJNMTg0IDE5MmgtNjRWMTI4SDY0QzI4LjYgMTI4IDAgMTU2LjYgMCAxOTJ2MTkyYzAgMzUuNCAxMjggNjQgMTI4IDY0VjM1MmgyNTZWMzMyLjVjMC0yMi4xLTE3LjktNDAuMS00MC00MC41bC00MC0uNVYyNDMuNGMwLTEyLjctNy4yLTI0LjQtMTguNi0zMGwtMTkuOS05LjkzTDI4OC4xIDk1LjA1QTQ3LjkgNDcuOSAwIDAgMCAyODQgNzEuOTN2LS4yMjggMEM2NC43IDcxLjcgNjQuNyA1MS43OSA2NC43IDUxLjc5QzY0LjcgMjMuMTkgMzYuNiAwIDIuOCAwQzEuMiAwIDAgMS4xOSAwIDQuMTZWNjRRMCAxMjggNTIuMDYgMTU5LjVTMTcxLjMgMTkyIDE4NCAxOTJ6Ii8+PC9zdmc+")';
+                visualization.appendChild(stationElement);
+                
+                // Add channel indicator if using dual channel
+                if (scenarioType === 'dual-channel') {
+                    stationElement.style.borderBottom = `3px solid ${station.channel === 1 ? CHANNEL1_COLOR : CHANNEL2_COLOR}`;
+                }
+                
+                // Add status indicator
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'status-badge status-idle';
+                statusBadge.id = `status-${station.id}`;
+                statusBadge.textContent = 'IDLE';
+                stationElement.appendChild(statusBadge);
+            });
+            
+            // Create transmission ranges
+            stations.forEach(station => {
+                const range = document.createElement('div');
+                range.className = 'transmission-range';
+                range.id = `range-${station.id}`;
+                const rangeSize = STATION_RADIUS * 2 * RANGE_MULTIPLIER;
+                range.style.width = `${rangeSize}px`;
+                range.style.height = `${rangeSize}px`;
+                range.style.left = `${station.x - rangeSize/2}px`;
+                range.style.top = `${station.y - rangeSize/2}px`;
+                visualization.appendChild(range);
+                transmissionRanges.push({
+                    id: station.id,
+                    element: range,
+                    radius: rangeSize / 2
+                });
+            });
+            
+            updateStatusBadges();
+            
+            // Clear event log
+            eventLog.innerHTML = '<p>Simulation initialized. Click "Start Simulation" to begin.</p>';
+            
+            // Log initial setup
+            if (scenarioType === 'dcf') {
+                logEvent('Standard DCF mode active - Exposed station problem will be demonstrated');
+            } else {
+                logEvent('Dual Channel mode active - Using separate channels to mitigate exposed station problem');
+            }
+        }
+        
+        // Update the status badges on stations
+        function updateStatusBadges() {
+            stations.forEach(station => {
+                const statusBadge = document.getElementById(`status-${station.id}`);
+                if (statusBadge) {
+                    statusBadge.className = `status-badge status-${station.status}`;
+                    statusBadge.textContent = station.status.toUpperCase();
+                }
+            });
+        }
+        
+        // Determine if a station is within range of another station
+        function isInRange(station1, station2) {
+            const dx = station1.x - station2.x;
+            const dy = station1.y - station2.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance <= STATION_RADIUS * 2 * RANGE_MULTIPLIER;
+        }
+        
+        // Log events to the event log
+        function logEvent(message, type = 'info') {
+            const logEntry = document.createElement('p');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            if (type === 'collision') {
+                logEntry.className = 'collision';
+            } else if (type === 'success') {
+                logEntry.className = 'success';
+            } else if (type === 'warning') {
+                logEntry.className = 'warning';
+            }
+            
+            eventLog.appendChild(logEntry);
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+        
+        // Update counters and displays
+        function updateCounters() {
+            totalPacketsDisplay.textContent = totalPackets;
+            
+            // Calculate network efficiency
+            if (potentialTransmissions > 0) {
+                const efficiency = (activeTransmissions / potentialTransmissions) * 100;
+                networkEfficiencyDisplay.textContent = `${Math.round(efficiency)}%`;
+            } else {
+                networkEfficiencyDisplay.textContent = '0%';
+            }
+            
+            deferredCountDisplay.textContent = deferredCount;
+        }
+        
+        // Create and animate a packet from source to destination
+        function createPacket(source, dest, type = 'data') {
+            potentialTransmissions++;
+            
+            // Check if medium is busy for this station's channel
+            const isMediumBusy = scenarioType === 'dcf' ? 
+                (channel1Busy || channel2Busy) : 
+                (source.channel === 1 ? channel1Busy : channel2Busy);
+            
+            // In DCF, if B is sending, C should defer (exposed station problem)
+            // In dual channel, C can send on its own channel even if B is sending on another channel
+            if (isMediumBusy) {
+                deferredCount++;
+                logEvent(`${source.label} detected busy medium, deferring transmission to ${dest.label}`, 'warning');
+                updateCounters();
+                return false;
+            }
+            
+            // Set medium busy flag
+            if (source.channel === 1) {
+                channel1Busy = true;
+            } else {
+                channel2Busy = true;
+            }
+            
+            // Create the packet element
+            const packetElement = document.createElement('div');
+            packetElement.className = 'packet';
+            
+            // Set packet color based on type
+            switch (type) {
+                case 'rts':
+                    packetElement.style.backgroundColor = RTS_PACKET_COLOR;
+                    break;
+                case 'cts':
+                    packetElement.style.backgroundColor = CTS_PACKET_COLOR;
+                    break;
+                case 'ack':
+                    packetElement.style.backgroundColor = ACK_PACKET_COLOR;
+                    break;
+                default:
+                    packetElement.style.backgroundColor = DATA_PACKET_COLOR;
+            }
+            
+            // Position packet at source
+            packetElement.style.left = `${source.x}px`;
+            packetElement.style.top = `${source.y}px`;
+            
+            // Add to DOM
+            visualization.appendChild(packetElement);
+            
+            // Calculate distance and angle
+            const dx = dest.x - source.x;
+            const dy = dest.y - source.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+            
+            // Animation progress tracking
+            let progress = 0;
+            let startTime = null;
+            const animationDuration = distance / PACKET_SPEED;
+            
+            // Update source station status
+            source.status = 'sending';
+            dest.status = 'receiving';
+            updateStatusBadges();
+            
+            logEvent(`${source.label} sending ${type.toUpperCase()} packet to ${dest.label}${scenarioType === 'dual-channel' ? ` on Channel ${source.channel}` : ''}`);
+            
+            const packet = {
+                element: packetElement,
+                source: source,
+                dest: dest,
+                type: type,
+                animate: function(timestamp) {
+                    if (!startTime) startTime = timestamp;
+                    progress = (timestamp - startTime) / animationDuration;
+                    
+                    if (progress >= 1) {
+                        // Packet reached destination
+                        this.element.remove();
+                        
+                        // Update counters
+                        if (type === 'data') {
+                            totalPackets++;
+                            activeTransmissions++;
+                            updateCounters();
+                            logEvent(`${dest.label} received data packet from ${source.label} successfully`, 'success');
+                            
+                            // Send acknowledgment
+                            setTimeout(() => {
+                                if (isSimulationRunning) {
+                                    createPacket(dest, source, 'ack');
+                                }
+                            }, 300);
+                        } else if (type === 'ack') {
+                            logEvent(`${source.label} received ACK from ${dest.label}`, 'success');
+                            
+                            // Release the medium
+                            if (source.channel === 1) {
+                                channel1Busy = false;
+                            } else {
+                                channel2Busy = false;
+                            }
+                            
+                            // Reset station status
+                            source.status = 'idle';
+                            dest.status = 'idle';
+                            updateStatusBadges();
+                        }
+                        
+                        // Remove from packets array
+                        const index = packets.indexOf(this);
+                        if (index > -1) {
+                            packets.splice(index, 1);
+                        }
+                        
+                        return true; // Animation complete
+                    }
+                    
+                    // Update position
+                    const x = source.x + dx * progress;
+                    const y = source.y + dy * progress;
+                    this.element.style.left = `${x}px`;
+                    this.element.style.top = `${y}px`;
+                    
+                    return false; // Animation not complete
+                }
+            };
+            
+            packets.push(packet);
+            return true;
+        }
+        
+        // Animation loop
+        function animate(timestamp) {
+            if (!isSimulationRunning) return;
+            
+            // Animate all packets
+            for (let i = packets.length - 1; i >= 0; i--) {
+                packets[i].animate(timestamp);
+            }
+            
+            // Randomly generate traffic if below certain threshold
+            if (packets.length < 2 && Math.random() < 0.02) {
+                const transmissionPairs = [
+                    { src: stations[1], dst: stations[0] }, // B to A
+                    { src: stations[2], dst: stations[3] }  // C to D
+                ];
+                
+                const randomPair = transmissionPairs[Math.floor(Math.random() * transmissionPairs.length)];
+                
+                if (randomPair.src.status === 'idle' && randomPair.dst.status === 'idle') {
+                    createPacket(randomPair.src, randomPair.dst, 'data');
+                }
+            }
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Start simulation
+        function startSimulation() {
+            if (!isSimulationRunning) {
+                scenarioType = scenarioSelector.value;
+                isSimulationRunning = true;
+                logEvent(`Starting simulation with ${scenarioType === 'dcf' ? 'Standard DCF' : 'Dual Channel'} mode`);
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        // Pause simulation
+        function pauseSimulation() {
+            if (isSimulationRunning) {
+                isSimulationRunning = false;
+                cancelAnimationFrame(animationId);
+                logEvent('Simulation paused');
+            }
+        }
+        
+        // Reset simulation
+        function resetSimulation() {
+            pauseSimulation();
+            scenarioType = scenarioSelector.value;
+            initializeVisualization();
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', startSimulation);
+        pauseBtn.addEventListener('click', pauseSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+        scenarioSelector.addEventListener('change', resetSimulation);
+        
+        // Initial setup
+        window.addEventListener('load', () => {
+            initializeVisualization();
+        });
+        
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            if (!isSimulationRunning) {
+                initializeVisualization();
+            }
+        });
+    </script>
+</body>
+</html>
