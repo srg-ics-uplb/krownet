@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multipath Propagation Simulation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f0f0f0;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    
+    .simulation-container {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      background-color: #eee;
+      border: 1px solid #ccc;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+    
+    .transmitter, .receiver {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #3498db;
+      z-index: 10;
+    }
+    
+    .transmitter {
+      background-color: #e74c3c;
+    }
+    
+    .receiver {
+      background-color: #2ecc71;
+    }
+    
+    .obstacle {
+      position: absolute;
+      background-color: #34495e;
+      border-radius: 4px;
+    }
+    
+    .signal-path {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    
+    .signal-wave {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(231, 76, 60, 0.8);
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    
+    .control-group {
+      margin-right: 20px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    
+    button:hover {
+      background-color: #2980b9;
+    }
+    
+    .info-panel {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+    }
+    
+    .legend {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-right: 20px;
+    }
+    
+    .legend-color {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    
+    .signal-strength {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 5px 10px;
+      border-radius: 4px;
+    }
+    
+    .reflection-point {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #f39c12;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Multipath Propagation Simulation for Wireless LANs</h1>
+    
+    <div class="controls">
+      <div class="control-group">
+        <button id="startButton">Start Simulation</button>
+        <button id="resetButton">Reset</button>
+      </div>
+      <div class="control-group">
+        <button id="addObstacleButton">Add Obstacle</button>
+        <button id="clearObstaclesButton">Clear Obstacles</button>
+      </div>
+      <div class="control-group">
+        <button id="togglePathsButton">Toggle All Paths</button>
+      </div>
+    </div>
+    
+    <div class="simulation-container" id="simulationArea">
+      <div class="transmitter" id="transmitter" title="Transmitter (Access Point)"></div>
+      <div class="receiver" id="receiver" title="Receiver (Client Device)"></div>
+      <div class="signal-path" id="signalPath"></div>
+      <div class="signal-strength" id="signalStrength">Signal Strength: 100%</div>
+    </div>
+    
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #e74c3c;"></div>
+        <span>Transmitter</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #2ecc71;"></div>
+        <span>Receiver</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #34495e;"></div>
+        <span>Obstacle</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background-color: #f39c12;"></div>
+        <span>Reflection Point</span>
+      </div>
+    </div>
+    
+    <div class="info-panel">
+      <h3>Multipath Propagation Effects</h3>
+      <p>In wireless networks, signals can take multiple paths from transmitter to receiver due to:</p>
+      <ul>
+        <li><strong>Reflection:</strong> Signals bounce off surfaces like walls and furniture</li>
+        <li><strong>Diffraction:</strong> Signals bend around obstacles</li>
+        <li><strong>Scattering:</strong> Signals disperse when hitting rough surfaces</li>
+      </ul>
+      <p>These effects can cause signal interference, leading to:</p>
+      <ul>
+        <li><strong>Delay spread:</strong> Different arrival times of signal components</li>
+        <li><strong>Fading:</strong> Signal strength fluctuations</li>
+        <li><strong>Inter-Symbol Interference (ISI):</strong> Overlapping symbols in the received signal</li>
+      </ul>
+      <p>This simulation demonstrates how multipath propagation works in a simplified 2D environment.</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Main elements
+      const simulationArea = document.getElementById('simulationArea');
+      const transmitter = document.getElementById('transmitter');
+      const receiver = document.getElementById('receiver');
+      const signalPath = document.getElementById('signalPath');
+      const signalStrength = document.getElementById('signalStrength');
+      
+      // Buttons
+      const startButton = document.getElementById('startButton');
+      const resetButton = document.getElementById('resetButton');
+      const addObstacleButton = document.getElementById('addObstacleButton');
+      const clearObstaclesButton = document.getElementById('clearObstaclesButton');
+      const togglePathsButton = document.getElementById('togglePathsButton');
+      
+      // Simulation variables
+      let isSimulationRunning = false;
+      let obstacles = [];
+      let signalPaths = [];
+      let signalWaves = [];
+      let reflectionPoints = [];
+      let showAllPaths = true;
+      let animationFrameId = null;
+      
+      // Initialize positions
+      function initializePositions() {
+        // Position transmitter and receiver
+        transmitter.style.left = '50px';
+        transmitter.style.top = '250px';
+        receiver.style.left = '850px';
+        receiver.style.top = '250px';
+        
+        // Make them draggable
+        makeDraggable(transmitter);
+        makeDraggable(receiver);
+      }
+      
+      // Make an element draggable
+      function makeDraggable(element) {
+        let offsetX, offsetY, isDragging = false;
+        
+        element.addEventListener('mousedown', function(e) {
+          isDragging = true;
+          offsetX = e.clientX - element.getBoundingClientRect().left;
+          offsetY = e.clientY - element.getBoundingClientRect().top;
+          e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+          if (!isDragging) return;
+          
+          const simulationRect = simulationArea.getBoundingClientRect();
+          let left = e.clientX - simulationRect.left - offsetX;
+          let top = e.clientY - simulationRect.top - offsetY;
+          
+          // Ensure the element stays within the simulation area
+          left = Math.max(0, Math.min(simulationRect.width - element.offsetWidth, left));
+          top = Math.max(0, Math.min(simulationRect.height - element.offsetHeight, top));
+          
+          element.style.left = left + 'px';
+          element.style.top = top + 'px';
+          
+          if (isSimulationRunning) {
+            updateSignalPaths();
+          }
+        });
+        
+        document.addEventListener('mouseup', function() {
+          isDragging = false;
+        });
+      }
+      
+      // Add an obstacle
+      function addObstacle() {
+        const obstacle = document.createElement('div');
+        obstacle.className = 'obstacle';
+        
+        // Random position and size
+        const width = Math.floor(Math.random() * 100) + 50;
+        const height = Math.floor(Math.random() * 100) + 50;
+        const left = Math.floor(Math.random() * (simulationArea.offsetWidth - width));
+        const top = Math.floor(Math.random() * (simulationArea.offsetHeight - height));
+        
+        obstacle.style.width = width + 'px';
+        obstacle.style.height = height + 'px';
+        obstacle.style.left = left + 'px';
+        obstacle.style.top = top + 'px';
+        
+        simulationArea.appendChild(obstacle);
+        obstacles.push(obstacle);
+        makeDraggable(obstacle);
+        
+        if (isSimulationRunning) {
+          updateSignalPaths();
+        }
+      }
+      
+      // Clear all obstacles
+      function clearObstacles() {
+        obstacles.forEach(obstacle => simulationArea.removeChild(obstacle));
+        obstacles = [];
+        
+        if (isSimulationRunning) {
+          updateSignalPaths();
+        }
+      }
+      
+      // Start simulation
+      function startSimulation() {
+        if (isSimulationRunning) return;
+        
+        isSimulationRunning = true;
+        startButton.textContent = 'Stop Simulation';
+        
+        // Clear previous paths
+        clearSignalPaths();
+        
+        // Calculate and draw paths
+        updateSignalPaths();
+        
+        // Start signal wave animation
+        animateSignalWaves();
+      }
+      
+      // Stop simulation
+      function stopSimulation() {
+        isSimulationRunning = false;
+        startButton.textContent = 'Start Simulation';
+        
+        // Stop animations
+        cancelAnimationFrame(animationFrameId);
+        
+        // Clear waves
+        signalWaves.forEach(wave => {
+          if (wave.parentNode) {
+            wave.parentNode.removeChild(wave);
+          }
+        });
+        signalWaves = [];
+      }
+      
+      // Reset simulation
+      function resetSimulation() {
+        stopSimulation();
+        clearObstacles();
+        clearSignalPaths();
+        initializePositions();
+        signalStrength.textContent = 'Signal Strength: 100%';
+      }
+      
+      // Clear signal paths
+      function clearSignalPaths() {
+        while (signalPath.firstChild) {
+          signalPath.removeChild(signalPath.firstChild);
+        }
+        signalPaths = [];
+        
+        // Clear reflection points
+        reflectionPoints.forEach(point => {
+          if (point.parentNode) {
+            point.parentNode.removeChild(point);
+          }
+        });
+        reflectionPoints = [];
+      }
+      
+      // Toggle showing all paths
+      function toggleAllPaths() {
+        showAllPaths = !showAllPaths;
+        togglePathsButton.textContent = showAllPaths ? 'Show Direct Path Only' : 'Show All Paths';
+        
+        if (isSimulationRunning) {
+          updateSignalPaths();
+        }
+      }
+      
+      // Update signal paths
+      function updateSignalPaths() {
+        clearSignalPaths();
+        
+        const txPos = {
+          x: parseInt(transmitter.style.left) + transmitter.offsetWidth / 2,
+          y: parseInt(transmitter.style.top) + transmitter.offsetHeight / 2
+        };
+        
+        const rxPos = {
+          x: parseInt(receiver.style.left) + receiver.offsetWidth / 2,
+          y: parseInt(receiver.style.top) + receiver.offsetHeight / 2
+        };
+        
+        // Direct path
+        const directPath = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        directPath.style.position = 'absolute';
+        directPath.style.width = '100%';
+        directPath.style.height = '100%';
+        directPath.style.pointerEvents = 'none';
+        
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', txPos.x);
+        line.setAttribute('y1', txPos.y);
+        line.setAttribute('x2', rxPos.x);
+        line.setAttribute('y2', rxPos.y);
+        line.setAttribute('stroke', 'rgba(231, 76, 60, 0.8)');
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('stroke-dasharray', '');
+        
+        directPath.appendChild(line);
+        signalPath.appendChild(directPath);
+        signalPaths.push({ element: directPath, path: [txPos, rxPos], isBlocked: false });
+        
+        // Calculate if direct path is blocked by obstacles
+        let isDirectPathBlocked = false;
+        obstacles.forEach(obstacle => {
+          if (doesLineIntersectRectangle(txPos, rxPos, obstacle)) {
+            isDirectPathBlocked = true;
+            line.setAttribute('stroke', 'rgba(231, 76, 60, 0.3)');
+            line.setAttribute('stroke-dasharray', '5,5');
+          }
+        });
+        
+        if (showAllPaths) {
+          // Generate reflection paths
+          generateReflectionPaths(txPos, rxPos);
+        }
+        
+        // Update signal strength display
+        updateSignalStrength(isDirectPathBlocked);
+      }
+      
+      // Generate reflection paths
+      function generateReflectionPaths(txPos, rxPos) {
+        // Reflection from walls
+        const walls = [
+          { start: {x: 0, y: 0}, end: {x: simulationArea.offsetWidth, y: 0} },
+          { start: {x: simulationArea.offsetWidth, y: 0}, end: {x: simulationArea.offsetWidth, y: simulationArea.offsetHeight} },
+          { start: {x: simulationArea.offsetWidth, y: simulationArea.offsetHeight}, end: {x: 0, y: simulationArea.offsetHeight} },
+          { start: {x: 0, y: simulationArea.offsetHeight}, end: {x: 0, y: 0} }
+        ];
+        
+        // Generate reflection points for walls
+        walls.forEach(wall => {
+          const reflectionPoint = calculateReflectionPoint(txPos, wall.start, wall.end);
+          
+          if (reflectionPoint) {
+            // Create reflection point marker
+            const refPoint = document.createElement('div');
+            refPoint.className = 'reflection-point';
+            refPoint.style.left = (reflectionPoint.x - 3) + 'px';
+            refPoint.style.top = (reflectionPoint.y - 3) + 'px';
+            simulationArea.appendChild(refPoint);
+            reflectionPoints.push(refPoint);
+            
+            // Create reflected path
+            const reflectedPath = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            reflectedPath.style.position = 'absolute';
+            reflectedPath.style.width = '100%';
+            reflectedPath.style.height = '100%';
+            reflectedPath.style.pointerEvents = 'none';
+            
+            // Line from transmitter to reflection point
+            const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line1.setAttribute('x1', txPos.x);
+            line1.setAttribute('y1', txPos.y);
+            line1.setAttribute('x2', reflectionPoint.x);
+            line1.setAttribute('y2', reflectionPoint.y);
+            line1.setAttribute('stroke', 'rgba(231, 76, 60, 0.6)');
+            line1.setAttribute('stroke-width', '1.5');
+            line1.setAttribute('stroke-dasharray', '5,5');
+            
+            // Line from reflection point to receiver
+            const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line2.setAttribute('x1', reflectionPoint.x);
+            line2.setAttribute('y1', reflectionPoint.y);
+            line2.setAttribute('x2', rxPos.x);
+            line2.setAttribute('y2', rxPos.y);
+            line2.setAttribute('stroke', 'rgba(231, 76, 60, 0.6)');
+            line2.setAttribute('stroke-width', '1.5');
+            line2.setAttribute('stroke-dasharray', '5,5');
+            
+            reflectedPath.appendChild(line1);
+            reflectedPath.appendChild(line2);
+            signalPath.appendChild(reflectedPath);
+            signalPaths.push({ 
+              element: reflectedPath, 
+              path: [txPos, reflectionPoint, rxPos], 
+              isBlocked: false 
+            });
+          }
+        });
+        
+        // Generate reflection points for obstacles
+        obstacles.forEach(obstacle => {
+          const obstacleRect = {
+            x: parseInt(obstacle.style.left),
+            y: parseInt(obstacle.style.top),
+            width: parseInt(obstacle.style.width),
+            height: parseInt(obstacle.style.height)
+          };
+          
+          // Generate reflection points for each side of the obstacle
+          const obstacleSides = [
+            { start: {x: obstacleRect.x, y: obstacleRect.y}, end: {x: obstacleRect.x + obstacleRect.width, y: obstacleRect.y} },
+            { start: {x: obstacleRect.x + obstacleRect.width, y: obstacleRect.y}, end: {x: obstacleRect.x + obstacleRect.width, y: obstacleRect.y + obstacleRect.height} },
+            { start: {x: obstacleRect.x + obstacleRect.width, y: obstacleRect.y + obstacleRect.height}, end: {x: obstacleRect.x, y: obstacleRect.y + obstacleRect.height} },
+            { start: {x: obstacleRect.x, y: obstacleRect.y + obstacleRect.height}, end: {x: obstacleRect.x, y: obstacleRect.y} }
+          ];
+          
+          obstacleSides.forEach(side => {
+            const reflectionPoint = calculateReflectionPoint(txPos, side.start, side.end);
+            
+            if (reflectionPoint) {
+              // Check if reflection point is on the obstacle edge
+              const isOnEdge = isPointOnLine(reflectionPoint, side.start, side.end);
+              
+              if (isOnEdge) {
+                // Create reflection point marker
+                const refPoint = document.createElement('div');
+                refPoint.className = 'reflection-point';
+                refPoint.style.left = (reflectionPoint.x - 3) + 'px';
+                refPoint.style.top = (reflectionPoint.y - 3) + 'px';
+                simulationArea.appendChild(refPoint);
+                reflectionPoints.push(refPoint);
+                
+                // Create reflected path
+                const reflectedPath = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                reflectedPath.style.position = 'absolute';
+                reflectedPath.style.width = '100%';
+                reflectedPath.style.height = '100%';
+                reflectedPath.style.pointerEvents = 'none';
+                
+                // Line from transmitter to reflection point
+                const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line1.setAttribute('x1', txPos.x);
+                line1.setAttribute('y1', txPos.y);
+                line1.setAttribute('x2', reflectionPoint.x);
+                line1.setAttribute('y2', reflectionPoint.y);
+                line1.setAttribute('stroke', 'rgba(231, 76, 60, 0.6)');
+                line1.setAttribute('stroke-width', '1.5');
+                line1.setAttribute('stroke-dasharray', '5,5');
+                
+                // Line from reflection point to receiver
+                const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line2.setAttribute('x1', reflectionPoint.x);
+                line2.setAttribute('y1', reflectionPoint.y);
+                line2.setAttribute('x2', rxPos.x);
+                line2.setAttribute('y2', rxPos.y);
+                line2.setAttribute('stroke', 'rgba(231, 76, 60, 0.6)');
+                line2.setAttribute('stroke-width', '1.5');
+                line2.setAttribute('stroke-dasharray', '5,5');
+                
+                // Check if the reflected path is blocked
+                let isPathBlocked = false;
+                obstacles.forEach(blockingObstacle => {
+                  if (doesLineIntersectRectangle(reflectionPoint, rxPos, blockingObstacle)) {
+                    isPathBlocked = true;
+                    line2.setAttribute('stroke', 'rgba(231, 76, 60, 0.3)');
+                    line2.setAttribute('stroke-dasharray', '2,2');
+                  }
+                });
+                
+                reflectedPath.appendChild(line1);
+                reflectedPath.appendChild(line2);
+                signalPath.appendChild(reflectedPath);
+                signalPaths.push({ 
+                  element: reflectedPath, 
+                  path: [txPos, reflectionPoint, rxPos], 
+                  isBlocked: isPathBlocked 
+                });
+              }
+            }
+          });
+        });
+      }
+      
+      // Animate signal waves
+      function animateSignalWaves() {
+        const txPos = {
+          x: parseInt(transmitter.style.left) + transmitter.offsetWidth / 2,
+          y: parseInt(transmitter.style.top) + transmitter.offsetHeight / 2
+        };
+        
+        // Create a new wave
+        const wave = document.createElement('div');
+        wave.className = 'signal-wave';
+        wave.style.left = (txPos.x - 10) + 'px';
+        wave.style.top = (txPos.y - 10) + 'px';
+        wave.style.width = '20px';
+        wave.style.height = '20px';
+        
+        simulationArea.appendChild(wave);
+        signalWaves.push(wave);
+        
+        // Animate wave expansion
+        let size = 20;
+        let opacity = 0.8;
+        
+        function expandWave() {
+          size += 5;
+          opacity -= 0.008;
+          
+          wave.style.width = size + 'px';
+          wave.style.height = size + 'px';
+          wave.style.left = (txPos.x - size / 2) + 'px';
+          wave.style.top = (txPos.y - size / 2) + 'px';
+          wave.style.opacity = opacity;
+          
+          if (size < 600 && opacity > 0) {
+            animationFrameId = requestAnimationFrame(expandWave);
+          } else {
+            // Remove the wave
+            if (wave.parentNode) {
+              wave.parentNode.removeChild(wave);
+            }
+            signalWaves = signalWaves.filter(w => w !== wave);
+          }
+        }
+        
+        expandWave();
+        
+        // Create a new wave every 1000ms
+        if (isSimulationRunning) {
+          setTimeout(() => {
+            if (isSimulationRunning) {
+              animateSignalWaves();
+            }
+          }, 1000);
+        }
+      }
+      
+      // Update signal strength display
+      function updateSignalStrength(isDirectPathBlocked) {
+        let strength = 100;
+        
+        if (isDirectPathBlocked) {
+          // Calculate distance between transmitter and receiver
+          const txPos = {
+            x: parseInt(transmitter.style.left) + transmitter.offsetWidth / 2,
+            y: parseInt(transmitter.style.top) + transmitter.offsetHeight / 2
+          };
+          
+          const rxPos = {
+            x: parseInt(receiver.style.left) + receiver.offsetWidth / 2,
+            y: parseInt(receiver.style.top) + receiver.offsetHeight / 2
+          };
+          
+          const distance = Math.sqrt(Math.pow(rxPos.x - txPos.x, 2) + Math.pow(rxPos.y - txPos.y, 2));
+          
+          // Calculate attenuation
+          const obstacleAttenuation = 30;
+          const distanceAttenuation = Math.min(20, Math.floor(distance / 20));
+          
+          strength = Math.max(0, 100 - obstacleAttenuation - distanceAttenuation);
+        }
+        
+        signalStrength.textContent = `Signal Strength: ${strength}%`;
+      }
+      
+      // Check if a line intersects a rectangle
+      function doesLineIntersectRectangle(p1, p2, rectangle) {
+        const rect = {
+          x: parseInt(rectangle.style.left),
+          y: parseInt(rectangle.style.top),
+          width: parseInt(rectangle.style.width),
+          height: parseInt(rectangle.style.height)
+        };
+        
+        // Define the rectangle's edges
+        const edges = [
+          { p1: {x: rect.x, y: rect.y}, p2: {x: rect.x + rect.width, y: rect.y} },
+          { p1: {x: rect.x + rect.width, y: rect.y}, p2: {x: rect.x + rect.width, y: rect.y + rect.height} },
+          { p1: {x: rect.x + rect.width, y: rect.y + rect.height}, p2: {x: rect.x, y: rect.y + rect.height} },
+          { p1: {x: rect.x, y: rect.y + rect.height}, p2: {x: rect.x, y: rect.y} }
+        ];
+        
+        // Check if the line intersects any of the rectangle's edges
+        for (const edge of edges) {
+          if (doLinesIntersect(p1, p2, edge.p1, edge.p2)) {
+            return true;
+          }
+        }
+        
+        // Check if either endpoint is inside the rectangle
+        if (isPointInRectangle(p1, rect) || isPointInRectangle(p2, rect)) {
+          return true;
+        }
+        
+        return false;
+      }
+      
+      // Check if two line segments intersect
+      function doLinesIntersect(p1, p2, p3, p4) {
+        const d1 = direction(p3, p4, p1);
+        const d2 = direction(p3, p4, p2);
+        const d3 = direction(p1, p2, p3);
+        const d4 = direction(p1, p2, p4);
+        
+        // Lines intersect if the directions are opposite
+        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+            ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
+          return true;
+        }
+        
+        // Check if points are collinear and overlap
+        if (d1 === 0 && isPointOnLine(p1, p3, p4)) return true;
+        if (d2 === 0 && isPointOnLine(p2, p3, p4)) return true;
+        if (d3 === 0 && isPointOnLine(p3, p1, p2)) return true;
+        if (d4 === 0 && isPointOnLine(p4, p1, p2)) return true;
+        
+        return false;
+      }
+      
+      // Calculate the direction of three points
+      function direction(p1, p2, p3) {
+        return (p3.x - p1.x) * (p2.y - p1.y) - (p2.x - p1.x) * (p3.y - p1.y);
+      }
+      
+      // Check if a point is on a line segment
+      function isPointOnLine(p, start, end) {
+        const dxl = end.x - start.x;
+        const dyl = end.y - start.y;
+        
+        if (Math.abs(dxl) < 0.0001 && Math.abs(dyl) < 0.0001) {
+          return Math.abs(p.x - start.x) < 0.0001 && Math.abs(p.y - start.y) < 0.0001;
+        }
+        
+        if (Math.abs(dxl) < 0.0001) {
+          return Math.abs(p.x - start.x) < 0.0001 && (p.y - start.y) * (p.y - end.y) <= 0;
+        }
+        
+        if (Math.abs(dyl) < 0.0001) {
+          return Math.abs(p.y - start.y) < 0.0001 && (p.x - start.x) * (p.x - end.x) <= 0;
+        }
+        
+        const t = ((p.x - start.x) * dxl + (p.y - start.y) * dyl) / (dxl * dxl + dyl * dyl);
+        return t >= 0 && t <= 1;
+      }
+      
+      // Check if a point is inside a rectangle
+      function isPointInRectangle(p, rect) {
+        return p.x >= rect.x && p.x <= rect.x + rect.width &&
+               p.y >= rect.y && p.y <= rect.y + rect.height;
+      }
+      
+      // Calculate reflection point for a signal on a line segment (wall or obstacle edge)
+      function calculateReflectionPoint(sourcePoint, lineStart, lineEnd) {
+        // Vector representing the wall/edge
+        const wallVector = {
+          x: lineEnd.x - lineStart.x,
+          y: lineEnd.y - lineStart.y
+        };
+        
+        // Normal vector to the wall (perpendicular)
+        const normalVector = {
+          x: -wallVector.y,
+          y: wallVector.x
+        };
+        
+        // Normalize the normal vector
+        const length = Math.sqrt(normalVector.x * normalVector.x + normalVector.y * normalVector.y);
+        normalVector.x /= length;
+        normalVector.y /= length;
+        
+        // Vector from line start to source point
+        const sourceVector = {
+          x: sourcePoint.x - lineStart.x,
+          y: sourcePoint.y - lineStart.y
+        };
+        
+        // Project source vector onto the normal vector
+        const projection = sourceVector.x * normalVector.x + sourceVector.y * normalVector.y;
+        
+        // If projection is negative, the source is behind the wall
+        if (projection <= 0) {
+          return null;
+        }
+        
+        // Calculate the reflection point
+        const t = (sourceVector.x * wallVector.x + sourceVector.y * wallVector.y) / 
+                 (wallVector.x * wallVector.x + wallVector.y * wallVector.y);
+        
+        if (t < 0 || t > 1) {
+          return null; // Reflection point is not on the wall segment
+        }
+        
+        const reflectionPoint = {
+          x: lineStart.x + t * wallVector.x,
+          y: lineStart.y + t * wallVector.y
+        };
+        
+        return reflectionPoint;
+      }
+      
+      // Event listeners
+      startButton.addEventListener('click', function() {
+        if (isSimulationRunning) {
+          stopSimulation();
+        } else {
+          startSimulation();
+        }
+      });
+      
+      resetButton.addEventListener('click', resetSimulation);
+      addObstacleButton.addEventListener('click', addObstacle);
+      clearObstaclesButton.addEventListener('click', clearObstacles);
+      togglePathsButton.addEventListener('click', toggleAllPaths);
+      
+      // Initialize the simulation
+      initializePositions();
+    });
+  </script>
+</body>
+</html>
