@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Rate, Bandwidth, Signal Rate, Nyquist, Shannon</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        h1, h2 {
+            color: #2c3e50;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 5px;
+        }
+        
+        .relationship-diagram {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .concept-box {
+            display: inline-block;
+            width: 180px;
+            height: 80px;
+            margin: 10px;
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            vertical-align: middle;
+            line-height: 80px;
+        }
+        
+        .arrow {
+            display: inline-block;
+            width: 50px;
+            position: relative;
+            height: 20px;
+            margin: 0 -5px;
+        }
+        
+        .arrow::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #2c3e50;
+        }
+        
+        .arrow::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-left: 10px solid #2c3e50;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            transform: translateY(-50%);
+        }
+        
+        .formula {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-left: 5px solid #3498db;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 16px;
+        }
+        
+        .visualization {
+            margin: 30px 0;
+        }
+        
+        .signal-container {
+            width: 100%;
+            height: 200px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .signal-container h3 {
+            margin-top: 0;
+        }
+        
+        canvas {
+            border: 1px solid #ddd;
+            background-color: white;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        
+        label {
+            margin-right: 15px;
+        }
+        
+        input[type="range"] {
+            width: 200px;
+            vertical-align: middle;
+        }
+        
+        .value-display {
+            display: inline-block;
+            width: 50px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .explanation {
+            margin-bottom: 20px;
+        }
+        
+        .toggle-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        
+        .toggle-button:hover {
+            background-color: #2980b9;
+        }
+        
+        .info-box {
+            background-color: #e1f5fe;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        
+        .formula-explanation {
+            margin-top: 5px;
+            font-style: italic;
+            color: #555;
+        }
+        
+        .shannon-container {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .shannon-controls {
+            margin-top: 20px;
+        }
+        
+        .highlight-box {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .nyquist-box {
+            background-color: #e8f5e9;
+            border-left: 5px solid #4caf50;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .nyquist-container {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .nyquist-controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Digital Transmission Concepts Visualization</h1>
+        
+        <div class="explanation">
+            <h2>Data Rate, Bandwidth, Signal Rate, Nyquist, Shannon</h2>
+            <p>In digital transmission, several key concepts are closely related. This visualization will help you understand how bandwidth, signal rate, data rate, and modulation rate are interconnected.</p>
+        </div>
+        
+        <div class="relationship-diagram">
+            <div class="concept-box">Data Rate</div>
+            <div class="arrow"></div>
+            <div class="concept-box">Signal Rate</div>
+            <div class="arrow"></div>
+            <div class="concept-box">Bandwidth</div>
+        </div>
+        
+        <div class="info-box">
+            <h3>Key Concepts</h3>
+            <ul>
+                <li><strong>Data Rate (R):</strong> The number of data bits transmitted per second (bps)</li>
+                <li><strong>Signal Rate (S):</strong> The number of signal elements transmitted per second (baud)</li>
+                <li><strong>Bandwidth (B):</strong> The range of frequencies required to transmit the signal</li>
+                <li><strong>Modulation Rate:</strong> The rate at which the signal characteristics (amplitude, frequency, phase) change</li>
+            </ul>
+        </div>
+        
+        <div class="explanation">
+            <h2>Formulas and Relationships</h2>
+            
+            <div class="formula">
+                S = R / log<sub>2</sub>L
+                <div class="formula-explanation">Where L is the number of levels in each signal element</div>
+            </div>
+            
+            <p>This formula shows that the signal rate (S) is related to the data rate (R) and the number of levels (L) in each signal element. As L increases, the signal rate decreases for the same data rate.</p>
+            
+            <div class="formula">
+                B ≈ S (for most digital transmission systems)
+                <div class="formula-explanation">Bandwidth is approximately equal to the signal rate</div>
+            </div>
+            
+            <p>Bandwidth is typically proportional to the signal rate. This relationship is why higher signal rates generally require more bandwidth.</p>
+            
+            <div class="formula">
+                R = S × log<sub>2</sub>L
+                <div class="formula-explanation">Data rate is the product of signal rate and bits per signal element</div>
+            </div>
+            
+            <p>This formula shows how data rate relates to signal rate and the number of levels. You can achieve a higher data rate by either increasing the signal rate or the number of levels per signal element.</p>
+            
+            <div class="nyquist-box">
+                <h3>Nyquist Bit Rate</h3>
+                <div class="formula">
+                    R = 2B × log<sub>2</sub>L
+                    <div class="formula-explanation">Where R is the maximum data rate in bits per second, B is the bandwidth in Hz, and L is the number of signal levels</div>
+                </div>
+                <p>The Nyquist theorem establishes the maximum data rate (R) that can be achieved over a noiseless channel with a given bandwidth (B) and number of signal levels (L). This formula shows that you can increase the data rate either by increasing the bandwidth or by using more signal levels.</p>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>Shannon's Limit</h3>
+                <div class="formula">
+                    C = B × log<sub>2</sub>(1 + S/N)
+                    <div class="formula-explanation">Where C is the channel capacity in bits per second, B is bandwidth in Hz, and S/N is the signal-to-noise ratio</div>
+                </div>
+                <p>Shannon's Channel Capacity Theorem establishes the theoretical maximum data rate (C) that can be achieved over a communication channel with a given bandwidth (B) and signal-to-noise ratio (S/N). This fundamental limit cannot be exceeded regardless of the modulation scheme or coding technique used.</p>
+            </div>
+        </div>
+        
+        <div class="visualization">
+            <h2>Interactive Visualization</h2>
+            
+            <div class="controls">
+                <div>
+                    <label for="dataRate">Data Rate (R):</label>
+                    <input type="range" id="dataRate" min="100" max="1000" value="500" step="100">
+                    <span class="value-display" id="dataRateValue">500</span> bps
+                </div>
+                <div>
+                    <label for="levels">Signal Levels (L):</label>
+                    <input type="range" id="levels" min="2" max="16" value="2" step="2">
+                    <span class="value-display" id="levelsValue">2</span> levels
+                </div>
+            </div>
+            
+            <div class="signal-container">
+                <h3>Digital Signal</h3>
+                <canvas id="digitalSignal" width="900" height="150"></canvas>
+            </div>
+            
+            <div class="signal-container">
+                <h3>Frequency Spectrum</h3>
+                <canvas id="frequencySpectrum" width="900" height="150"></canvas>
+            </div>
+            
+            <div class="info-box" id="calculatedValues">
+                <h3>Calculated Values:</h3>
+                <ul>
+                    <li>Data Rate (R): <span id="calcDataRate">500</span> bps</li>
+                    <li>Signal Rate (S): <span id="calcSignalRate">500</span> baud</li>
+                    <li>Bandwidth (B): <span id="calcBandwidth">500</span> Hz</li>
+                    <li>Bits per Signal Element: <span id="calcBitsPerElement">1</span> bits</li>
+                    <li>Nyquist Maximum Data Rate: <span id="calcNyquistRate">1000</span> bps</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h2>Nyquist Bit Rate Visualization</h2>
+            <p>The Nyquist theorem establishes the maximum data rate that can be achieved over a noiseless channel with a given bandwidth and number of signal levels:</p>
+            
+            <div class="nyquist-controls">
+                <div>
+                    <label for="nyquistBandwidth">Bandwidth (B):</label>
+                    <input type="range" id="nyquistBandwidth" min="1" max="10" value="5" step="1">
+                    <span class="value-display" id="nyquistBandwidthValue">5</span> MHz
+                </div>
+                <div>
+                    <label for="nyquistLevels">Signal Levels (L):</label>
+                    <input type="range" id="nyquistLevels" min="2" max="64" value="2" step="2">
+                    <span class="value-display" id="nyquistLevelsValue">2</span> levels
+                </div>
+            </div>
+            
+            <div class="nyquist-container">
+                <canvas id="nyquistCanvas" width="900" height="300"></canvas>
+            </div>
+            
+            <div class="info-box">
+                <h3>Nyquist Bit Rate Calculation:</h3>
+                <ul>
+                    <li>Bandwidth (B): <span id="nyBandwidth">5</span> MHz</li>
+                    <li>Signal Levels (L): <span id="nyLevels">2</span></li>
+                    <li>Bits per Signal Element: <span id="nyBitsPerElement">1</span></li>
+                    <li>Nyquist Maximum Data Rate: <span id="nyMaxDataRate">10</span> Mbps</li>
+                </ul>
+                <p>This is the theoretical maximum data rate achievable with the given bandwidth and signal levels in a noiseless channel. In practice, noise and other factors will reduce the achievable data rate.</p>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h2>Shannon's Limit Visualization</h2>
+            <p>Shannon's Channel Capacity Theorem establishes a fundamental limit on the maximum data rate that can be achieved over a communication channel with a given bandwidth and signal-to-noise ratio:</p>
+            
+            <div class="shannon-controls">
+                <div>
+                    <label for="bandwidth">Bandwidth (B):</label>
+                    <input type="range" id="bandwidth" min="1" max="10" value="5" step="1">
+                    <span class="value-display" id="bandwidthValue">5</span> MHz
+                </div>
+                <div>
+                    <label for="snr">Signal-to-Noise Ratio (SNR):</label>
+                    <input type="range" id="snr" min="0" max="30" value="10" step="1">
+                    <span class="value-display" id="snrValue">10</span> dB
+                </div>
+            </div>
+            
+            <div class="shannon-container">
+                <canvas id="shannonCanvas" width="900" height="300"></canvas>
+            </div>
+            
+            <div class="info-box">
+                <h3>Shannon's Limit Calculation:</h3>
+                <ul>
+                    <li>Bandwidth (B): <span id="shBandwidth">5</span> MHz</li>
+                    <li>Signal-to-Noise Ratio (SNR): <span id="shSNR">10</span> dB</li>
+                    <li>Linear S/N ratio: <span id="shLinearSNR">10</span></li>
+                    <li>Channel Capacity (C): <span id="shCapacity">0</span> Mbps</li>
+                </ul>
+                <p>This is the theoretical maximum data rate achievable with the given bandwidth and SNR. No practical system can exceed this limit.</p>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <h2>Nyquist vs. Shannon</h2>
+            <p>It's important to understand the relationship between Nyquist's theorem and Shannon's theorem:</p>
+            <ul>
+                <li><strong>Nyquist's Theorem:</strong> Defines the maximum data rate for a noiseless channel based on bandwidth and signal levels.</li>
+                <li><strong>Shannon's Theorem:</strong> Defines the maximum data rate for a noisy channel based on bandwidth and signal-to-noise ratio.</li>
+                <li><strong>Key Difference:</strong> Nyquist ignores noise, while Shannon accounts for it. In real-world applications, Shannon's limit is more realistic.</li>
+                <li><strong>Practical Implication:</strong> As signal-to-noise ratio increases, Shannon's limit approaches Nyquist's limit (with L approaching infinity).</li>
+            </ul>
+        </div>
+        
+        <div class="explanation">
+            <h2>Practical Implications</h2>
+            <p>Understanding these relationships is crucial for designing efficient digital communication systems:</p>
+            <ul>
+                <li><strong>Bandwidth Efficiency:</strong> Using more levels per signal element (higher L) allows transmitting more data bits per second within the same bandwidth.</li>
+                <li><strong>Trade-offs:</strong> Higher-level modulation (larger L) requires more complex equipment and is more susceptible to noise.</li>
+                <li><strong>Nyquist Limit:</strong> This establishes a theoretical limit for maximum data rate in ideal conditions.</li>
+                <li><strong>Shannon's Limit:</strong> This fundamental limit shows that increasing SNR provides diminishing returns in channel capacity, while increasing bandwidth provides linear improvements.</li>
+                <li><strong>Approaching the Limit:</strong> Modern communication systems use complex modulation schemes, error correction, and coding techniques to get closer to Shannon's limit.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const dataRateSlider = document.getElementById('dataRate');
+        const levelsSlider = document.getElementById('levels');
+        const dataRateValue = document.getElementById('dataRateValue');
+        const levelsValue = document.getElementById('levelsValue');
+        const calcDataRate = document.getElementById('calcDataRate');
+        const calcSignalRate = document.getElementById('calcSignalRate');
+        const calcBandwidth = document.getElementById('calcBandwidth');
+        const calcBitsPerElement = document.getElementById('calcBitsPerElement');
+        const calcNyquistRate = document.getElementById('calcNyquistRate');
+        const digitalSignalCanvas = document.getElementById('digitalSignal');
+        const frequencySpectrumCanvas = document.getElementById('frequencySpectrum');
+        
+        // Nyquist elements
+        const nyquistBandwidthSlider = document.getElementById('nyquistBandwidth');
+        const nyquistLevelsSlider = document.getElementById('nyquistLevels');
+        const nyquistBandwidthValue = document.getElementById('nyquistBandwidthValue');
+        const nyquistLevelsValue = document.getElementById('nyquistLevelsValue');
+        const nyBandwidth = document.getElementById('nyBandwidth');
+        const nyLevels = document.getElementById('nyLevels');
+        const nyBitsPerElement = document.getElementById('nyBitsPerElement');
+        const nyMaxDataRate = document.getElementById('nyMaxDataRate');
+        const nyquistCanvas = document.getElementById('nyquistCanvas');
+        
+        // Shannon's Limit elements
+        const bandwidthSlider = document.getElementById('bandwidth');
+        const snrSlider = document.getElementById('snr');
+        const bandwidthValue = document.getElementById('bandwidthValue');
+        const snrValue = document.getElementById('snrValue');
+        const shBandwidth = document.getElementById('shBandwidth');
+        const shSNR = document.getElementById('shSNR');
+        const shLinearSNR = document.getElementById('shLinearSNR');
+        const shCapacity = document.getElementById('shCapacity');
+        const shannonCanvas = document.getElementById('shannonCanvas');
+        
+        // Canvas contexts
+        const dsCtx = digitalSignalCanvas.getContext('2d');
+        const fsCtx = frequencySpectrumCanvas.getContext('2d');
+        const nyCtx = nyquistCanvas.getContext('2d');
+        const shCtx = shannonCanvas.getContext('2d');
+        
+        // Update values when sliders change
+        dataRateSlider.addEventListener('input', updateVisualization);
+        levelsSlider.addEventListener('input', updateVisualization);
+        nyquistBandwidthSlider.addEventListener('input', updateNyquistVisualization);
+        nyquistLevelsSlider.addEventListener('input', updateNyquistVisualization);
+        bandwidthSlider.addEventListener('input', updateShannonVisualization);
+        snrSlider.addEventListener('input', updateShannonVisualization);
+        
+        // Initial visualization
+        updateVisualization();
+        updateNyquistVisualization();
+        updateShannonVisualization();
+        
+        function updateVisualization() {
+            // Get values from sliders
+            const dataRate = parseInt(dataRateSlider.value);
+            const levels = parseInt(levelsSlider.value);
+            
+            // Update displayed values
+            dataRateValue.textContent = dataRate;
+            levelsValue.textContent = levels;
+            
+            // Calculate relationships
+            const bitsPerElement = Math.log2(levels);
+            const signalRate = dataRate / bitsPerElement;
+            const bandwidth = signalRate;
+            const nyquistRate = 2 * bandwidth * bitsPerElement;
+            
+            // Update calculated values
+            calcDataRate.textContent = dataRate;
+            calcSignalRate.textContent = signalRate.toFixed(2);
+            calcBandwidth.textContent = bandwidth.toFixed(2);
+            calcBitsPerElement.textContent = bitsPerElement.toFixed(2);
+            calcNyquistRate.textContent = nyquistRate.toFixed(2);
+            
+            // Draw digital signal
+            drawDigitalSignal(dsCtx, dataRate, levels);
+            
+            // Draw frequency spectrum
+            drawFrequencySpectrum(fsCtx, bandwidth, levels);
+        }
+        
+        function updateNyquistVisualization() {
+            // Get values from sliders
+            const bandwidth = parseInt(nyquistBandwidthSlider.value);
+            const levels = parseInt(nyquistLevelsSlider.value);
+            
+            // Update displayed values
+            nyquistBandwidthValue.textContent = bandwidth;
+            nyquistLevelsValue.textContent = levels;
+            
+            // Calculate Nyquist rate
+            const bitsPerElement = Math.log2(levels);
+            const maxDataRate = 2 * bandwidth * bitsPerElement;
+            
+            // Update calculated values
+            nyBandwidth.textContent = bandwidth;
+            nyLevels.textContent = levels;
+            nyBitsPerElement.textContent = bitsPerElement.toFixed(2);
+            nyMaxDataRate.textContent = maxDataRate.toFixed(2);
+            
+            // Draw Nyquist visualization
+            drawNyquistRate(nyCtx, bandwidth, levels);
+        }
+        
+        function updateShannonVisualization() {
+            // Get values from sliders
+            const bandwidth = parseInt(bandwidthSlider.value);
+            const snrDb = parseInt(snrSlider.value);
+            
+            // Update displayed values
+            bandwidthValue.textContent = bandwidth;
+            snrValue.textContent = snrDb;
+            
+            // Calculate Shannon's limit
+            const snrLinear = Math.pow(10, snrDb / 10);
+            const capacity = bandwidth * Math.log2(1 + snrLinear);
+            
+            // Update calculated values
+            shBandwidth.textContent = bandwidth;
+            shSNR.textContent = snrDb;
+            shLinearSNR.textContent = snrLinear.toFixed(2);
+            shCapacity.textContent = capacity.toFixed(2);
+            
+            // Draw Shannon's limit visualization
+            drawShannonLimit(shCtx, bandwidth, snrDb);
+        }
+        
+        function drawDigitalSignal(ctx, dataRate, levels) {
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw axes
+            ctx.strokeStyle = '#aaa';
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+            
+            // Draw signal
+            const bitsPerElement = Math.log2(levels);
+            const signalRate = dataRate / bitsPerElement;
+            const elementsToShow = 20;
+            const elementWidth = width / elementsToShow;
+            
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // Generate random signal based on levels
+            let currentY = height / 2;
+            let currentX = 0;
+            
+            for (let i = 0; i < elementsToShow; i++) {
+                // For each signal element
+                const levelIndex = Math.floor(Math.random() * levels);
+                const normalizedLevel = (levelIndex / (levels - 1)) * 2 - 1; // Range: -1 to 1
+                const signalY = height / 2 - normalizedLevel * (height / 3);
+                
+                ctx.moveTo(currentX, currentY);
+                ctx.lineTo(currentX, signalY);
+                currentY = signalY;
+                currentX += elementWidth;
+                ctx.lineTo(currentX, signalY);
+            }
+            
+            ctx.stroke();
+            
+            // Add labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.fillText('Time →', width - 50, height - 10);
+            ctx.fillText('Amplitude', 10, 15);
+            
+            // Add level markers
+            ctx.fillStyle = '#999';
+            for (let i = 0; i < levels; i++) {
+                const normalizedLevel = (i / (levels - 1)) * 2 - 1;
+                const y = height / 2 - normalizedLevel * (height / 3);
+                
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(10, y);
+                ctx.stroke();
+                ctx.fillText(levels - i - 1, 12, y + 4);
+            }
+        }
+        
+        function drawFrequencySpectrum(ctx, bandwidth, levels) {
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw axes
+            ctx.strokeStyle = '#aaa';
+            ctx.beginPath();
+            ctx.moveTo(0, height - 30);
+            ctx.lineTo(width, height - 30);
+            ctx.stroke();
+            
+            // Draw frequency spectrum
+            const maxFrequency = bandwidth * 2;
+            const frequencyScale = width / maxFrequency;
+            
+            // Draw main lobe
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.5)';
+            ctx.beginPath();
+            
+            // Starting point
+            ctx.moveTo(0, height - 30);
+            
+            // Draw the main lobe (higher levels = narrower main lobe)
+            const mainLobeWidth = width / (1 + Math.log2(levels) * 0.5);
+            
+            for (let x = 0; x < width; x++) {
+                // Create a bell curve for the main lobe
+                const normalizedX = x / mainLobeWidth;
+                const y = height - 30 - Math.exp(-normalizedX * normalizedX) * (height - 40);
+                ctx.lineTo(x, y);
+            }
+            
+            ctx.lineTo(width, height - 30);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw bandwidth marker
+            const bandwidthX = bandwidth * frequencyScale;
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(bandwidthX, height - 30);
+            ctx.lineTo(bandwidthX, 20);
+            ctx.stroke();
+            
+            // Add labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.fillText('Frequency (Hz) →', width - 100, height - 10);
+            ctx.fillText('Power', 10, 15);
+            
+            // Add bandwidth label
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText('Bandwidth', bandwidthX + 5, 35);
+            
+            // Add frequency markers
+            ctx.fillStyle = '#666';
+            for (let f = 0; f <= maxFrequency; f += maxFrequency / 5) {
+                const x = f * frequencyScale;
+                ctx.beginPath();
+                ctx.moveTo(x, height - 30);
+                ctx.lineTo(x, height - 25);
+                ctx.stroke();
+                ctx.fillText(f.toFixed(0), x - 10, height - 10);
+            }
+        }
+        
+        function drawNyquistRate(ctx, bandwidth, levels) {
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw axes
+            ctx.strokeStyle = '#aaa';
+            ctx.beginPath();
+            ctx.moveTo(50, height - 50);
+            ctx.lineTo(width - 20, height - 50); // x-axis
+            ctx.moveTo(50, height - 50);
+            ctx.lineTo(50, 20); // y-axis
+            ctx.stroke();
+            
+            // Draw grid
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
+            
+            // Horizontal grid lines
+            const maxDataRate = 100; // Mbps
+            const dataRateStep = 10; // Mbps
+            const dataRateScale = (height - 70) / maxDataRate;
+            
+            for (let d = 0; d <= maxDataRate; d += dataRateStep) {
+                const y = height - 50 - d * dataRateScale;
+                ctx.beginPath();
+                ctx.moveTo(50, y);
+                ctx.lineTo(width - 20, y);
+                ctx.stroke();
+                ctx.fillStyle = '#666';
+                ctx.fillText(d + ' Mbps', 10, y + 5);
+            }
+            
+            // Vertical grid lines
+            const maxBandwidth = 10; // MHz
+            const bandwidthStep = 1; // MHz
+            const bandwidthScale = (width - 70) / maxBandwidth;
+            
+            for (let b = 0; b <= maxBandwidth; b += bandwidthStep) {
+                const x = 50 + b * bandwidthScale;
+                ctx.beginPath();
+                ctx.moveTo(x, height - 50);
+                ctx.lineTo(x, 20);
+                ctx.stroke();
+                ctx.fillStyle = '#666';
+                ctx.fillText(b + ' MHz', x - 10, height - 30);
+            }
+            
+            // Add labels
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            ctx.fillText('Bandwidth (MHz) →', width / 2 - 80, height - 10);
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Data Rate (Mbps)', 0, 0);
+            ctx.restore();
+            
+// Draw Nyquist rate curves for different signal levels
+const levelOptions = [2, 4, 8, 16, 32, 64];
+const colors = ['#1abc9c', '#3498db', '#9b59b6', '#e74c3c', '#f39c12', '#2ecc71'];
+
+// Plot Nyquist rate curves
+for (let i = 0; i < levelOptions.length; i++) {
+    const level = levelOptions[i];
+    const color = colors[i];
+    
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    // For each bandwidth value, calculate and plot Nyquist rate
+    for (let b = 0; b <= maxBandwidth; b += 0.1) {
+        const bitsPerElement = Math.log2(level);
+        const nyquistRate = 2 * b * bitsPerElement;
+        
+        const x = 50 + b * bandwidthScale;
+        const y = height - 50 - Math.min(nyquistRate, maxDataRate) * dataRateScale;
+        
+        if (b === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    
+    ctx.stroke();
+    
+    // Add legend entry
+    ctx.fillStyle = color;
+    ctx.fillText(`L = ${level} (${Math.log2(level).toFixed(1)} bits/symbol)`, width - 200, 30 + i * 20);
+}
+
+// Highlight current selection
+const currentBitsPerElement = Math.log2(levels);
+const currentNyquistRate = 2 * bandwidth * currentBitsPerElement;
+
+ctx.fillStyle = 'rgba(52, 152, 219, 0.3)';
+ctx.beginPath();
+ctx.arc(50 + bandwidth * bandwidthScale, height - 50 - currentNyquistRate * dataRateScale, 8, 0, 2 * Math.PI);
+ctx.fill();
+
+ctx.fillStyle = '#333';
+ctx.font = '12px Arial';
+ctx.fillText(`Selected: ${currentNyquistRate.toFixed(2)} Mbps`, 60 + bandwidth * bandwidthScale, height - 60 - currentNyquistRate * dataRateScale);
+}
+
+function drawShannonLimit(ctx, bandwidth, snrDb) {
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Draw axes
+    ctx.strokeStyle = '#aaa';
+    ctx.beginPath();
+    ctx.moveTo(50, height - 50);
+    ctx.lineTo(width - 20, height - 50); // x-axis
+    ctx.moveTo(50, height - 50);
+    ctx.lineTo(50, 20); // y-axis
+    ctx.stroke();
+    
+    // Draw grid
+    ctx.strokeStyle = '#eee';
+    ctx.lineWidth = 1;
+    
+    // Horizontal grid lines
+    const maxCapacity = 100; // Mbps
+    const capacityStep = 10; // Mbps
+    const capacityScale = (height - 70) / maxCapacity;
+    
+    for (let c = 0; c <= maxCapacity; c += capacityStep) {
+        const y = height - 50 - c * capacityScale;
+        ctx.beginPath();
+        ctx.moveTo(50, y);
+        ctx.lineTo(width - 20, y);
+        ctx.stroke();
+        ctx.fillStyle = '#666';
+        ctx.fillText(c + ' Mbps', 10, y + 5);
+    }
+    
+    // Vertical grid lines for SNR
+    const maxSNR = 30; // dB
+    const snrStep = 5; // dB
+    const snrScale = (width - 70) / maxSNR;
+    
+    for (let s = 0; s <= maxSNR; s += snrStep) {
+        const x = 50 + s * snrScale;
+        ctx.beginPath();
+        ctx.moveTo(x, height - 50);
+        ctx.lineTo(x, 20);
+        ctx.stroke();
+        ctx.fillStyle = '#666';
+        ctx.fillText(s + ' dB', x - 10, height - 30);
+    }
+    
+    // Add labels
+    ctx.fillStyle = '#333';
+    ctx.font = '14px Arial';
+    ctx.fillText('Signal-to-Noise Ratio (dB) →', width / 2 - 100, height - 10);
+    ctx.save();
+    ctx.translate(15, height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Channel Capacity (Mbps)', 0, 0);
+    ctx.restore();
+    
+    // Draw Shannon's limit curves for different bandwidths
+    const bandwidthOptions = [1, 2, 3, 5, 7, 10];
+    const colors = ['#1abc9c', '#3498db', '#9b59b6', '#e74c3c', '#f39c12', '#2ecc71'];
+    
+    // Plot Shannon's limit curves
+    for (let i = 0; i < bandwidthOptions.length; i++) {
+        const b = bandwidthOptions[i];
+        const color = colors[i];
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        // For each SNR value, calculate and plot Shannon's capacity
+        for (let s = 0; s <= maxSNR; s += 0.5) {
+            const snrLinear = Math.pow(10, s / 10);
+            const capacity = b * Math.log2(1 + snrLinear);
+            
+            const x = 50 + s * snrScale;
+            const y = height - 50 - Math.min(capacity, maxCapacity) * capacityScale;
+            
+            if (s === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        
+        ctx.stroke();
+        
+        // Add legend entry
+        ctx.fillStyle = color;
+        ctx.fillText(`B = ${b} MHz`, width - 100, 30 + i * 20);
+    }
+    
+    // Highlight current selection
+    const snrLinear = Math.pow(10, snrDb / 10);
+    const capacity = bandwidth * Math.log2(1 + snrLinear);
+    
+    ctx.fillStyle = 'rgba(52, 152, 219, 0.3)';
+    ctx.beginPath();
+    ctx.arc(50 + snrDb * snrScale, height - 50 - capacity * capacityScale, 8, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    ctx.fillStyle = '#333';
+    ctx.font = '12px Arial';
+    ctx.fillText(`Selected: ${capacity.toFixed(2)} Mbps`, 60 + snrDb * snrScale, height - 60 - capacity * capacityScale);
+}
+
+</script>
+</body>
+</html>
