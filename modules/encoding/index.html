@@ -139,6 +139,19 @@
             </div>
             
             <div class="encoding-section">
+                <h2>Pseudoternary</h2>
+                <div class="description">1 bits are zero voltage; 0 bits alternate between positive and negative voltages.</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="color-box" style="background-color: #8e44ad;"></div>
+                        <span>Signal</span>
+                    </div>
+                </div>
+                <canvas id="pseudoternaryCanvas" width="800" height="200"></canvas>
+                <div id="pseudoternaryBitLabels" class="bit-labels"></div>
+            </div>
+            
+            <div class="encoding-section">
                 <h2>Manchester Encoding</h2>
                 <div class="description">Mid-bit transition direction determines bit value: rising for 1, falling for 0.</div>
                 <div class="legend">
@@ -174,11 +187,13 @@
             const nrzCanvas = document.getElementById('nrzCanvas');
             const nrziCanvas = document.getElementById('nrziCanvas');
             const amiCanvas = document.getElementById('amiCanvas');
+            const pseudoternaryCanvas = document.getElementById('pseudoternaryCanvas');
             const manchesterCanvas = document.getElementById('manchesterCanvas');
             const diffManchesterCanvas = document.getElementById('diffManchesterCanvas');
             const nrzBitLabels = document.getElementById('nrzBitLabels');
             const nrziBitLabels = document.getElementById('nrziBitLabels');
             const amiBitLabels = document.getElementById('amiBitLabels');
+            const pseudoternaryBitLabels = document.getElementById('pseudoternaryBitLabels');
             const manchesterBitLabels = document.getElementById('manchesterBitLabels');
             const diffManchesterBitLabels = document.getElementById('diffManchesterBitLabels');
             
@@ -203,6 +218,7 @@
                 generateNRZ(binaryValue);
                 generateNRZI(binaryValue);
                 generateAMI(binaryValue);
+                generatePseudoternary(binaryValue);
                 generateManchester(binaryValue);
                 generateDiffManchester(binaryValue);
             });
@@ -473,6 +489,105 @@
                 }
             }
             
+            function generatePseudoternary(binaryValue) {
+                const ctx = pseudoternaryCanvas.getContext('2d');
+                const width = pseudoternaryCanvas.width;
+                const height = pseudoternaryCanvas.height;
+                const bitCount = binaryValue.length;
+                const bitWidth = width / bitCount;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw x-axis (time)
+                ctx.beginPath();
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.strokeStyle = '#aaa';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Draw vertical time divisions
+                for (let i = 0; i <= bitCount; i++) {
+                    const x = i * bitWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.strokeStyle = '#ddd';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+                
+                // Draw Pseudoternary line code
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#8e44ad';
+                
+                // For Pseudoternary:
+                // - Binary 1: Zero voltage (middle line)
+                // - Binary 0: Alternating between positive and negative voltages
+
+                let lastPolarity = 1; // Start with positive polarity (will alternate)
+                const zeroLevel = height / 2;
+                const highLevel = height * 0.25;
+                const lowLevel = height * 0.75;
+                
+                // Start at zero
+                ctx.moveTo(0, zeroLevel);
+                
+                for (let i = 0; i < bitCount; i++) {
+                    const bit = parseInt(binaryValue[i]);
+                    const x1 = i * bitWidth;
+                    const x2 = (i + 1) * bitWidth;
+                    
+                    if (bit === 1) {
+                        // For 1, stay at zero voltage
+                        ctx.lineTo(x1, zeroLevel);
+                        ctx.lineTo(x2, zeroLevel);
+                    } else {
+                        // For 0, alternate between positive and negative
+                        const currentLevel = lastPolarity > 0 ? highLevel : lowLevel;
+                        
+                        // Draw transition from previous level
+                        if (i === 0 || parseInt(binaryValue[i-1]) === 1) {
+                            ctx.lineTo(x1, zeroLevel);
+                        }
+                        
+                        // Draw vertical transition
+                        ctx.lineTo(x1, currentLevel);
+                        
+                        // Draw horizontal line for this bit period
+                        ctx.lineTo(x2, currentLevel);
+                        
+                        // Alternate polarity for next 0 bit
+                        lastPolarity = -lastPolarity;
+                    }
+                }
+                
+                ctx.stroke();
+                
+                // Add labels for each bit
+                pseudoternaryBitLabels.innerHTML = '';
+                for (let i = 0; i < bitCount; i++) {
+                    const label = document.createElement('div');
+                    label.className = 'bit-label';
+                    label.textContent = binaryValue[i];
+                    pseudoternaryBitLabels.appendChild(label);
+                }
+                
+                // Add bit position indicators
+                for (let i = 0; i < bitCount; i += 4) {
+                    const x = i * bitWidth + bitWidth / 2;
+                    ctx.fillStyle = '#333';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(i, x, height - 5);
+                }
+            }
+            
             function generateManchester(binaryValue) {
                 const ctx = manchesterCanvas.getContext('2d');
                 const width = manchesterCanvas.width;
@@ -662,12 +777,12 @@
                         ctx.lineTo(x1, currentLevel);
                     }
                     
-                    // Always have a transition in the middle of the bit
+                     // Always have a transition in the middle of the bit
                     ctx.lineTo(xMid, currentLevel);
                     currentLevel = currentLevel === height * 0.25 ? height * 0.75 : height * 0.25;
                     ctx.lineTo(xMid, currentLevel);
                     
-                    // Continue at current level until end of bit
+                    // Draw horizontal line until end of bit
                     ctx.lineTo(x2, currentLevel);
                 }
                 
@@ -691,12 +806,8 @@
                 }
             }
             
-            // Generate initially with default value
-            generateNRZ(binaryInput.value);
-            generateNRZI(binaryInput.value);
-            generateAMI(binaryInput.value);
-            generateManchester(binaryInput.value);
-            generateDiffManchester(binaryInput.value);
+            // Run initial encoding with default value
+            encodeButton.click();
         });
     </script>
 </body>
