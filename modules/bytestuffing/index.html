@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Byte Stuffing Simulation</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+      max-width: 1000px;
+      margin: 0 auto;
+      color: #333;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .input-section, .output-section, .visualization-section {
+      padding: 20px;
+      border-radius: 8px;
+      background-color: #f8f9fa;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .bytes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 10px;
+    }
+    
+    .byte {
+      width: 35px;
+      height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+      position: relative;
+      border: 1px solid #ccc;
+      background-color: white;
+    }
+    
+    .flag {
+      background-color: #ffb74d;
+    }
+    
+    .escape {
+      background-color: #90caf9;
+    }
+    
+    .data {
+      background-color: #a5d6a7;
+    }
+    
+    .added {
+      border: 2px solid #f44336;
+      animation: pulse 1s ease-out;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+    }
+    
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    
+    button, select, input {
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      font-size: 14px;
+    }
+    
+    button {
+      cursor: pointer;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      transition: background-color 0.3s;
+    }
+    
+    button:hover {
+      background-color: #388e3c;
+    }
+    
+    .legend {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+    }
+    
+    h2 {
+      margin-top: 0;
+      color: #2e7d32;
+    }
+    
+    .step-description {
+      background-color: #e8f5e9;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 15px;
+      border-left: 4px solid #4caf50;
+    }
+    
+    .pre-stuffed, .post-stuffed {
+      margin-top: 15px;
+    }
+    
+    #customData {
+      width: 100%;
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Byte Stuffing Simulation</h1>
+  
+  <div class="container">
+    <div class="input-section">
+      <h2>Input Configuration</h2>
+      <div class="controls">
+        <select id="dataSelector">
+          <option value="default">Default Example</option>
+          <option value="custom">Custom Input</option>
+        </select>
+        
+        <div id="customInputContainer" style="display:none;">
+          <input type="text" id="customData" placeholder="Enter bytes as hex (e.g., 7E 01 02 7D 7E 03 7D)">
+          <button id="applyCustom">Apply</button>
+        </div>
+        
+        <button id="simulateBtn">Run Simulation</button>
+      </div>
+      
+      <div class="controls">
+        <div>
+          <label for="flagByte">Flag Byte:</label>
+          <input type="text" id="flagByte" value="7E" maxlength="2" style="width:40px;">
+        </div>
+        
+        <div>
+          <label for="escapeByte">Escape Byte:</label>
+          <input type="text" id="escapeByte" value="7D" maxlength="2" style="width:40px;">
+        </div>
+      </div>
+      
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #ffb74d;"></div>
+          <span>Flag Byte</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #90caf9;"></div>
+          <span>Escape Byte</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: #a5d6a7;"></div>
+          <span>Data Byte</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="border: 2px solid #f44336;"></div>
+          <span>Added Byte</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="visualization-section">
+      <h2>Byte Stuffing Process</h2>
+      <div class="step-description" id="stepDescription">
+        Select "Run Simulation" to start the byte stuffing process.
+      </div>
+      
+      <div class="pre-stuffed">
+        <h3>Original Data Frame</h3>
+        <div class="bytes" id="originalBytes"></div>
+      </div>
+      
+      <div class="post-stuffed">
+        <h3>Byte-Stuffed Frame</h3>
+        <div class="bytes" id="stuffedBytes"></div>
+      </div>
+    </div>
+    
+    <div class="output-section">
+      <h2>Technical Details</h2>
+      <p>Byte stuffing is a process where a special byte pattern is inserted into a data stream to mark the beginning and end of a frame. When these special bytes appear in the data itself, an escape byte is inserted before them to differentiate them from the frame markers.</p>
+      
+      <h3>Protocol Summary:</h3>
+      <ol>
+        <li>Flag bytes mark the beginning and end of frames</li>
+        <li>If a flag byte appears in the data, insert an escape byte before it</li>
+        <li>If an escape byte appears in the data, insert another escape byte before it</li>
+      </ol>
+      
+      <p id="hexOutput"></p>
+    </div>
+  </div>
+  
+  <script>
+    // Default configuration
+    let flagByte = "7E"; // Typically 0x7E (126 in decimal) for HDLC
+    let escapeByte = "7D"; // Typically 0x7D (125 in decimal) for HDLC
+    
+    // Default data - includes both flag and escape bytes within data
+    let defaultData = ["01", "7E", "02", "03", "7D", "04", "7E", "05"];
+    let currentData = [...defaultData];
+    
+    // DOM elements
+    const originalBytesEl = document.getElementById('originalBytes');
+    const stuffedBytesEl = document.getElementById('stuffedBytes');
+    const stepDescriptionEl = document.getElementById('stepDescription');
+    const simulateBtn = document.getElementById('simulateBtn');
+    const dataSelector = document.getElementById('dataSelector');
+    const customInputContainer = document.getElementById('customInputContainer');
+    const customDataInput = document.getElementById('customData');
+    const applyCustomBtn = document.getElementById('applyCustom');
+    const flagByteInput = document.getElementById('flagByte');
+    const escapeByteInput = document.getElementById('escapeByte');
+    const hexOutputEl = document.getElementById('hexOutput');
+    
+    // Initialize the visualization
+    function initialize() {
+      flagByte = flagByteInput.value.toUpperCase();
+      escapeByte = escapeByteInput.value.toUpperCase();
+      
+      renderOriginalBytes();
+      clearStuffedBytes();
+      updateStepDescription("Initial data frame shown above. Ready to start byte stuffing.");
+    }
+    
+    // Render the original byte sequence
+    function renderOriginalBytes() {
+      originalBytesEl.innerHTML = '';
+      
+      // Add starting flag
+      const startFlag = createByteElement(flagByte, 'flag');
+      originalBytesEl.appendChild(startFlag);
+      
+      // Add data bytes
+      currentData.forEach(byte => {
+        const byteClass = byte === flagByte ? 'flag' : 
+                         byte === escapeByte ? 'escape' : 'data';
+        const byteEl = createByteElement(byte, byteClass);
+        originalBytesEl.appendChild(byteEl);
+      });
+      
+      // Add ending flag
+      const endFlag = createByteElement(flagByte, 'flag');
+      originalBytesEl.appendChild(endFlag);
+    }
+    
+    // Create a byte element with the given value and class
+    function createByteElement(value, className) {
+      const byteEl = document.createElement('div');
+      byteEl.className = `byte ${className}`;
+      byteEl.textContent = value;
+      return byteEl;
+    }
+    
+    // Clear the stuffed bytes visualization
+    function clearStuffedBytes() {
+      stuffedBytesEl.innerHTML = '';
+    }
+    
+    // Update the step description
+    function updateStepDescription(text) {
+      stepDescriptionEl.textContent = text;
+    }
+    
+    // Run the byte stuffing simulation
+    async function runSimulation() {
+      initialize();
+      
+      // Disable inputs during simulation
+      simulateBtn.disabled = true;
+      dataSelector.disabled = true;
+      customDataInput.disabled = true;
+      applyCustomBtn.disabled = true;
+      flagByteInput.disabled = true;
+      escapeByteInput.disabled = true;
+      
+      clearStuffedBytes();
+      
+      try {
+        // Start with the opening flag
+        updateStepDescription("Adding opening flag byte to mark the beginning of the frame.");
+        await addByteWithDelay(flagByte, 'flag');
+        
+        // Process each data byte
+        for (let i = 0; i < currentData.length; i++) {
+          const byte = currentData[i];
+          
+          // If the current byte is a flag byte or escape byte, we need to add an escape byte first
+          if (byte === flagByte) {
+            updateStepDescription(`Found flag byte ${flagByte} in data. Adding escape byte ${escapeByte} before it.`);
+            await addByteWithDelay(escapeByte, 'escape added');
+            updateStepDescription(`Adding the original flag byte ${flagByte} (now treated as data, not as a frame delimiter).`);
+            await addByteWithDelay(byte, 'flag');
+          } else if (byte === escapeByte) {
+            updateStepDescription(`Found escape byte ${escapeByte} in data. Adding another escape byte before it.`);
+            await addByteWithDelay(escapeByte, 'escape added');
+            updateStepDescription(`Adding the original escape byte ${escapeByte}.`);
+            await addByteWithDelay(byte, 'escape');
+          } else {
+            updateStepDescription(`Adding regular data byte ${byte}.`);
+            await addByteWithDelay(byte, 'data');
+          }
+        }
+        
+        // Finish with the closing flag
+        updateStepDescription("Adding closing flag byte to mark the end of the frame.");
+        await addByteWithDelay(flagByte, 'flag');
+        
+        updateStepDescription("Byte stuffing complete! Notice how escape bytes were added before any flag or escape bytes in the original data.");
+        
+        // Generate hex output summary
+        generateHexOutput();
+      } finally {
+        // Re-enable inputs
+        simulateBtn.disabled = false;
+        dataSelector.disabled = false;
+        customDataInput.disabled = false;
+        applyCustomBtn.disabled = false;
+        flagByteInput.disabled = false;
+        escapeByteInput.disabled = false;
+      }
+    }
+    
+    // Add a byte to the stuffed bytes visualization with a delay
+    function addByteWithDelay(value, className) {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          const byteEl = createByteElement(value, className);
+          if (className.includes('added')) {
+            byteEl.classList.add('added');
+          }
+          stuffedBytesEl.appendChild(byteEl);
+          resolve();
+        }, 800);
+      });
+    }
+    
+    // Generate a hex output summary
+    function generateHexOutput() {
+      const bytes = Array.from(stuffedBytesEl.getElementsByClassName('byte'));
+      const hexValues = bytes.map(byte => byte.textContent);
+      
+      hexOutputEl.innerHTML = `
+        <strong>Original Frame (Hex):</strong> ${flagByte} ${currentData.join(' ')} ${flagByte}<br>
+        <strong>Stuffed Frame (Hex):</strong> ${hexValues.join(' ')}<br>
+        <strong>Frame Size:</strong> Original: ${currentData.length + 2} bytes, After Stuffing: ${hexValues.length} bytes
+      `;
+    }
+    
+    // Handle custom data input
+    function applyCustomData() {
+      const input = customDataInput.value.trim().toUpperCase();
+      if (input) {
+        const bytes = input.split(/\s+/);
+        // Validate input (should be hex values)
+        if (bytes.every(byte => /^[0-9A-F]{1,2}$/.test(byte))) {
+          currentData = bytes;
+          initialize();
+        } else {
+          alert("Please enter valid hexadecimal values (00-FF) separated by spaces.");
+        }
+      }
+    }
+    
+    // Event Listeners
+    simulateBtn.addEventListener('click', runSimulation);
+    
+    dataSelector.addEventListener('change', function() {
+      if (this.value === 'custom') {
+        customInputContainer.style.display = 'block';
+      } else {
+        customInputContainer.style.display = 'none';
+        currentData = [...defaultData];
+        initialize();
+      }
+    });
+    
+    applyCustomBtn.addEventListener('click', applyCustomData);
+    
+    flagByteInput.addEventListener('change', function() {
+      if (/^[0-9A-F]{1,2}$/i.test(this.value)) {
+        flagByte = this.value.toUpperCase();
+        initialize();
+      } else {
+        alert("Please enter a valid hexadecimal value (00-FF).");
+        this.value = flagByte;
+      }
+    });
+    
+    escapeByteInput.addEventListener('change', function() {
+      if (/^[0-9A-F]{1,2}$/i.test(this.value)) {
+        escapeByte = this.value.toUpperCase();
+        initialize();
+      } else {
+        alert("Please enter a valid hexadecimal value (00-FF).");
+        this.value = escapeByte;
+      }
+    });
+    
+    // Initialize on load
+    initialize();
+  </script>
+</body>
+</html>
