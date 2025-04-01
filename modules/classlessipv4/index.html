@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIDR IPv4 Addressing Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .input-section {
+            background-color: #f5f7fa;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .result-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 250px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .bit-display {
+            font-family: monospace;
+            font-size: 18px;
+            letter-spacing: 1px;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .network-bits {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .host-bits {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fff;
+        }
+        .class-header {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .subnet-bit {
+            display: inline-block;
+            width: 16px;
+            text-align: center;
+            padding: 2px;
+            margin: 1px;
+            border-radius: 3px;
+        }
+        .subnet-slider {
+            width: 100%;
+            margin: 20px 0;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .slider-label {
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .comparison-table {
+            margin-top: 30px;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .info-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .subnet-mask-display {
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        .comparison-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        .example-section {
+            margin-top: 20px;
+        }
+        .cidr-highlight {
+            background-color: #fff4e5;
+            border-left: 4px solid #f39c12;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>CIDR (Classless Inter-Domain Routing) Demonstration</h1>
+    <p>CIDR notation uses a prefix length to specify the number of bits in the network portion of an IP address, allowing for more flexible subnet masks than the classful system.</p>
+    
+    <div class="container">
+        <div class="input-section">
+            <h2>CIDR Network Analysis</h2>
+            <input type="text" id="cidrInput" placeholder="Enter CIDR (e.g., 192.168.1.0/24)" value="192.168.1.0/24">
+            <button onclick="analyzeCIDR()">Analyze</button>
+            
+            <div class="slider-container">
+                <input type="range" min="1" max="32" value="24" class="subnet-slider" id="prefixSlider" oninput="updateFromSlider()">
+                <span class="slider-label">Prefix Length: <span id="prefixValue">24</span></span>
+            </div>
+            
+            <div id="resultSection" class="result-section" style="display: none;">
+                <h3>CIDR Network: <span id="cidrDisplay"></span></h3>
+                <div id="bitDisplay" class="bit-display"></div>
+                
+                <h3>Network Information</h3>
+                <div id="networkInfo"></div>
+                
+                <h3>Address Range</h3>
+                <div id="rangeInfo"></div>
+                
+                <h3>Subnet Mask</h3>
+                <div id="maskInfo"></div>
+            </div>
+        </div>
+        
+        <div class="comparison-section">
+            <h2>Classful vs CIDR Addressing</h2>
+            <p>CIDR (introduced in 1993) replaced the original classful IP addressing system to solve address exhaustion and routing table expansion issues.</p>
+            
+            <table class="comparison-table">
+                <tr>
+                    <th>Feature</th>
+                    <th>Classful Addressing</th>
+                    <th>CIDR (Classless)</th>
+                </tr>
+                <tr>
+                    <td>Subnet Mask</td>
+                    <td>Fixed by class (A: /8, B: /16, C: /24)</td>
+                    <td>Variable from /1 to /32</td>
+                </tr>
+                <tr>
+                    <td>Boundary Constraints</td>
+                    <td>Network size tied to class boundaries</td>
+                    <td>Networks can be any size</td>
+                </tr>
+                <tr>
+                    <td>Address Space Usage</td>
+                    <td>Often wasteful (e.g., Class A = 16M addresses)</td>
+                    <td>More efficient, right-sized allocations</td>
+                </tr>
+                <tr>
+                    <td>Notation</td>
+                    <td>Class identifier + network ID</td>
+                    <td>Network address/prefix (e.g., 192.168.1.0/24)</td>
+                </tr>
+                <tr>
+                    <td>Supernetting</td>
+                    <td>Not supported</td>
+                    <td>Supported (combining smaller networks)</td>
+                </tr>
+                <tr>
+                    <td>Subnetting</td>
+                    <td>Limited by class boundaries</td>
+                    <td>Flexible for different network sizes</td>
+                </tr>
+                <tr>
+                    <td>Routing Tables</td>
+                    <td>Larger, less efficient</td>
+                    <td>Smaller, route aggregation possible</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="grid-container">
+            <div class="card">
+                <div class="class-header">Common CIDR Blocks</div>
+                <table>
+                    <tr>
+                        <th>CIDR Block</th>
+                        <th>Addresses</th>
+                        <th>Class Equivalent</th>
+                    </tr>
+                    <tr>
+                        <td>/8</td>
+                        <td>16,777,216</td>
+                        <td>Class A</td>
+                    </tr>
+                    <tr>
+                        <td>/16</td>
+                        <td>65,536</td>
+                        <td>Class B</td>
+                    </tr>
+                    <tr>
+                        <td>/24</td>
+                        <td>256</td>
+                        <td>Class C</td>
+                    </tr>
+                    <tr>
+                        <td>/27</td>
+                        <td>32</td>
+                        <td>⅛ of Class C</td>
+                    </tr>
+                    <tr>
+                        <td>/28</td>
+                        <td>16</td>
+                        <td>1/16 of Class C</td>
+                    </tr>
+                    <tr>
+                        <td>/29</td>
+                        <td>8</td>
+                        <td>1/32 of Class C</td>
+                    </tr>
+                    <tr>
+                        <td>/30</td>
+                        <td>4</td>
+                        <td>1/64 of Class C</td>
+                    </tr>
+                    <tr>
+                        <td>/31</td>
+                        <td>2</td>
+                        <td>Point-to-point</td>
+                    </tr>
+                    <tr>
+                        <td>/32</td>
+                        <td>1</td>
+                        <td>Single host</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="card">
+                <div class="class-header">CIDR Benefits</div>
+                <ul>
+                    <li><strong>Address Conservation</strong>: Assign only the number of addresses needed</li>
+                    <li><strong>Routing Efficiency</strong>: Route aggregation reduces routing table size</li>
+                    <li><strong>Flexible Subnetting</strong>: Create networks of any size</li>
+                    <li><strong>Hierarchical Addressing</strong>: Better organization of network space</li>
+                    <li><strong>Supernetting</strong>: Combine multiple networks with a single route</li>
+                </ul>
+                
+                <div class="info-box">
+                    <p><strong>Route Aggregation Example:</strong> Instead of advertising multiple routes (192.168.0.0/24, 192.168.1.0/24, etc.), CIDR allows advertising a single aggregate route (192.168.0.0/16).</p>
+                </div>
+                
+                <div class="cidr-highlight">
+                    <p><strong>CIDR Notation:</strong> network-address/prefix-length</p>
+                    <p>Example: 192.168.1.0/24 means the first 24 bits are the network portion</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="example-section">
+            <h2>Common CIDR Use Cases</h2>
+            <div class="card">
+                <h3>Private Network Addressing</h3>
+                <ul>
+                    <li><strong>10.0.0.0/8</strong> - Large enterprise networks</li>
+                    <li><strong>172.16.0.0/12</strong> - Medium networks, VPNs</li>
+                    <li><strong>192.168.0.0/16</strong> - Home/small business networks</li>
+                </ul>
+            </div>
+            
+            <div class="card">
+                <h3>Subnet Examples</h3>
+                <p><strong>Example 1:</strong> A company with 500 devices might use a /23 network (512 IPs)</p>
+                <p><strong>Example 2:</strong> A small office with 20 devices might use a /27 network (32 IPs)</p>
+                <p><strong>Example 3:</strong> A point-to-point link between routers might use a /30 network (4 IPs)</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function analyzeCIDR() {
+            const cidrInput = document.getElementById('cidrInput').value;
+            
+            // Validate CIDR format
+            const cidrRegex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\/(\d{1,2})$/;
+            const match = cidrInput.match(cidrRegex);
+            
+            if (!match) {
+                alert("Please enter a valid CIDR notation (e.g., 192.168.1.0/24)");
+                return;
+            }
+            
+            // Extract octets and prefix
+            const octets = [
+                parseInt(match[1]),
+                parseInt(match[2]),
+                parseInt(match[3]),
+                parseInt(match[4])
+            ];
+            
+            const prefixLength = parseInt(match[5]);
+            
+            // Validate each octet is between 0 and 255
+            for (let octet of octets) {
+                if (octet < 0 || octet > 255) {
+                    alert("Each octet must be between 0 and 255");
+                    return;
+                }
+            }
+            
+            // Validate prefix length is between 1 and 32
+            if (prefixLength < 1 || prefixLength > 32) {
+                alert("Prefix length must be between 1 and 32");
+                return;
+            }
+            
+            // Update slider to match the prefix
+            document.getElementById('prefixSlider').value = prefixLength;
+            document.getElementById('prefixValue').textContent = prefixLength;
+            
+            // Convert IP to binary
+            const binaryOctets = octets.map(octet => {
+                return octet.toString(2).padStart(8, '0');
+            });
+            
+            // Create binary representation with color-coded network/host portion
+            let binaryDisplay = '';
+            const flatBinary = binaryOctets.join('');
+            
+            for (let i = 0; i < 32; i++) {
+                if (i > 0 && i % 8 === 0) binaryDisplay += ' ';
+                
+                if (i < prefixLength) {
+                    binaryDisplay += `<span class="subnet-bit network-bits">${flatBinary[i]}</span>`;
+                } else {
+                    binaryDisplay += `<span class="subnet-bit host-bits">${flatBinary[i]}</span>`;
+                }
+            }
+            
+            // Calculate subnet mask in decimal and binary
+            const subnetMask = calculateSubnetMask(prefixLength);
+            const binaryMask = subnetMask.map(octet => octet.toString(2).padStart(8, '0')).join('.');
+            
+            // Calculate network address (IP AND SubnetMask)
+            const networkAddress = octets.map((octet, index) => octet & subnetMask[index]);
+            
+            // Calculate broadcast address (NetworkAddress OR ~SubnetMask)
+            const invertedMask = subnetMask.map(octet => 255 - octet);
+            const broadcastAddress = networkAddress.map((octet, index) => octet | invertedMask[index]);
+            
+            // Calculate first and last usable host addresses
+            const firstHostAddress = [...networkAddress];
+            const lastHostAddress = [...broadcastAddress];
+            
+            // If it's not a /31 or /32, adjust first and last addresses
+            if (prefixLength < 31) {
+                firstHostAddress[3] += 1;
+                lastHostAddress[3] -= 1;
+            }
+            
+            // Calculate number of host addresses
+            let numberOfHosts;
+            if (prefixLength === 31) {
+                numberOfHosts = 2; // Point-to-point links (RFC 3021)
+            } else if (prefixLength === 32) {
+                numberOfHosts = 1; // Single host
+            } else {
+                numberOfHosts = Math.pow(2, 32 - prefixLength) - 2; // Standard calculation
+            }
+            
+            // Display results
+            document.getElementById('cidrDisplay').textContent = cidrInput;
+            document.getElementById('bitDisplay').innerHTML = binaryDisplay;
+            
+            // Network Info
+            let networkInfo = `
+                <p><strong>Network Address:</strong> ${networkAddress.join('.')}</p>
+                <p><strong>Broadcast Address:</strong> ${broadcastAddress.join('.')}</p>
+                <p><strong>Prefix Length:</strong> /${prefixLength}</p>
+                <p><strong>Total IP Addresses:</strong> ${Math.pow(2, 32 - prefixLength).toLocaleString()}</p>
+            `;
+            
+            if (prefixLength < 31) {
+                networkInfo += `<p><strong>Usable IP Addresses:</strong> ${numberOfHosts.toLocaleString()} (Total minus network and broadcast addresses)</p>`;
+            } else if (prefixLength === 31) {
+                networkInfo += `<p><strong>Usable IP Addresses:</strong> 2 (Point-to-point link, RFC 3021)</p>`;
+            } else {
+                networkInfo += `<p><strong>Usable IP Addresses:</strong> 1 (Single host address)</p>`;
+            }
+            
+            document.getElementById('networkInfo').innerHTML = networkInfo;
+            
+            // Range Info
+            let rangeInfo = `
+                <p><strong>First Usable Host:</strong> ${firstHostAddress.join('.')}</p>
+                <p><strong>Last Usable Host:</strong> ${lastHostAddress.join('.')}</p>
+                <p><strong>IP Range:</strong> ${networkAddress.join('.')} - ${broadcastAddress.join('.')}</p>
+            `;
+            document.getElementById('rangeInfo').innerHTML = rangeInfo;
+            
+            // Mask Info
+            let maskInfo = `
+                <p><strong>Subnet Mask:</strong> ${subnetMask.join('.')}</p>
+                <p><strong>Subnet Mask (Binary):</strong></p>
+                <div class="subnet-mask-display">${binaryMask}</div>
+                <p><strong>Wildcard Mask:</strong> ${invertedMask.join('.')}</p>
+            `;
+            document.getElementById('maskInfo').innerHTML = maskInfo;
+            
+            // Show results
+            document.getElementById('resultSection').style.display = 'block';
+            
+            // Equivalent in classful addressing
+            determineClassfulEquivalent(networkAddress[0], prefixLength);
+        }
+        
+        function updateFromSlider() {
+            const prefixLength = document.getElementById('prefixSlider').value;
+            document.getElementById('prefixValue').textContent = prefixLength;
+            
+            // Extract the current IP part from the input
+            const cidrInput = document.getElementById('cidrInput').value;
+            const ipPart = cidrInput.split('/')[0];
+            
+            // Update the input with the new prefix
+            document.getElementById('cidrInput').value = `${ipPart}/${prefixLength}`;
+            
+            // Analyze with the new prefix
+            analyzeCIDR();
+        }
+        
+        function calculateSubnetMask(prefixLength) {
+            const mask = [0, 0, 0, 0];
+            let remainingBits = prefixLength;
+            
+            for (let i = 0; i < 4; i++) {
+                if (remainingBits >= 8) {
+                    mask[i] = 255;
+                    remainingBits -= 8;
+                } else if (remainingBits > 0) {
+                    // Calculate partial octet (e.g., /27 = 11100000 binary = 224 decimal)
+                    mask[i] = 256 - Math.pow(2, 8 - remainingBits);
+                    remainingBits = 0;
+                }
+            }
+            
+            return mask;
+        }
+        
+        function determineClassfulEquivalent(firstOctet, prefixLength) {
+            let classInfo = '';
+            
+            if (firstOctet < 128) {
+                if (prefixLength === 8) {
+                    classInfo = "This is equivalent to a standard Class A network.";
+                } else if (prefixLength > 8) {
+                    classInfo = "This is a subnetted Class A network.";
+                } else {
+                    classInfo = "This is a supernet containing multiple Class A networks.";
+                }
+            } else if (firstOctet < 192) {
+                if (prefixLength === 16) {
+                    classInfo = "This is equivalent to a standard Class B network.";
+                } else if (prefixLength > 16) {
+                    classInfo = "This is a subnetted Class B network.";
+                } else {
+                    classInfo = "This is a supernet containing multiple Class B networks.";
+                }
+            } else if (firstOctet < 224) {
+                if (prefixLength === 24) {
+                    classInfo = "This is equivalent to a standard Class C network.";
+                } else if (prefixLength > 24) {
+                    classInfo = "This is a subnetted Class C network.";
+                } else {
+                    classInfo = "This is a supernet containing multiple Class C networks.";
+                }
+            } else if (firstOctet < 240) {
+                classInfo = "This is in the Class D range (multicast).";
+            } else {
+                classInfo = "This is in the Class E range (experimental).";
+            }
+            
+            // Could display this information if desired
+            // console.log(classInfo);
+        }
+        
+        // Set initial example on page load
+        window.onload = function() {
+            analyzeCIDR();
+        };
+    </script>
+</body>
+</html>
