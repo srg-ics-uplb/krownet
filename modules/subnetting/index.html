@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPv4 Subnetting Calculator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .panel {
+            background-color: #f5f7fa;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .results {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 250px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        select {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .bit-display {
+            font-family: monospace;
+            font-size: 16px;
+            letter-spacing: 1px;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .network-bits {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .subnet-bits {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .host-bits {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fff;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .info-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .warning-box {
+            background-color: #fff4e5;
+            border-left: 4px solid #f39c12;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .binary-container {
+            display: flex;
+            flex-wrap: wrap;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        .binary-bit {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2px;
+            border-radius: 3px;
+        }
+        .subnet-visual {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .subnet-block {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            background-color: #edf2f7;
+            border-left: 4px solid #3498db;
+        }
+        .subnet-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: #fff;
+            border-bottom: 1px solid #fff;
+            position: relative;
+            z-index: 1;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 0 5px 5px 5px;
+            margin-top: -1px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .diagram-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .network-diagram {
+            width: 100%;
+            max-width: 700px;
+            height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 10px 0;
+            padding: 20px;
+            position: relative;
+        }
+        .router {
+            width: 80px;
+            height: 80px;
+            background-color: #3498db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            position: absolute;
+            top: 110px;
+            left: 310px;
+        }
+        .subnet-cloud {
+            width: 120px;
+            height: 80px;
+            background-color: #f5f7fa;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>IPv4 Subnetting Calculator</h1>
+    <p>This tool helps you understand and calculate IPv4 subnetting by dividing a network into smaller subnets.</p>
+    
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" onclick="openTab(event, 'calculatorTab')">Subnet Calculator</div>
+            <div class="tab" onclick="openTab(event, 'vlsmTab')">VLSM Calculator</div>
+            <div class="tab" onclick="openTab(event, 'learnTab')">Learn Subnetting</div>
+        </div>
+        
+        <!-- Calculator Tab -->
+        <div id="calculatorTab" class="tab-content active">
+            <div class="panel">
+                <h2>Step 1: Enter Network Information</h2>
+                <div class="input-group">
+                    <label for="networkInput">Network Address with CIDR:</label>
+                    <input type="text" id="networkInput" placeholder="e.g., 192.168.1.0/24" value="192.168.1.0/24">
+                </div>
+                
+                <h2>Step 2: Choose Subnetting Method</h2>
+                <div class="input-group">
+                    <label for="subnetMethod">Subnet by:</label>
+                    <select id="subnetMethod" onchange="updateSecondInput()">
+                        <option value="prefixLength">Prefix Length</option>
+                        <option value="numSubnets">Number of Subnets</option>
+                        <option value="hostsPerSubnet">Hosts Per Subnet</option>
+                    </select>
+                </div>
+                
+                <div class="input-group" id="secondInputGroup">
+                    <label for="prefixInput">New Prefix Length:</label>
+                    <input type="text" id="prefixInput" placeholder="e.g., 26" value="26">
+                </div>
+                
+                <button onclick="calculateSubnets()">Calculate Subnets</button>
+            </div>
+            
+            <div id="subnetResults" class="results" style="display: none;">
+                <h2>Subnetting Results</h2>
+                <div id="originalNetworkInfo"></div>
+                
+                <div id="subnetInfo"></div>
+                
+                <div class="subnet-table-container">
+                    <h3>Subnet List</h3>
+                    <table id="subnetTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Subnet</th>
+                                <th>Range</th>
+                                <th>Broadcast</th>
+                                <th>Usable Hosts</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subnetTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="diagram-container">
+                    <h3>Network Diagram</h3>
+                    <div id="networkDiagram" class="network-diagram">
+                        <div class="router">Router</div>
+                        <!-- Subnet clouds will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- VLSM Tab -->
+        <div id="vlsmTab" class="tab-content">
+            <div class="panel">
+                <h2>Variable Length Subnet Mask (VLSM) Calculator</h2>
+                <p>VLSM allows you to create subnets of different sizes from a parent network.</p>
+                
+                <div class="input-group">
+                    <label for="vlsmParentNetwork">Parent Network with CIDR:</label>
+                    <input type="text" id="vlsmParentNetwork" placeholder="e.g., 192.168.0.0/24" value="192.168.0.0/24">
+                </div>
+                
+                <h3>Required Subnets</h3>
+                <p>Add the subnets you need, ordering from largest to smallest:</p>
+                
+                <div id="vlsmSubnets">
+                    <div class="input-group vlsm-subnet">
+                        <label>Subnet 1 - Hosts needed:</label>
+                        <input type="number" class="vlsmHostInput" placeholder="e.g., 50" value="50">
+                        <button onclick="addVlsmSubnet()" style="margin-left: 10px;">+</button>
+                    </div>
+                </div>
+                
+                <button onclick="calculateVLSM()" style="margin-top: 15px;">Calculate VLSM</button>
+            </div>
+            
+            <div id="vlsmResults" class="results" style="display: none;">
+                <h2>VLSM Calculation Results</h2>
+                <div id="vlsmParentInfo"></div>
+                
+                <div class="subnet-table-container">
+                    <h3>VLSM Subnet Allocation</h3>
+                    <table id="vlsmTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Hosts Needed</th>
+                                <th>Subnet</th>
+                                <th>Mask</th>
+                                <th>Range</th>
+                                <th>Broadcast</th>
+                                <th>Actual Hosts</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vlsmTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Learn Tab -->
+        <div id="learnTab" class="tab-content">
+            <h2>Subnetting Basics</h2>
+            <div class="card">
+                <h3>What is Subnetting?</h3>
+                <p>Subnetting is the process of dividing a large network into smaller, more manageable sub-networks or subnets. This helps to:</p>
+                <ul>
+                    <li>Improve network security by isolating network segments</li>
+                    <li>Reduce network congestion</li>
+                    <li>Optimize IP address allocation</li>
+                    <li>Create separate broadcast domains</li>
+                </ul>
+            </div>
+            
+            <div class="grid-container">
+                <div class="card">
+                    <h3>Types of Subnetting</h3>
+                    <p><strong>Fixed-length Subnet Mask (FLSM):</strong> All subnets have the same mask/size</p>
+                    <p><strong>Variable-length Subnet Mask (VLSM):</strong> Subnets can have different masks/sizes</p>
+                    
+                    <div class="info-box">
+                        <p>VLSM is more efficient for networks with varying host requirements.</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Key Subnetting Terms</h3>
+                    <ul>
+                        <li><strong>Network Address:</strong> First address in a subnet (All host bits are 0)</li>
+                        <li><strong>Broadcast Address:</strong> Last address in a subnet (All host bits are 1)</li>
+                        <li><strong>Usable Hosts:</strong> Addresses between network and broadcast</li>
+                        <li><strong>Subnet Mask:</strong> Divides network portion from host portion</li>
+                        <li><strong>CIDR Notation:</strong> /xx format showing network prefix length</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Subnetting Process</h3>
+                <ol>
+                    <li><strong>Identify Requirements:</strong> How many subnets/hosts are needed?</li>
+                    <li><strong>Determine Subnet Bits:</strong> How many bits to borrow from host portion?</li>
+                    <li><strong>Calculate Subnet Mask:</strong> Add subnet bits to original mask</li>
+                    <li><strong>Calculate Subnets:</strong> Identify each subnet address</li>
+                    <li><strong>Determine Address Ranges:</strong> For each subnet</li>
+                </ol>
+                
+                <div class="warning-box">
+                    <p><strong>Remember:</strong> Each subnet needs a network address and broadcast address. They cannot be assigned to hosts.</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>Subnetting Formulas</h3>
+                <table>
+                    <tr>
+                        <th>Calculation</th>
+                        <th>Formula</th>
+                        <th>Example (/24 → /26)</th>
+                    </tr>
+                    <tr>
+                        <td>Number of Subnets</td>
+                        <td>2<sup>(new prefix - old prefix)</sup></td>
+                        <td>2<sup>(26-24)</sup> = 2<sup>2</sup> = 4 subnets</td>
+                    </tr>
+                    <tr>
+                        <td>Hosts Per Subnet</td>
+                        <td>2<sup>(32 - new prefix)</sup> - 2</td>
+                        <td>2<sup>(32-26)</sup> - 2 = 2<sup>6</sup> - 2 = 62 hosts</td>
+                    </tr>
+                    <tr>
+                        <td>Subnet Size</td>
+                        <td>2<sup>(32 - new prefix)</sup></td>
+                        <td>2<sup>(32-26)</sup> = 2<sup>6</sup> = 64 addresses</td>
+                    </tr>
+                    <tr>
+                        <td>Subnet Increment</td>
+                        <td>256 - (256 / 2<sup>(new prefix - old prefix)</sup>)</td>
+                        <td>256 - (256 / 2<sup>2</sup>) = 256 - 64 = 192</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <h3>Subnet Mask Reference</h3>
+            <div class="card">
+                <table>
+                    <tr>
+                        <th>CIDR</th>
+                        <th>Subnet Mask</th>
+                        <th>Hosts</th>
+                        <th>Common Use</th>
+                    </tr>
+                    <tr><td>/24</td><td>255.255.255.0</td><td>254</td><td>Small network</td></tr>
+                    <tr><td>/25</td><td>255.255.255.128</td><td>126</td><td>Half a /24</td></tr>
+                    <tr><td>/26</td><td>255.255.255.192</td><td>62</td><td>Quarter of a /24</td></tr>
+                    <tr><td>/27</td><td>255.255.255.224</td><td>30</td><td>Small department</td></tr>
+                    <tr><td>/28</td><td>255.255.255.240</td><td>14</td><td>Small team</td></tr>
+                    <tr><td>/29</td><td>255.255.255.248</td><td>6</td><td>Few devices</td></tr>
+                    <tr><td>/30</td><td>255.255.255.252</td><td>2</td><td>Point-to-point link</td></tr>
+                    <tr><td>/31</td><td>255.255.255.254</td><td>2*</td><td>P2P (RFC 3021)</td></tr>
+                    <tr><td>/32</td><td>255.255.255.255</td><td>1</td><td>Single host</td></tr>
+                </table>
+                <p>* /31 networks don't have network/broadcast addresses (RFC 3021)</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab functions
+        function openTab(evt, tabName) {
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let content of tabContents) {
+                content.classList.remove("active");
+            }
+            
+            const tabs = document.getElementsByClassName("tab");
+            for (let tab of tabs) {
+                tab.classList.remove("active");
+            }
+            
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+        
+        // Update second input based on subnet method
+        function updateSecondInput() {
+            const method = document.getElementById("subnetMethod").value;
+            const inputGroup = document.getElementById("secondInputGroup");
+            const label = inputGroup.querySelector("label");
+            const input = inputGroup.querySelector("input");
+            
+            if (method === "prefixLength") {
+                label.textContent = "New Prefix Length:";
+                input.id = "prefixInput";
+                input.placeholder = "e.g., 26";
+                input.value = "26";
+            } else if (method === "numSubnets") {
+                label.textContent = "Number of Subnets:";
+                input.id = "subnetsInput";
+                input.placeholder = "e.g., 4";
+                input.value = "4";
+            } else if (method === "hostsPerSubnet") {
+                label.textContent = "Hosts Per Subnet:";
+                input.id = "hostsInput";
+                input.placeholder = "e.g., 62";
+                input.value = "62";
+            }
+        }
+        
+        // Parse CIDR notation
+        function parseCIDR(cidr) {
+            const parts = cidr.split('/');
+            if (parts.length !== 2) return null;
+            
+            const ipStr = parts[0];
+            const prefixLength = parseInt(parts[1]);
+            
+            if (isNaN(prefixLength) || prefixLength < 0 || prefixLength > 32) return null;
+            
+            const ipParts = ipStr.split('.');
+            if (ipParts.length !== 4) return null;
+            
+            const octets = [];
+            for (let part of ipParts) {
+                const octet = parseInt(part);
+                if (isNaN(octet) || octet < 0 || octet > 255) return null;
+                octets.push(octet);
+            }
+            
+            return { octets, prefixLength };
+        }
+        
+        // Calculate subnet mask from prefix length
+        function calculateSubnetMask(prefixLength) {
+            const mask = [0, 0, 0, 0];
+            let remainingBits = prefixLength;
+            
+            for (let i = 0; i < 4; i++) {
+                if (remainingBits >= 8) {
+                    mask[i] = 255;
+                    remainingBits -= 8;
+                } else if (remainingBits > 0) {
+                    mask[i] = 256 - Math.pow(2, 8 - remainingBits);
+                    remainingBits = 0;
+                }
+            }
+            
+            return mask;
+        }
+        
+        // Calculate network address
+        function calculateNetworkAddress(ipOctets, maskOctets) {
+            return ipOctets.map((octet, index) => octet & maskOctets[index]);
+        }
+        
+        // Calculate broadcast address
+        function calculateBroadcastAddress(networkOctets, maskOctets) {
+            const invertedMask = maskOctets.map(octet => 255 - octet);
+            return networkOctets.map((octet, index) => octet | invertedMask[index]);
+        }
+        
+        // Convert octets to string
+        function octetsToString(octets) {
+            return octets.join('.');
+        }
+        
+        // Get subnet increment (block size)
+        function getSubnetIncrement(newPrefixLength) {
+            const octetIndex = Math.floor(newPrefixLength / 8);
+            const bitPosition = newPrefixLength % 8;
+            const increment = Math.pow(2, 8 - bitPosition);
+            
+            return {
+                octetIndex,
+                increment
+            };
+        }
+        
+        // Generate subnets
+        function generateSubnets(networkAddress, originalPrefix, newPrefix, count) {
+            const subnets = [];
+            const subnetSize = Math.pow(2, 32 - newPrefix);
+            const blockInfo = getSubnetIncrement(newPrefix);
+            
+            for (let i = 0; i < count; i++) {
+                const subnetOctets = [...networkAddress];
+                
+                // Add the subnet offset
+                let octetIndex = blockInfo.octetIndex;
+                let tempValue = subnetOctets[octetIndex] + (i * blockInfo.increment);
+                
+                // Handle overflow
+                while (tempValue > 255) {
+                    tempValue -= 256;
+                    subnetOctets[octetIndex] = tempValue;
+                    octetIndex -= 1;
+                    
+                    if (octetIndex < 0) break; // Prevent invalid indices
+                    
+                    tempValue = subnetOctets[octetIndex] + 1;
+                }
+                
+                subnetOctets[blockInfo.octetIndex] = tempValue;
+                
+                // Calculate subnet details
+                const subnetMask = calculateSubnetMask(newPrefix);
+                const broadcastOctets = calculateBroadcastAddress(subnetOctets, subnetMask);
+                
+                // First usable IP (network address + 1)
+                const firstUsable = [...subnetOctets];
+                firstUsable[3] += 1;
+                
+                // Last usable IP (broadcast address - 1)
+                const lastUsable = [...broadcastOctets];
+                lastUsable[3] -= 1;
+                
+                // Special cases: /31 and /32
+                let usableHosts;
+                if (newPrefix === 31) {
+                    usableHosts = 2; // RFC 3021: Point-to-point links with two usable addresses
+                } else if (newPrefix === 32) {
+                    usableHosts = 1; // Single host address
+                } else {
+                    usableHosts = Math.pow(2, 32 - newPrefix) - 2; // Standard: 2^n - 2
+                }
+                
+                subnets.push({
+                    network: subnetOctets,
+                    netString: octetsToString(subnetOctets) + '/' + newPrefix,
+                    broadcast: broadcastOctets,
+                    broadcastString: octetsToString(broadcastOctets),
+                    firstUsable: firstUsable,
+                    lastUsable: lastUsable,
+                    range: octetsToString(firstUsable) + ' - ' + octetsToString(lastUsable),
+                    usableHosts: usableHosts,
+                    mask: subnetMask,
+                    maskString: octetsToString(subnetMask)
+                });
+            }
+            
+            return subnets;
+        }
+        
+        // Main subnet calculation function
+        function calculateSubnets() {
+            const networkCidr = document.getElementById("networkInput").value;
+            const method = document.getElementById("subnetMethod").value;
+            
+            // Parse network CIDR
+            const network = parseCIDR(networkCidr);
+            if (!network) {
+                alert("Please enter a valid network address in CIDR notation (e.g., 192.168.1.0/24)");
+                return;
+            }
+            
+            let newPrefixLength;
+            let numSubnets;
+            
+            // Determine new prefix length based on method
+            if (method === "prefixLength") {
+                newPrefixLength = parseInt(document.getElementById("prefixInput").value);
+                if (isNaN(newPrefixLength) || newPrefixLength <= network.prefixLength || newPrefixLength > 32) {
+                    alert("New prefix length must be greater than the original prefix and ≤ 32");
+                    return;
+                }
+                
+                numSubnets = Math.pow(2, newPrefixLength - network.prefixLength);
+            } 
+            else if (method === "numSubnets") {
+                const requestedSubnets = parseInt(document.getElementById("subnetsInput").value);
+                if (isNaN(requestedSubnets) || requestedSubnets < 1) {
+                    alert("Please enter a valid number of subnets");
+                    return;
+                }
+                
+                // Calculate required subnet bits
+                const subnetBits = Math.ceil(Math.log2(requestedSubnets));
+                newPrefixLength = network.prefixLength + subnetBits;
+                if (newPrefixLength > 30) {
+                    alert("The requested number of subnets would result in an invalid prefix length");
+                    return;
+                }
+                
+                numSubnets = Math.pow(2, subnetBits);
+            } 
+            else if (method === "hostsPerSubnet") {
+                const requestedHosts = parseInt(document.getElementById("hostsInput").value);
+                if (isNaN(requestedHosts) || requestedHosts < 1) {
+                    alert("Please enter a valid number of hosts");
+                    return;
+                }
+                
+                // Calculate required host bits
+                const hostBits = Math.ceil(Math.log2(requestedHosts + 2)); // +2 for network and broadcast
+                newPrefixLength = 32 - hostBits;
+                if (newPrefixLength <= network.prefixLength) {
+                    alert("The requested number of hosts would require a smaller prefix than the original network");
+                    return;
+                }
+                
+                numSubnets = Math.pow(2, newPrefixLength - network.prefixLength);
+            }
+            
+            // Calculate subnet mask and network address
+            const subnetMask = calculateSubnetMask(network.prefixLength);
+            const networkAddress = calculateNetworkAddress(network.octets, subnetMask);
+            
+            // Generate subnets
+            const subnets = generateSubnets(networkAddress, network.prefixLength, newPrefixLength, numSubnets);
+            
+            // Display results
+            displaySubnetResults(networkCidr, network.prefixLength, newPrefixLength, numSubnets, subnets);
+        }
+        
+        // Display subnet calculation results
+        function displaySubnetResults(originalCidr, originalPrefix, newPrefix, numSubnets, subnets) {
+            // Show results section
+            document.getElementById("subnetResults").style.display = "block";
+            
+            // Original network info
+            let originalNetworkHTML = `
+                <h3>Original Network: ${originalCidr}</h3>
+                <p><strong>Original Subnet Mask:</strong> ${octetsToString(calculateSubnetMask(originalPrefix))}</p>
+                <p><strong>New Prefix Length:</strong> /${newPrefix}</p>
+                <p><strong>New Subnet Mask:</strong> ${subnets[0].maskString}</p>
+                <p><strong>Number of Subnets:</strong> ${numSubnets}</p>
+                <p><strong>Hosts Per Subnet:</strong> ${subnets[0].usableHosts}</p>
+                <p><strong>Subnet Bits:</strong> ${newPrefix - originalPrefix}</p>
+                <p><strong>Host Bits:</strong> ${32 - newPrefix}</p>
+            `;
+            document.getElementById("originalNetworkInfo").innerHTML = originalNetworkHTML;
+            
+            // Bit visualization
+            let bitDisplayHTML = `<h3>Network Breakdown</h3>`;
+            bitDisplayHTML += `<p>Original Network Bits: ${originalPrefix} | Subnet Bits: ${newPrefix - originalPrefix} | Host Bits: ${32 - newPrefix}</p>`;
+           
+let binaryDisplay = '';
+            for (let i = 0; i < 32; i++) {
+                if (i < originalPrefix) {
+                    binaryDisplay += `<span class="network-bits">1</span>`;
+                } else if (i < newPrefix) {
+                    binaryDisplay += `<span class="subnet-bits">1</span>`;
+                } else {
+                    binaryDisplay += `<span class="host-bits">0</span>`;
+                }
+                
+                if ((i + 1) % 8 === 0 && i < 31) {
+                    binaryDisplay += '.';
+                }
+            }
+            
+            bitDisplayHTML += `<div class="bit-display">${binaryDisplay}</div>`;
+            bitDisplayHTML += `<div><span class="network-bits">■</span> Network &nbsp; <span class="subnet-bits">■</span> Subnet &nbsp; <span class="host-bits">■</span> Host</div>`;
+            
+            document.getElementById("subnetInfo").innerHTML = bitDisplayHTML;
+            
+            // Subnet table
+            const tableBody = document.getElementById("subnetTableBody");
+            tableBody.innerHTML = '';
+            
+            subnets.forEach((subnet, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${subnet.netString}</td>
+                    <td>${subnet.range}</td>
+                    <td>${subnet.broadcastString}</td>
+                    <td>${subnet.usableHosts}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Network diagram
+            const diagram = document.getElementById("networkDiagram");
+            // Clear existing subnet clouds except router
+            const existingClouds = diagram.querySelectorAll('.subnet-cloud');
+            existingClouds.forEach(cloud => cloud.remove());
+            
+            // Only show first 8 subnets in diagram to avoid clutter
+            const maxSubnetsToShow = Math.min(8, subnets.length);
+            for (let i = 0; i < maxSubnetsToShow; i++) {
+                const subnet = subnets[i];
+                const cloud = document.createElement('div');
+                cloud.className = 'subnet-cloud';
+                
+                // Position clouds in a circle around the router
+                const angle = (2 * Math.PI * i) / maxSubnetsToShow;
+                const radius = 140;
+                const left = 310 + radius * Math.cos(angle);
+                const top = 110 + radius * Math.sin(angle);
+                
+                cloud.style.left = `${left}px`;
+                cloud.style.top = `${top}px`;
+                cloud.innerHTML = `Subnet ${i + 1}<br>${subnet.netString}`;
+                
+                diagram.appendChild(cloud);
+            }
+        }
+        
+        // VLSM functions
+        function addVlsmSubnet() {
+            const vlsmSubnets = document.getElementById("vlsmSubnets");
+            const subnetCount = vlsmSubnets.querySelectorAll('.vlsm-subnet').length;
+            
+            const newSubnet = document.createElement('div');
+            newSubnet.className = 'input-group vlsm-subnet';
+            newSubnet.innerHTML = `
+                <label>Subnet ${subnetCount + 1} - Hosts needed:</label>
+                <input type="number" class="vlsmHostInput" placeholder="e.g., 25" value="25">
+                <button onclick="removeVlsmSubnet(this)" style="margin-left: 10px;">-</button>
+            `;
+            
+            vlsmSubnets.appendChild(newSubnet);
+        }
+        
+        function removeVlsmSubnet(button) {
+            const subnetDiv = button.parentElement;
+            const vlsmSubnets = document.getElementById("vlsmSubnets");
+            
+            // Don't remove if it's the only subnet
+            if (vlsmSubnets.querySelectorAll('.vlsm-subnet').length > 1) {
+                subnetDiv.remove();
+                
+                // Renumber the subnet labels
+                const subnets = vlsmSubnets.querySelectorAll('.vlsm-subnet');
+                subnets.forEach((subnet, index) => {
+                    const label = subnet.querySelector('label');
+                    label.textContent = `Subnet ${index + 1} - Hosts needed:`;
+                });
+            }
+        }
+        
+        function calculateVLSM() {
+            const parentCidr = document.getElementById("vlsmParentNetwork").value;
+            const hostInputs = document.querySelectorAll('.vlsmHostInput');
+            
+            // Parse parent network
+            const parent = parseCIDR(parentCidr);
+            if (!parent) {
+                alert("Please enter a valid parent network in CIDR notation");
+                return;
+            }
+            
+            // Collect host requirements
+            const hostRequirements = [];
+            hostInputs.forEach((input, index) => {
+                const hostsNeeded = parseInt(input.value);
+                if (!isNaN(hostsNeeded) && hostsNeeded > 0) {
+                    hostRequirements.push({
+                        index: index + 1,
+                        hostsNeeded: hostsNeeded
+                    });
+                }
+            });
+            
+            if (hostRequirements.length === 0) {
+                alert("Please enter at least one valid subnet host requirement");
+                return;
+            }
+            
+            // Sort host requirements from largest to smallest
+            hostRequirements.sort((a, b) => b.hostsNeeded - a.hostsNeeded);
+            
+            // Calculate subnet mask for parent network
+            const parentMask = calculateSubnetMask(parent.prefixLength);
+            const parentNetwork = calculateNetworkAddress(parent.octets, parentMask);
+            
+            // VLSM calculation
+            const vlsmSubnets = [];
+            let currentNetworkOctets = [...parentNetwork];
+            
+            for (const req of hostRequirements) {
+                // Calculate required host bits (hosts + network + broadcast)
+                const requiredHostBits = Math.ceil(Math.log2(req.hostsNeeded + 2));
+                const prefixLength = 32 - requiredHostBits;
+                
+                // Check if the prefix is valid
+                if (prefixLength < parent.prefixLength) {
+                    alert(`Subnet ${req.index} requires more addresses than the parent network can provide`);
+                    return;
+                }
+                
+                // Calculate subnet details
+                const subnetMask = calculateSubnetMask(prefixLength);
+                const broadcastOctets = calculateBroadcastAddress(currentNetworkOctets, subnetMask);
+                
+                // First usable IP (network address + 1)
+                const firstUsable = [...currentNetworkOctets];
+                firstUsable[3] += 1;
+                
+                // Last usable IP (broadcast address - 1)
+                const lastUsable = [...broadcastOctets];
+                lastUsable[3] -= 1;
+                
+                // Calculate actual usable hosts
+                let usableHosts;
+                if (prefixLength === 31) {
+                    usableHosts = 2; // RFC 3021
+                } else if (prefixLength === 32) {
+                    usableHosts = 1;
+                } else {
+                    usableHosts = Math.pow(2, 32 - prefixLength) - 2;
+                }
+                
+                vlsmSubnets.push({
+                    index: req.index,
+                    hostsNeeded: req.hostsNeeded,
+                    network: currentNetworkOctets,
+                    netString: octetsToString(currentNetworkOctets) + '/' + prefixLength,
+                    prefixLength: prefixLength,
+                    mask: subnetMask,
+                    maskString: octetsToString(subnetMask),
+                    broadcast: broadcastOctets,
+                    broadcastString: octetsToString(broadcastOctets),
+                    firstUsable: firstUsable,
+                    lastUsable: lastUsable,
+                    range: octetsToString(firstUsable) + ' - ' + octetsToString(lastUsable),
+                    usableHosts: usableHosts
+                });
+                
+                // Move to the next network address (current broadcast + 1)
+                currentNetworkOctets = [...broadcastOctets];
+                currentNetworkOctets[3] += 1;
+                
+                // Handle overflow
+                for (let i = 3; i >= 0; i--) {
+                    if (currentNetworkOctets[i] > 255) {
+                        currentNetworkOctets[i] = 0;
+                        if (i > 0) {
+                            currentNetworkOctets[i - 1] += 1;
+                        }
+                    }
+                }
+                
+                // Check if we've gone beyond the parent network
+                const parentBroadcast = calculateBroadcastAddress(parentNetwork, parentMask);
+                let beyondParent = false;
+                
+                for (let i = 0; i < 4; i++) {
+                    if (currentNetworkOctets[i] > parentBroadcast[i]) {
+                        beyondParent = true;
+                        break;
+                    } else if (currentNetworkOctets[i] < parentBroadcast[i]) {
+                        break;
+                    }
+                }
+                
+                if (beyondParent) {
+                    alert(`Cannot allocate all requested subnets within the parent network`);
+                    break;
+                }
+            }
+            
+            // Display VLSM results
+            displayVLSMResults(parentCidr, parent.prefixLength, vlsmSubnets);
+        }
+        
+        function displayVLSMResults(parentCidr, parentPrefix, vlsmSubnets) {
+            // Show results section
+            document.getElementById("vlsmResults").style.display = "block";
+            
+            // Parent network info
+            let parentInfoHTML = `
+                <h3>Parent Network: ${parentCidr}</h3>
+                <p><strong>Parent Subnet Mask:</strong> ${octetsToString(calculateSubnetMask(parentPrefix))}</p>
+                <p><strong>Total Subnets Created:</strong> ${vlsmSubnets.length}</p>
+            `;
+            document.getElementById("vlsmParentInfo").innerHTML = parentInfoHTML;
+            
+            // VLSM table
+            const tableBody = document.getElementById("vlsmTableBody");
+            tableBody.innerHTML = '';
+            
+            // Sort by original index to match user input order
+            vlsmSubnets.sort((a, b) => a.index - b.index);
+            
+            vlsmSubnets.forEach((subnet) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${subnet.index}</td>
+                    <td>${subnet.hostsNeeded}</td>
+                    <td>${subnet.netString}</td>
+                    <td>${subnet.maskString}</td>
+                    <td>${subnet.range}</td>
+                    <td>${subnet.broadcastString}</td>
+                    <td>${subnet.usableHosts}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html> 
