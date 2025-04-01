@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classful IPv4 Addressing</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .input-section {
+            background-color: #f5f7fa;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .result-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 250px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .bit-display {
+            font-family: monospace;
+            font-size: 18px;
+            letter-spacing: 1px;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .network-bits {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .host-bits {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        .class-indicator {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .class-a { background-color: #3498db; }
+        .class-b { background-color: #2ecc71; }
+        .class-c { background-color: #f1c40f; }
+        .class-d { background-color: #e67e22; }
+        .class-e { background-color: #e74c3c; }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fff;
+        }
+        .class-header {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Classful IPv4 Addressing Demonstration</h1>
+    <p>Classful addressing was the original method used to define network addresses in IPv4, before CIDR (Classless Inter-Domain Routing) was introduced. Enter an IPv4 address below to analyze its class and properties.</p>
+    
+    <div class="container">
+        <div class="input-section">
+            <h2>IP Address Analysis</h2>
+            <input type="text" id="ipInput" placeholder="Enter IP (e.g., 192.168.1.1)" value="192.168.1.1">
+            <button onclick="analyzeIP()">Analyze</button>
+            
+            <div id="resultSection" class="result-section" style="display: none;">
+                <h3>IP Address: <span id="ipDisplay"></span></h3>
+                <div id="bitDisplay" class="bit-display"></div>
+                <div id="classInfo"></div>
+                <div id="rangeInfo"></div>
+                <div id="networkHostInfo"></div>
+            </div>
+        </div>
+        
+        <h2>IPv4 Address Classes</h2>
+        <div id="classCards">
+            <div class="card">
+                <div class="class-header">
+                    <div class="class-indicator class-a"></div>
+                    Class A
+                </div>
+                <p><strong>Range:</strong> 0.0.0.0 to 127.255.255.255</p>
+                <p><strong>First Bit:</strong> 0</p>
+                <p><strong>Format:</strong> <span class="network-bits">N</span>.<span class="host-bits">H.H.H</span> (1 byte network, 3 bytes host)</p>
+                <p><strong>Default Subnet Mask:</strong> 255.0.0.0 (/8)</p>
+                <p><strong>Networks:</strong> 126 (2^7 - 2, 0 and 127 reserved)</p>
+                <p><strong>Hosts per Network:</strong> 16,777,214 (2^24 - 2)</p>
+                <p><strong>Use:</strong> Very large networks</p>
+            </div>
+            
+            <div class="card">
+                <div class="class-header">
+                    <div class="class-indicator class-b"></div>
+                    Class B
+                </div>
+                <p><strong>Range:</strong> 128.0.0.0 to 191.255.255.255</p>
+                <p><strong>First Bits:</strong> 10</p>
+                <p><strong>Format:</strong> <span class="network-bits">N.N</span>.<span class="host-bits">H.H</span> (2 bytes network, 2 bytes host)</p>
+                <p><strong>Default Subnet Mask:</strong> 255.255.0.0 (/16)</p>
+                <p><strong>Networks:</strong> 16,384 (2^14)</p>
+                <p><strong>Hosts per Network:</strong> 65,534 (2^16 - 2)</p>
+                <p><strong>Use:</strong> Medium to large networks</p>
+            </div>
+            
+            <div class="card">
+                <div class="class-header">
+                    <div class="class-indicator class-c"></div>
+                    Class C
+                </div>
+                <p><strong>Range:</strong> 192.0.0.0 to 223.255.255.255</p>
+                <p><strong>First Bits:</strong> 110</p>
+                <p><strong>Format:</strong> <span class="network-bits">N.N.N</span>.<span class="host-bits">H</span> (3 bytes network, 1 byte host)</p>
+                <p><strong>Default Subnet Mask:</strong> 255.255.255.0 (/24)</p>
+                <p><strong>Networks:</strong> 2,097,152 (2^21)</p>
+                <p><strong>Hosts per Network:</strong> 254 (2^8 - 2)</p>
+                <p><strong>Use:</strong> Small networks</p>
+            </div>
+            
+            <div class="card">
+                <div class="class-header">
+                    <div class="class-indicator class-d"></div>
+                    Class D
+                </div>
+                <p><strong>Range:</strong> 224.0.0.0 to 239.255.255.255</p>
+                <p><strong>First Bits:</strong> 1110</p>
+                <p><strong>Use:</strong> Multicast groups</p>
+                <p><strong>Special:</strong> Not used for regular host addressing</p>
+            </div>
+            
+            <div class="card">
+                <div class="class-header">
+                    <div class="class-indicator class-e"></div>
+                    Class E
+                </div>
+                <p><strong>Range:</strong> 240.0.0.0 to 255.255.255.255</p>
+                <p><strong>First Bits:</strong> 1111</p>
+                <p><strong>Use:</strong> Reserved for experimental purposes</p>
+                <p><strong>Special:</strong> Not used in regular networks</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function analyzeIP() {
+            const ipInput = document.getElementById('ipInput').value;
+            
+            // Validate IP format
+            const ipRegex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+            const match = ipInput.match(ipRegex);
+            
+            if (!match) {
+                alert("Please enter a valid IPv4 address (e.g., 192.168.1.1)");
+                return;
+            }
+            
+            // Extract octets
+            const octets = [
+                parseInt(match[1]),
+                parseInt(match[2]),
+                parseInt(match[3]),
+                parseInt(match[4])
+            ];
+            
+            // Validate each octet is between 0 and 255
+            for (let octet of octets) {
+                if (octet < 0 || octet > 255) {
+                    alert("Each octet must be between 0 and 255");
+                    return;
+                }
+            }
+            
+            // Determine the class of the IP address
+            let ipClass, subnetMask, networkBits, hostBits, networkCount, hostCount, range;
+            const firstOctet = octets[0];
+            
+            if (firstOctet >= 0 && firstOctet <= 127) {
+                ipClass = "A";
+                subnetMask = "255.0.0.0 (/8)";
+                networkBits = 8;
+                hostBits = 24;
+                networkCount = "126 (2^7 - 2, 0 and 127 are reserved)";
+                hostCount = "16,777,214 (2^24 - 2)";
+                range = "0.0.0.0 - 127.255.255.255";
+            } else if (firstOctet >= 128 && firstOctet <= 191) {
+                ipClass = "B";
+                subnetMask = "255.255.0.0 (/16)";
+                networkBits = 16;
+                hostBits = 16;
+                networkCount = "16,384 (2^14)";
+                hostCount = "65,534 (2^16 - 2)";
+                range = "128.0.0.0 - 191.255.255.255";
+            } else if (firstOctet >= 192 && firstOctet <= 223) {
+                ipClass = "C";
+                subnetMask = "255.255.255.0 (/24)";
+                networkBits = 24;
+                hostBits = 8;
+                networkCount = "2,097,152 (2^21)";
+                hostCount = "254 (2^8 - 2)";
+                range = "192.0.0.0 - 223.255.255.255";
+            } else if (firstOctet >= 224 && firstOctet <= 239) {
+                ipClass = "D (Multicast)";
+                subnetMask = "N/A";
+                networkBits = "N/A";
+                hostBits = "N/A";
+                networkCount = "N/A";
+                hostCount = "N/A";
+                range = "224.0.0.0 - 239.255.255.255";
+            } else {
+                ipClass = "E (Reserved)";
+                subnetMask = "N/A";
+                networkBits = "N/A";
+                hostBits = "N/A";
+                networkCount = "N/A";
+                hostCount = "N/A";
+                range = "240.0.0.0 - 255.255.255.255";
+            }
+            
+            // Calculate network address and broadcast address for classes A, B, C
+            let networkAddress, broadcastAddress;
+            
+            if (ipClass === "A") {
+                networkAddress = `${octets[0]}.0.0.0`;
+                broadcastAddress = `${octets[0]}.255.255.255`;
+            } else if (ipClass === "B") {
+                networkAddress = `${octets[0]}.${octets[1]}.0.0`;
+                broadcastAddress = `${octets[0]}.${octets[1]}.255.255`;
+            } else if (ipClass === "C") {
+                networkAddress = `${octets[0]}.${octets[1]}.${octets[2]}.0`;
+                broadcastAddress = `${octets[0]}.${octets[1]}.${octets[2]}.255`;
+            } else {
+                networkAddress = "N/A";
+                broadcastAddress = "N/A";
+            }
+            
+            // Binary representation of the IP
+            const binaryOctets = octets.map(octet => {
+                return octet.toString(2).padStart(8, '0');
+            });
+            
+            // Format binary representation with coloring based on class
+            let binaryDisplay = '';
+            if (ipClass === "A") {
+                binaryDisplay = `<span class="network-bits">${binaryOctets[0].charAt(0)}</span>${binaryOctets[0].substring(1)} `;
+                binaryDisplay += `<span class="host-bits">${binaryOctets.slice(1).join(' ')}</span>`;
+            } else if (ipClass === "B") {
+                binaryDisplay = `<span class="network-bits">${binaryOctets[0].substring(0, 2)}</span>${binaryOctets[0].substring(2)} `;
+                binaryDisplay += `<span class="network-bits">${binaryOctets[1]}</span> `;
+                binaryDisplay += `<span class="host-bits">${binaryOctets.slice(2).join(' ')}</span>`;
+            } else if (ipClass === "C") {
+                binaryDisplay = `<span class="network-bits">${binaryOctets[0].substring(0, 3)}</span>${binaryOctets[0].substring(3)} `;
+                binaryDisplay += `<span class="network-bits">${binaryOctets[1]} ${binaryOctets[2]}</span> `;
+                binaryDisplay += `<span class="host-bits">${binaryOctets[3]}</span>`;
+            } else if (ipClass === "D (Multicast)") {
+                binaryDisplay = `<span class="network-bits">${binaryOctets[0].substring(0, 4)}</span>${binaryOctets[0].substring(4)} `;
+                binaryDisplay += `${binaryOctets.slice(1).join(' ')}`;
+            } else {
+                binaryDisplay = `<span class="network-bits">${binaryOctets[0].substring(0, 4)}</span>${binaryOctets[0].substring(4)} `;
+                binaryDisplay += `${binaryOctets.slice(1).join(' ')}`;
+            }
+            
+            // Display results
+            document.getElementById('ipDisplay').textContent = ipInput;
+            document.getElementById('bitDisplay').innerHTML = binaryDisplay;
+            
+            let classInfo = `<h3>Class: <span class="class-indicator class-${ipClass.charAt(0).toLowerCase()}"></span> ${ipClass}</h3>`;
+            classInfo += `<p><strong>Default Subnet Mask:</strong> ${subnetMask}</p>`;
+            document.getElementById('classInfo').innerHTML = classInfo;
+            
+            let rangeInfo = `<h3>Address Information</h3>`;
+            rangeInfo += `<p><strong>Class Range:</strong> ${range}</p>`;
+            if (networkAddress !== "N/A") {
+                rangeInfo += `<p><strong>Network Address:</strong> ${networkAddress}</p>`;
+                rangeInfo += `<p><strong>Broadcast Address:</strong> ${broadcastAddress}</p>`;
+            }
+            document.getElementById('rangeInfo').innerHTML = rangeInfo;
+            
+            let networkHostInfo = '';
+            if (networkBits !== "N/A") {
+                networkHostInfo = `<h3>Network & Host Information</h3>`;
+                networkHostInfo += `<p><strong>Network Bits:</strong> ${networkBits} bits</p>`;
+                networkHostInfo += `<p><strong>Host Bits:</strong> ${hostBits} bits</p>`;
+                networkHostInfo += `<p><strong>Available Networks in this Class:</strong> ${networkCount}</p>`;
+                networkHostInfo += `<p><strong>Available Hosts per Network:</strong> ${hostCount}</p>`;
+            }
+            document.getElementById('networkHostInfo').innerHTML = networkHostInfo;
+            
+            // Show results
+            document.getElementById('resultSection').style.display = 'block';
+        }
+        
+        // Set initial example on page load
+        window.onload = function() {
+            analyzeIP();
+        };
+    </script>
+</body>
+</html>
