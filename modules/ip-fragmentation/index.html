@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Fragmentation Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100px;
+        }
+        
+        .ip-header {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .bit {
+            padding: 6px;
+            text-align: center;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            font-size: 12px;
+        }
+        
+        .bit.highlight {
+            background-color: #ffeb3b;
+            font-weight: bold;
+        }
+        
+        .fragment-container {
+            margin-top: 40px;
+        }
+        
+        .fragment {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .fragment-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2196F3;
+        }
+        
+        .data-contents {
+            background-color: #e3f2fd;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
+        
+        .explanation {
+            margin-top: 40px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        .field-highlight {
+            background-color: #ffeb3b;
+        }
+        
+        .highlight-identification {
+            background-color: #a5d6a7;
+        }
+        
+        .highlight-flags {
+            background-color: #90caf9;
+        }
+        
+        .highlight-offset {
+            background-color: #ce93d8;
+        }
+        
+        .field-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>IP Fragmentation Visualization</h1>
+            <p>See how IP datagrams are fragmented when they exceed the MTU size of a network</p>
+        </div>
+        
+        <div class="controls">
+            <div>
+                <label for="packet-size">Original Packet Size (bytes): </label>
+                <input type="number" id="packet-size" min="100" max="10000" value="4000">
+            </div>
+            <div>
+                <label for="mtu-size">MTU Size (bytes): </label>
+                <input type="number" id="mtu-size" min="100" max="1500" value="1500">
+            </div>
+            <button id="fragment-btn">Fragment Packet</button>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffeb3b;"></div>
+                <span>Changed Fields</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #a5d6a7;"></div>
+                <span>Identification Field</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #90caf9;"></div>
+                <span>Flags Field</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ce93d8;"></div>
+                <span>Fragment Offset Field</span>
+            </div>
+        </div>
+        
+        <div id="original-packet">
+            <h2>Original IP Datagram</h2>
+            <div class="field-name">IP Header:</div>
+            <div class="ip-header" id="orig-header"></div>
+            <div class="data-contents" id="orig-data">
+                [Packet Data - 4000 bytes]
+            </div>
+        </div>
+        
+        <div class="fragment-container" id="fragments">
+            <!-- Fragments will be added here by JavaScript -->
+        </div>
+        
+        <div class="explanation">
+            <h2>Key IP Fragmentation Fields</h2>
+            <p><strong>Identification (16 bits):</strong> Unique identifier assigned to all fragments of the same original datagram.</p>
+            <p><strong>Flags (3 bits):</strong> 
+                <ul>
+                    <li>Bit 0: Reserved, must be zero</li>
+                    <li>Bit 1: DF (Don't Fragment) - when set, the datagram cannot be fragmented</li>
+                    <li>Bit 2: MF (More Fragments) - set for all fragments except the last one</li>
+                </ul>
+            </p>
+            <p><strong>Fragment Offset (13 bits):</strong> Indicates the position of this fragment relative to the beginning of the original datagram. Measured in 8-byte units.</p>
+            <p><strong>Total Length:</strong> The length of each fragment (header + data) in bytes.</p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fragmentBtn = document.getElementById('fragment-btn');
+            const packetSizeInput = document.getElementById('packet-size');
+            const mtuSizeInput = document.getElementById('mtu-size');
+            const originalHeaderDiv = document.getElementById('orig-header');
+            const originalDataDiv = document.getElementById('orig-data');
+            const fragmentsDiv = document.getElementById('fragments');
+            
+            // Generate random identification number (16 bits)
+            let identification = Math.floor(Math.random() * 65536);
+            
+            // Render the original header
+            renderOriginalHeader();
+            
+            fragmentBtn.addEventListener('click', function() {
+                fragmentPacket();
+            });
+            
+            function renderOriginalHeader() {
+                // Clear existing header
+                originalHeaderDiv.innerHTML = '';
+                
+                // Version (4 bits) + IHL (4 bits)
+                originalHeaderDiv.innerHTML += `<div class="bit">Ver: 4</div>`;
+                originalHeaderDiv.innerHTML += `<div class="bit">IHL: 5</div>`;
+                
+                // DSCP (6 bits) + ECN (2 bits)
+                originalHeaderDiv.innerHTML += `<div class="bit">DSCP/ECN</div>`;
+                
+                // Total Length (16 bits)
+                const packetSize = parseInt(packetSizeInput.value);
+                originalHeaderDiv.innerHTML += `<div class="bit">Total Length: ${packetSize}</div>`;
+                
+                // Identification (16 bits)
+                originalHeaderDiv.innerHTML += `<div class="bit highlight-identification">ID: ${identification}</div>`;
+                
+                // Flags (3 bits) + Fragment Offset (13 bits)
+                originalHeaderDiv.innerHTML += `<div class="bit highlight-flags">Flags: 0</div>`;
+                originalHeaderDiv.innerHTML += `<div class="bit highlight-offset">Offset: 0</div>`;
+                
+                // TTL (8 bits)
+                originalHeaderDiv.innerHTML += `<div class="bit">TTL: 64</div>`;
+                
+                // Protocol (8 bits)
+                originalHeaderDiv.innerHTML += `<div class="bit">Proto: 6</div>`;
+                
+                // Header Checksum (16 bits)
+                originalHeaderDiv.innerHTML += `<div class="bit">Checksum</div>`;
+                
+                // Source IP Address (32 bits)
+                originalHeaderDiv.innerHTML += `<div class="bit">Src: 192.168.1.1</div>`;
+                
+                // Destination IP Address (32 bits)
+                originalHeaderDiv.innerHTML += `<div class="bit">Dst: 10.0.0.1</div>`;
+                
+                // Update data display
+                originalDataDiv.textContent = `[Packet Data - ${packetSize - 20} bytes]`;
+            }
+            
+            function fragmentPacket() {
+                // Get values from inputs
+                const packetSize = parseInt(packetSizeInput.value);
+                const mtuSize = parseInt(mtuSizeInput.value);
+                
+                // Clear existing fragments
+                fragmentsDiv.innerHTML = '';
+                
+                // Generate a new identification number
+                identification = Math.floor(Math.random() * 65536);
+                
+                // Update original header with new ID
+                renderOriginalHeader();
+                
+                // Check if fragmentation is needed
+                if (packetSize <= mtuSize) {
+                    fragmentsDiv.innerHTML = `<div class="fragment">
+                        <div class="fragment-title">No fragmentation needed - packet size (${packetSize} bytes) is less than MTU (${mtuSize} bytes)</div>
+                    </div>`;
+                    return;
+                }
+                
+                // Calculate how many fragments we need
+                // Each fragment except the last one will be filled to capacity
+                // IP header is 20 bytes, so data per fragment is MTU - 20
+                const dataPerFragment = mtuSize - 20;
+                const dataSize = packetSize - 20; // Original data size (minus header)
+                const fragmentCount = Math.ceil(dataSize / dataPerFragment);
+                
+                // Create fragments
+                let remainingData = dataSize;
+                for (let i = 0; i < fragmentCount; i++) {
+                    // The data in this fragment
+                    const thisFragmentData = Math.min(dataPerFragment, remainingData);
+                    remainingData -= thisFragmentData;
+                    
+                    // Calculate offset in 8-byte units
+                    const offsetBytes = i * dataPerFragment;
+                    const offset = offsetBytes / 8;
+                    
+                    // More fragments flag (set for all except the last fragment)
+                    const moreFragments = i < fragmentCount - 1 ? 1 : 0;
+                    
+                    // Total length of this fragment
+                    const totalLength = thisFragmentData + 20; // data + header
+                    
+                    // Create fragment HTML
+                    const fragmentHTML = createFragmentHTML(i + 1, totalLength, identification, moreFragments, offset, thisFragmentData, offsetBytes);
+                    fragmentsDiv.innerHTML += fragmentHTML;
+                }
+            }
+            
+            function createFragmentHTML(fragmentNum, totalLength, identification, moreFragments, offset, dataSize, offsetBytes) {
+                return `
+                    <div class="fragment">
+                        <div class="fragment-title">Fragment ${fragmentNum}</div>
+                        <div class="ip-header">
+                            <div class="bit">Ver: 4</div>
+                            <div class="bit">IHL: 5</div>
+                            <div class="bit">DSCP/ECN</div>
+                            <div class="bit highlight">${totalLength}</div>
+                            <div class="bit highlight-identification">ID: ${identification}</div>
+                            <div class="bit highlight highlight-flags">Flags: ${moreFragments}</div>
+                            <div class="bit highlight highlight-offset">Offset: ${offset}</div>
+                            <div class="bit">TTL: 64</div>
+                            <div class="bit">Proto: 6</div>
+                            <div class="bit highlight">Checksum*</div>
+                            <div class="bit">Src: 192.168.1.1</div>
+                            <div class="bit">Dst: 10.0.0.1</div>
+                        </div>
+                        <div class="data-contents">
+                            [Fragment Data: ${dataSize} bytes, starting at byte ${offsetBytes} of original data]
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Initial fragmentation
+            fragmentPacket();
+        });
+    </script>
+</body>
+</html>
