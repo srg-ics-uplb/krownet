@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPv4 to IPv6 Transition Strategies</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2c3e50;
+            --highlight-color: #e74c3c;
+            --background-color: #f5f5f5;
+            --card-background: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--secondary-color);
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 0.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            background-color: #e0e0e0;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        .tab-button:hover {
+            background-color: #d0d0d0;
+        }
+
+        .tab-button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 2rem;
+            background-color: var(--card-background);
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .network-diagram {
+            margin: 2rem 0;
+            position: relative;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fafafa;
+            overflow: hidden;
+        }
+
+        .device {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background-color: #fff;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            font-size: 0.8rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 2;
+        }
+
+        .device-label {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .device-ip {
+            font-size: 0.7rem;
+            color: var(--primary-color);
+        }
+
+        .device-ipv6 {
+            font-size: 0.6rem;
+            color: var(--highlight-color);
+        }
+
+        .packet {
+            position: absolute;
+            width: 30px;
+            height: 20px;
+            background-color: var(--primary-color);
+            border-radius: 3px;
+            opacity: 0.8;
+            z-index: 1;
+        }
+
+        .packet.ipv6 {
+            background-color: var(--highlight-color);
+        }
+
+        .line {
+            position: absolute;
+            background-color: #ccc;
+            z-index: 0;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .info-panel {
+            background-color: var(--card-background);
+            padding: 1.5rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .info-panel h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .packet-info {
+            padding: 1rem;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            margin-top: 1rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .packet-info.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        table th, table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table th {
+            background-color: #f0f0f0;
+        }
+
+        .advantage {
+            color: #27ae60;
+        }
+
+        .disadvantage {
+            color: var(--highlight-color);
+        }
+
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .network-diagram {
+                height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>IPv4 to IPv6 Transition Strategies</h1>
+            <p>Interactive demonstration of Dual Stack, Tunneling, and Translation mechanisms</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" data-tab="dual-stack">Dual Stack</button>
+            <button class="tab-button" data-tab="tunneling">Tunneling</button>
+            <button class="tab-button" data-tab="translation">Header Translation</button>
+        </div>
+
+        <div id="dual-stack" class="tab-content active">
+            <h2>Dual Stack Strategy</h2>
+            <p>Dual Stack is a transition mechanism where network devices run both IPv4 and IPv6 protocols simultaneously. This allows devices to communicate with both IPv4-only and IPv6-only systems.</p>
+            
+            <div class="network-diagram" id="dual-stack-diagram">
+                <!-- Devices and connections will be added with JavaScript -->
+            </div>
+            
+            <div class="controls">
+                <button id="start-dual-stack">Start Simulation</button>
+                <button id="reset-dual-stack">Reset</button>
+            </div>
+            
+            <div class="packet-info" id="dual-stack-packet-info"></div>
+            
+            <div class="info-panel">
+                <h3>Dual Stack Characteristics</h3>
+                <table>
+                    <tr>
+                        <th>Advantages</th>
+                        <th>Disadvantages</th>
+                    </tr>
+                    <tr>
+                        <td class="advantage">
+                            <ul>
+                                <li>Simplest transition strategy</li>
+                                <li>Direct native connectivity for both protocols</li>
+                                <li>No translation overhead</li>
+                                <li>Gradual migration possible</li>
+                            </ul>
+                        </td>
+                        <td class="disadvantage">
+                            <ul>
+                                <li>Requires maintaining two protocols</li>
+                                <li>Doubles routing tables</li>
+                                <li>Higher memory requirements</li>
+                                <li>Still requires IPv4 addresses</li>
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div id="tunneling" class="tab-content">
+            <h2>Tunneling Strategy</h2>
+            <p>Tunneling encapsulates IPv6 packets within IPv4 packets (or vice versa), allowing them to be transmitted over networks that only support the other protocol. Common tunneling types include 6to4, 6in4, Teredo, and ISATAP.</p>
+            
+            <div class="network-diagram" id="tunneling-diagram">
+                <!-- Devices and connections will be added with JavaScript -->
+            </div>
+            
+            <div class="controls">
+                <button id="start-tunneling">Start Simulation</button>
+                <button id="reset-tunneling">Reset</button>
+            </div>
+            
+            <div class="packet-info" id="tunneling-packet-info"></div>
+            
+            <div class="info-panel">
+                <h3>Tunneling Characteristics</h3>
+                <table>
+                    <tr>
+                        <th>Advantages</th>
+                        <th>Disadvantages</th>
+                    </tr>
+                    <tr>
+                        <td class="advantage">
+                            <ul>
+                                <li>Allows IPv6 traffic over IPv4 infrastructure</li>
+                                <li>No need to upgrade entire network at once</li>
+                                <li>Multiple tunneling mechanisms available</li>
+                                <li>Supports isolated IPv6 networks</li>
+                            </ul>
+                        </td>
+                        <td class="disadvantage">
+                            <ul>
+                                <li>Additional overhead from encapsulation</li>
+                                <li>MTU issues possible</li>
+                                <li>Security concerns with tunnel endpoints</li>
+                                <li>Can be complex to troubleshoot</li>
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div id="translation" class="tab-content">
+            <h2>Header Translation Strategy</h2>
+            <p>Translation mechanisms convert IPv4 packets to IPv6 packets (or vice versa) to enable communication between IPv4-only and IPv6-only networks. Examples include NAT64, DNS64, and 464XLAT.</p>
+            
+            <div class="network-diagram" id="translation-diagram">
+                <!-- Devices and connections will be added with JavaScript -->
+            </div>
+            
+            <div class="controls">
+                <button id="start-translation">Start Simulation</button>
+                <button id="reset-translation">Reset</button>
+            </div>
+            
+            <div class="packet-info" id="translation-packet-info"></div>
+            
+            <div class="info-panel">
+                <h3>Translation Characteristics</h3>
+                <table>
+                    <tr>
+                        <th>Advantages</th>
+                        <th>Disadvantages</th>
+                    </tr>
+                    <tr>
+                        <td class="advantage">
+                            <ul>
+                                <li>Allows communication between IPv4-only and IPv6-only</li>
+                                <li>No end-node modifications needed</li>
+                                <li>Works with existing applications</li>
+                                <li>Supports incremental deployment</li>
+                            </ul>
+                        </td>
+                        <td class="disadvantage">
+                            <ul>
+                                <li>Loss of end-to-end transparency</li>
+                                <li>Address mapping overhead</li>
+                                <li>Protocol translation complexity</li>
+                                <li>Not all protocols translate well</li>
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab functionality
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Deactivate all tabs
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // Activate the clicked tab
+                button.classList.add('active');
+                document.getElementById(button.dataset.tab).classList.add('active');
+                
+                // Reset all simulations
+                resetDualStack();
+                resetTunneling();
+                resetTranslation();
+            });
+        });
+
+        // ========== DUAL STACK IMPLEMENTATION ==========
+        
+        let dualStackAnimation = null;
+        const dualStackDevices = [
+            { id: 'client1', label: 'Client A', x: 50, y: 150, ipv4: '192.168.1.10', ipv6: '2001:db8::10' },
+            { id: 'router1', label: 'Router', x: 200, y: 150, ipv4: '192.168.1.1 / 10.0.0.1', ipv6: '2001:db8::1 / 2001:db8:1::1' },
+            { id: 'internet', label: 'Internet', x: 350, y: 150, ipv4: 'IPv4 & IPv6', ipv6: 'Dual Stack' },
+            { id: 'router2', label: 'Router', x: 500, y: 150, ipv4: '10.0.0.2 / 172.16.0.1', ipv6: '2001:db8:1::2 / 2001:db8:2::1' },
+            { id: 'server', label: 'Server', x: 650, y: 150, ipv4: '172.16.0.10', ipv6: '2001:db8:2::10' }
+        ];
+        
+        function initDualStack() {
+            const diagram = document.getElementById('dual-stack-diagram');
+            diagram.innerHTML = '';
+            
+            // Add devices
+            dualStackDevices.forEach(device => {
+                const deviceEl = document.createElement('div');
+                deviceEl.className = 'device';
+                deviceEl.id = device.id;
+                deviceEl.style.left = `${device.x}px`;
+                deviceEl.style.top = `${device.y}px`;
+                deviceEl.innerHTML = `
+                    <div class="device-label">${device.label}</div>
+                    <div class="device-ip">${device.ipv4}</div>
+                    <div class="device-ipv6">${device.ipv6}</div>
+                `;
+                diagram.appendChild(deviceEl);
+            });
+            
+            // Add connection lines
+            addLine(diagram, 100, 150, 150, 150); // Client to Router1
+            addLine(diagram, 250, 150, 300, 150); // Router1 to Internet
+            addLine(diagram, 400, 150, 450, 150); // Internet to Router2
+            addLine(diagram, 550, 150, 600, 150); // Router2 to Server
+            
+            document.getElementById('dual-stack-packet-info').textContent = '';
+            document.getElementById('dual-stack-packet-info').classList.remove('active');
+        }
+        
+        function startDualStack() {
+            document.getElementById('start-dual-stack').disabled = true;
+            document.getElementById('dual-stack-packet-info').classList.add('active');
+            
+            let step = 0;
+            let packetPosition = { x: 50, y: 150 };
+            let packetEl = null;
+            
+            dualStackAnimation = setInterval(() => {
+                // Remove existing packet
+                if (packetEl) {
+                    packetEl.remove();
+                }
+
+                // Create new packet based on step
+                if (step % 10 < 5) {
+                    // IPv4 packet movement
+                    packetEl = createPacket(false);
+                    updatePacketInfo('IPv4', step % 5);
+                } else {
+                    // IPv6 packet movement
+                    packetEl = createPacket(true);
+                    updatePacketInfo('IPv6', step % 5);
+                }
+                
+                document.getElementById('dual-stack-diagram').appendChild(packetEl);
+                
+                // Move packet based on step
+                const currentStep = step % 5;
+                if (currentStep === 0) {
+                    packetPosition = { x: 100, y: 150 };
+                } else if (currentStep === 1) {
+                    packetPosition = { x: 250, y: 150 };
+                } else if (currentStep === 2) {
+                    packetPosition = { x: 400, y: 150 };
+                } else if (currentStep === 3) {
+                    packetPosition = { x: 550, y: 150 };
+                } else if (currentStep === 4) {
+                    packetPosition = { x: 650, y: 150 };
+                }
+                
+                packetEl.style.left = `${packetPosition.x}px`;
+                packetEl.style.top = `${packetPosition.y}px`;
+                
+                step++;
+            }, 1000);
+            
+            function updatePacketInfo(type, step) {
+                const packetInfo = document.getElementById('dual-stack-packet-info');
+                
+                if (type === 'IPv4') {
+                    if (step === 0) {
+                        packetInfo.textContent = `IPv4 Packet:
+Source: 192.168.1.10
+Destination: 172.16.0.10
+Protocol: TCP
+Status: Client sending packet`;
+                    } else if (step === 1) {
+                        packetInfo.textContent = `IPv4 Packet:
+Source: 192.168.1.10
+Destination: 172.16.0.10
+Protocol: TCP
+Status: Router forwarding packet (Source NAT)`;
+                    } else if (step === 2) {
+                        packetInfo.textContent = `IPv4 Packet:
+Source: 10.0.0.1
+Destination: 172.16.0.10
+Protocol: TCP
+Status: Transmitting across Internet`;
+                    } else if (step === 3) {
+                        packetInfo.textContent = `IPv4 Packet:
+Source: 10.0.0.1
+Destination: 172.16.0.10
+Protocol: TCP
+Status: Router forwarding packet`;
+                    } else if (step === 4) {
+                        packetInfo.textContent = `IPv4 Packet:
+Source: 10.0.0.1
+Destination: 172.16.0.10
+Protocol: TCP
+Status: Packet delivered to server`;
+                    }
+                } else {
+                    if (step === 0) {
+                        packetInfo.textContent = `IPv6 Packet:
+Source: 2001:db8::10
+Destination: 2001:db8:2::10
+Next Header: TCP
+Status: Client sending IPv6 packet`;
+                    } else if (step === 1) {
+                        packetInfo.textContent = `IPv6 Packet:
+Source: 2001:db8::10
+Destination: 2001:db8:2::10
+Next Header: TCP
+Status: Router forwarding IPv6 packet`;
+                    } else if (step === 2) {
+                        packetInfo.textContent = `IPv6 Packet:
+Source: 2001:db8::10
+Destination: 2001:db8:2::10
+Next Header: TCP
+Status: Transmitting across IPv6 Internet`;
+                    } else if (step === 3) {
+                        packetInfo.textContent = `IPv6 Packet:
+Source: 2001:db8::10
+Destination: 2001:db8:2::10
+Next Header: TCP
+Status: Router forwarding IPv6 packet`;
+                    } else if (step === 4) {
+                        packetInfo.textContent = `IPv6 Packet:
+Source: 2001:db8::10
+Destination: 2001:db8:2::10
+Next Header: TCP
+Status: IPv6 packet delivered to server`;
+                    }
+                }
+            }
+        }
+        
+        function resetDualStack() {
+            if (dualStackAnimation) {
+                clearInterval(dualStackAnimation);
+                dualStackAnimation = null;
+            }
+            
+            document.getElementById('start-dual-stack').disabled = false;
+            document.querySelectorAll('#dual-stack-diagram .packet').forEach(packet => {
+                packet.remove();
+            });
+            
+            document.getElementById('dual-stack-packet-info').textContent = '';
+            document.getElementById('dual-stack-packet-info').classList.remove('active');
+        }
+        
+        // ========== TUNNELING IMPLEMENTATION ==========
+        
+        let tunnelingAnimation = null;
+        const tunnelingDevices = [
+            { id: 'ipv6-client', label: 'IPv6 Client', x: 50, y: 150, ipv4: '', ipv6: '2001:db8::10' },
+            { id: 'tunnel-start', label: 'Tunnel Entry', x: 200, y: 150, ipv4: '203.0.113.1', ipv6: '2001:db8::1' },
+            { id: 'ipv4-cloud', label: 'IPv4 Internet', x: 350, y: 150, ipv4: 'IPv4 Only', ipv6: '' },
+            { id: 'tunnel-end', label: 'Tunnel Exit', x: 500, y: 150, ipv4: '203.0.113.2', ipv6: '2001:db8:1::1' },
+            { id: 'ipv6-server', label: 'IPv6 Server', x: 650, y: 150, ipv4: '', ipv6: '2001:db8:1::10' }
+        ];
+        
+        function initTunneling() {
+            const diagram = document.getElementById('tunneling-diagram');
+            diagram.innerHTML = '';
+            
+            // Add devices
+            tunnelingDevices.forEach(device => {
+                const deviceEl = document.createElement('div');
+                deviceEl.className = 'device';
+                deviceEl.id = device.id;
+                deviceEl.style.left = `${device.x}px`;
+                deviceEl.style.top = `${device.y}px`;
+                deviceEl.innerHTML = `
+                    <div class="device-label">${device.label}</div>
+                    ${device.ipv4 ? `<div class="device-ip">${device.ipv4}</div>` : ''}
+                    ${device.ipv6 ? `<div class="device-ipv6">${device.ipv6}</div>` : ''}
+                `;
+                diagram.appendChild(deviceEl);
+            });
+            
+            // Add connection lines
+            addLine(diagram, 100, 150, 150, 150); // Client to Tunnel Start
+            addLine(diagram, 250, 150, 300, 150); // Tunnel Start to IPv4 Internet
+            addLine(diagram, 400, 150, 450, 150); // IPv4 Internet to Tunnel End
+            addLine(diagram, 550, 150, 600, 150); // Tunnel End to IPv6 Server
+            
+            document.getElementById('tunneling-packet-info').textContent = '';
+            document.getElementById('tunneling-packet-info').classList.remove('active');
+        }
+        
+        function startTunneling() {
+            document.getElementById('start-tunneling').disabled = true;
+            document.getElementById('tunneling-packet-info').classList.add('active');
+            
+            let step = 0;
+            let packetPosition = { x: 50, y: 150 };
+            let packetEl = null;
+            let tunnelPacketEl = null;
+            
+            tunnelingAnimation = setInterval(() => {
+                // Remove existing packets
+                if (packetEl) packetEl.remove();
+                if (tunnelPacketEl) tunnelPacketEl.remove();
+                
+                // IPv6 packet always exists
+                packetEl = createPacket(true);
+                document.getElementById('tunneling-diagram').appendChild(packetEl);
+                
+                // Create tunnel packet if in IPv4 network
+                if (step >= 1 && step <= 3) {
+                    tunnelPacketEl = createPacket(false);
+                    tunnelPacketEl.style.width = '40px';
+                    tunnelPacketEl.style.height = '30px';
+                    document.getElementById('tunneling-diagram').appendChild(tunnelPacketEl);
+                }
+                
+                // Move packets based on step
+                if (step === 0) {
+                    // IPv6 packet from client to tunnel entry
+                    packetPosition = { x: 100, y: 150 };
+                    packetEl.style.left = `${packetPosition.x}px`;
+                    packetEl.style.top = `${packetPosition.y}px`;
+                    updatePacketInfo(0);
+                } else if (step === 1) {
+                    // IPv6 packet encapsulated in IPv4 at tunnel entry
+                    packetPosition = { x: 250, y: 150 };
+                    packetEl.style.left = `${packetPosition.x - 5}px`;
+                    packetEl.style.top = `${packetPosition.y - 5}px`;
+                    tunnelPacketEl.style.left = `${packetPosition.x}px`;
+                    tunnelPacketEl.style.top = `${packetPosition.y}px`;
+                    updatePacketInfo(1);
+                } else if (step === 2) {
+                    // Encapsulated packet traversing IPv4 Internet
+                    packetPosition = { x: 350, y: 150 };
+                    packetEl.style.left = `${packetPosition.x - 5}px`;
+                    packetEl.style.top = `${packetPosition.y - 5}px`;
+                    tunnelPacketEl.style.left = `${packetPosition.x}px`;
+                    tunnelPacketEl.style.top = `${packetPosition.y}px`;
+                    updatePacketInfo(2);
+                } else if (step === 3) {
+                    // Encapsulated packet arriving at tunnel exit
+                    packetPosition = { x: 450, y: 150 };
+                    packetEl.style.left = `${packetPosition.x - 5}px`;
+                    packetEl.style.top = `${packetPosition.y - 5}px`;
+                    tunnelPacketEl.style.left = `${packetPosition.x}px`;
+                    tunnelPacketEl.style.top = `${packetPosition.y}px`;
+                    updatePacketInfo(3);
+                } else if (step === 4) {
+                    // Decapsulated IPv6 packet from tunnel exit to server
+                    packetPosition = { x: 550, y: 150 };
+                    packetEl.style.left = `${packetPosition.x}px`;
+                    packetEl.style.top = `${packetPosition.y}px`;
+                    updatePacketInfo(4);
+                } else if (step === 5) {
+                    // IPv6 packet delivered to server
+                    packetPosition = { x: 650, y: 150 };
+                    packetEl.style.left = `${packetPosition.x}px`;
+                    packetEl.style.top = `${packetPosition.y}px`;
+                    updatePacketInfo(5);
+                    
+                    // Reset steps to repeat animation
+                    step = -1;
+                }
+                
+                step++;
+            }, 1200);
+            
+            function updatePacketInfo(step) {
+                const packetInfo = document.getElementById('tunneling-packet-info');
+                
+                if (step === 0) {
+                    packetInfo.textContent = `Native IPv6 Packet:
+Source: 2001:db8::10
+Destination: 2001:db8:1::10
+Next Header: TCP
+Status: Client sending IPv6 packet`;
+                } else if (step === 1) {
+                    packetInfo.textContent = `Encapsulated Packet:
+Outer IPv4 Header:
+  Source: 203.0.113.1
+  Destination: 203.0.113.2
+  Protocol: 41 (IPv6)
+
+Inner IPv6 Packet:
+  Source: 2001:db8::10
+  Destination: 2001:db8:1::10
+  Next Header: TCP
+Status: Tunnel entry point encapsulating IPv6 packet in IPv4`;
+                } else if (step === 2) {
+                    packetInfo.textContent = `Encapsulated Packet:
+Outer IPv4 Header:
+  Source: 203.0.113.1
+  Destination: 203.0.113.2
+  Protocol: 41 (IPv6)
+
+Inner IPv6 Packet:
+  Source: 2001:db8::10
+  Destination: 2001:db8:1::10
+  Next Header: TCP
+Status: Traversing IPv4-only Internet`;
+                } else if (step === 3) {
+                    packetInfo.textContent = `Encapsulated Packet:
+Outer IPv4 Header:
+  Source: 203.0.113.1
+  Destination: 203.0.113.2
+  Protocol: 41 (IPv6)
+
+Inner IPv6 Packet:
+  Source: 2001:db8::10
+  Destination: 2001:db8:1::10
+  Next Header: TCP
+Status: Arriving at tunnel exit point`;
+                } else if (step === 4) {
+                    packetInfo.textContent = `Native IPv6 Packet:
+Source: 2001:db8::10
+Destination: 2001:db8:1::10
+Next Header: TCP
+Status: Decapsulated at tunnel exit, forwarding native IPv6 packet`;
+                } else if (step === 5) {
+                    packetInfo.textContent = `Native IPv6 Packet:
+Source: 2001:db8::10
+Destination: 2001:db8:1::10
+Next Header: TCP
+Status: IPv6 packet delivered to server`;
+                }
+            }
+        }
+        
+        function resetTunneling() {
+            if (tunnelingAnimation) {
+                clearInterval(tunnelingAnimation);
+                tunnelingAnimation = null;
+            }
+            
+            document.getElementById('start-tunneling').disabled = false;
+            document.querySelectorAll('#tunneling-diagram .packet').forEach(packet => {
+                packet.remove();
+            });
+            
+            document.getElementById('tunneling-packet-info').textContent = '';
+            document.getElementById('tunneling-packet-info').classList.remove('active');
+        }
+        
+        // ========== TRANSLATION IMPLEMENTATION ==========
+        
+        let translationAnimation = null;
+        const translationDevices = [
+
+{ id: 'ipv6-only-client', label: 'IPv6-Only Client', x: 50, y: 150, ipv4: '', ipv6: '2001:db8::10' },
+            { id: 'nat64', label: 'NAT64/DNS64', x: 200, y: 150, ipv4: '192.0.2.1', ipv6: '64:ff9b::' },
+            { id: 'ipv4-internet', label: 'IPv4 Internet', x: 350, y: 150, ipv4: 'IPv4 Only', ipv6: '' },
+            { id: 'ipv4-router', label: 'IPv4 Router', x: 500, y: 150, ipv4: '203.0.113.1', ipv6: '' },
+            { id: 'ipv4-only-server', label: 'IPv4-Only Server', x: 650, y: 150, ipv4: '203.0.113.10', ipv6: '' }
+        ];
+        
+        function initTranslation() {
+            const diagram = document.getElementById('translation-diagram');
+            diagram.innerHTML = '';
+            
+            // Add devices
+            translationDevices.forEach(device => {
+                const deviceEl = document.createElement('div');
+                deviceEl.className = 'device';
+                deviceEl.id = device.id;
+                deviceEl.style.left = `${device.x}px`;
+                deviceEl.style.top = `${device.y}px`;
+                deviceEl.innerHTML = `
+                    <div class="device-label">${device.label}</div>
+                    ${device.ipv4 ? `<div class="device-ip">${device.ipv4}</div>` : ''}
+                    ${device.ipv6 ? `<div class="device-ipv6">${device.ipv6}</div>` : ''}
+                `;
+                diagram.appendChild(deviceEl);
+            });
+            
+            // Add connection lines
+            addLine(diagram, 100, 150, 150, 150); // Client to NAT64
+            addLine(diagram, 250, 150, 300, 150); // NAT64 to IPv4 Internet
+            addLine(diagram, 400, 150, 450, 150); // IPv4 Internet to IPv4 Router
+            addLine(diagram, 550, 150, 600, 150); // IPv4 Router to IPv4 Server
+            
+            document.getElementById('translation-packet-info').textContent = '';
+            document.getElementById('translation-packet-info').classList.remove('active');
+        }
+        
+        function startTranslation() {
+            document.getElementById('start-translation').disabled = true;
+            document.getElementById('translation-packet-info').classList.add('active');
+            
+            let step = 0;
+            let packetPosition = { x: 50, y: 150 };
+            let packetEl = null;
+            
+            translationAnimation = setInterval(() => {
+                // Remove existing packet
+                if (packetEl) {
+                    packetEl.remove();
+                }
+
+                // Create new packet based on step
+                if (step < 2) {
+                    // IPv6 packet
+                    packetEl = createPacket(true);
+                } else {
+                    // IPv4 packet after translation
+                    packetEl = createPacket(false);
+                }
+                
+                document.getElementById('translation-diagram').appendChild(packetEl);
+                
+                // Move packet based on step
+                if (step === 0) {
+                    packetPosition = { x: 100, y: 150 };
+                    updatePacketInfo(0);
+                } else if (step === 1) {
+                    packetPosition = { x: 200, y: 150 };
+                    updatePacketInfo(1);
+                } else if (step === 2) {
+                    packetPosition = { x: 300, y: 150 };
+                    updatePacketInfo(2);
+                } else if (step === 3) {
+                    packetPosition = { x: 450, y: 150 };
+                    updatePacketInfo(3);
+                } else if (step === 4) {
+                    packetPosition = { x: 550, y: 150 };
+                    updatePacketInfo(4);
+                } else if (step === 5) {
+                    packetPosition = { x: 650, y: 150 };
+                    updatePacketInfo(5);
+                    
+                    // Reset steps to repeat animation
+                    step = -1;
+                }
+                
+                packetEl.style.left = `${packetPosition.x}px`;
+                packetEl.style.top = `${packetPosition.y}px`;
+                
+                step++;
+            }, 1200);
+            
+            function updatePacketInfo(step) {
+                const packetInfo = document.getElementById('translation-packet-info');
+                
+                if (step === 0) {
+                    packetInfo.textContent = `IPv6 Packet:
+Source: 2001:db8::10
+Destination: 64:ff9b::203.0.113.10 (Synthesized IPv6 address)
+Next Header: TCP
+Status: IPv6-only client sending packet`;
+                } else if (step === 1) {
+                    packetInfo.textContent = `IPv6 Packet at NAT64:
+Source: 2001:db8::10
+Destination: 64:ff9b::203.0.113.10
+Next Header: TCP
+Status: NAT64 preparing to translate IPv6 to IPv4`;
+                } else if (step === 2) {
+                    packetInfo.textContent = `Translated IPv4 Packet:
+Source: 192.0.2.1 (NAT64 address)
+Destination: 203.0.113.10
+Protocol: TCP
+Status: IPv6 header translated to IPv4, entering IPv4 Internet`;
+                } else if (step === 3) {
+                    packetInfo.textContent = `IPv4 Packet:
+Source: 192.0.2.1
+Destination: 203.0.113.10
+Protocol: TCP
+Status: Traversing IPv4 Internet`;
+                } else if (step === 4) {
+                    packetInfo.textContent = `IPv4 Packet:
+Source: 192.0.2.1
+Destination: 203.0.113.10
+Protocol: TCP
+Status: Arriving at IPv4 router`;
+                } else if (step === 5) {
+                    packetInfo.textContent = `IPv4 Packet:
+Source: 192.0.2.1
+Destination: 203.0.113.10
+Protocol: TCP
+Status: Delivered to IPv4-only server`;
+                }
+            }
+        }
+        
+        function resetTranslation() {
+            if (translationAnimation) {
+                clearInterval(translationAnimation);
+                translationAnimation = null;
+            }
+            
+            document.getElementById('start-translation').disabled = false;
+            document.querySelectorAll('#translation-diagram .packet').forEach(packet => {
+                packet.remove();
+            });
+            
+            document.getElementById('translation-packet-info').textContent = '';
+            document.getElementById('translation-packet-info').classList.remove('active');
+        }
+        
+        // Helper functions
+        function addLine(container, x1, y1, x2, y2) {
+            const line = document.createElement('div');
+            line.className = 'line';
+            
+            const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+            
+            line.style.width = `${length}px`;
+            line.style.height = '2px';
+            line.style.left = `${x1}px`;
+            line.style.top = `${y1}px`;
+            line.style.transform = `rotate(${angle}deg)`;
+            line.style.transformOrigin = '0 0';
+            
+            container.appendChild(line);
+        }
+        
+        function createPacket(isIPv6) {
+            const packet = document.createElement('div');
+            packet.className = isIPv6 ? 'packet ipv6' : 'packet';
+            return packet;
+        }
+        
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', () => {
+            initDualStack();
+            initTunneling();
+            initTranslation();
+            
+            document.getElementById('start-dual-stack').addEventListener('click', startDualStack);
+            document.getElementById('reset-dual-stack').addEventListener('click', resetDualStack);
+            
+            document.getElementById('start-tunneling').addEventListener('click', startTunneling);
+            document.getElementById('reset-tunneling').addEventListener('click', resetTunneling);
+            
+            document.getElementById('start-translation').addEventListener('click', startTranslation);
+            document.getElementById('reset-translation').addEventListener('click', resetTranslation);
+        });
+    </script>
+</body>
+</html>
