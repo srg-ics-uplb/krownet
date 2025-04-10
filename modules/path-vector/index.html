@@ -33,10 +33,13 @@
             padding: 15px;
             background-color: #f0f0f0;
             border-radius: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
         }
         button {
             padding: 8px 12px;
-            margin-right: 10px;
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -55,7 +58,7 @@
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            margin-right: 10px;
+            background-color: white;
         }
         .table-container {
             overflow-x: auto;
@@ -75,7 +78,7 @@
             background-color: #f2f2f2;
         }
         .steps-log {
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
             padding: 15px;
             border: 1px solid #ddd;
@@ -83,6 +86,7 @@
             background-color: #fafafa;
             font-family: monospace;
             white-space: pre-wrap;
+            line-height: 1.5;
         }
         .info {
             margin: 20px 0;
@@ -94,27 +98,20 @@
             background-color: #fffacd;
             font-weight: bold;
         }
-        .success {
-            color: #4CAF50;
+        .highlight-row {
+            background-color: #e6ffe6;
+        }
+        .highlight-cell {
+            background-color: #b3ffb3;
             font-weight: bold;
         }
-        .error {
-            color: #f44336;
-            font-weight: bold;
-        }
-        .prefix-item {
-            padding: 5px;
-            margin: 5px 0;
-            border-left: 3px solid #2196F3;
-            background-color: #f9f9f9;
-        }
-        .grid-container {
+        .grid-layout {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
         @media (max-width: 768px) {
-            .grid-container {
+            .grid-layout {
                 grid-template-columns: 1fr;
             }
         }
@@ -122,7 +119,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
-            margin: 15px 0;
+            margin: 10px 0;
         }
         .legend-item {
             display: flex;
@@ -133,547 +130,619 @@
             width: 15px;
             height: 15px;
             display: inline-block;
-            border: 1px solid #333;
         }
-        .as-circle {
-            border: 2px solid black;
-            border-radius: 50%;
-        }
-        .tooltip {
+        .as-label {
             position: absolute;
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
             font-size: 12px;
-            pointer-events: none;
-            z-index: 100;
-            display: none;
-        }
-        .checkbox-container {
-            margin: 10px 0;
+            padding: 3px 6px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border-radius: 4px;
         }
         .selected-path {
-            stroke: #FF9800;
+            stroke: #39F;
             stroke-width: 4px;
-            animation: dash 1s linear infinite;
+            animation: dash 1s linear;
         }
         @keyframes dash {
             to {
-                stroke-dashoffset: -20;
+                stroke-dashoffset: 0;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Path Vector Routing Algorithm Simulator</h1>
+        <h1>Path Vector Routing Simulator</h1>
         
         <div class="info">
-            <p>This simulator demonstrates Path Vector Routing, which is the basis for BGP (Border Gateway Protocol) used for inter-AS routing on the Internet. Unlike distance vector and link state protocols, path vector protocols maintain the entire path to each destination and use policy-based routing decisions.</p>
-            <p>In this simulation, we have multiple Autonomous Systems (AS) exchanging routing information for various network prefixes (destinations). Each AS applies local policies like shortest AS path, customer preference, and loop prevention.</p>
+            <p>This simulator demonstrates Path Vector Routing, the algorithm used in BGP (Border Gateway Protocol). Path Vector routing combines distance vector concepts with full path information to prevent routing loops and enable policy-based routing.</p>
+            <p>The example network consists of 6 autonomous systems (AS) interconnected with weighted links representing policies and costs. Each AS maintains paths to all other ASes in the network.</p>
         </div>
         
         <div class="controls">
-            <label for="targetPrefix">Select destination prefix:</label>
-            <select id="targetPrefix">
-                <option value="10.0.0.0/8">10.0.0.0/8 (Originated by AS1)</option>
-                <option value="172.16.0.0/12">172.16.0.0/12 (Originated by AS3)</option>
-                <option value="192.168.0.0/16">192.168.0.0/16 (Originated by AS5)</option>
-            </select>
-            
-            <button id="startBtn">Start Simulation</button>
-            <button id="stepBtn" disabled>Next Update</button>
+            <label for="sourceAS">Source AS:</label>
+            <select id="sourceAS"></select>
+            <label for="destinationAS">Destination AS:</label>
+            <select id="destinationAS"></select>
+            <button id="startBtn">Run Simulation</button>
+            <button id="stepBtn" disabled>Next Step</button>
             <button id="resetBtn">Reset</button>
-            
-            <div class="checkbox-container">
-                <input type="checkbox" id="showLocalPref" checked>
-                <label for="showLocalPref">Apply Local Preference Policy</label>
-            </div>
         </div>
         
         <div class="legend">
             <div class="legend-item">
-                <span class="legend-color" style="background-color: #FF9800;"></span>
-                <span>Selected Path</span>
+                <span class="legend-color" style="background-color: #8bc34a;"></span>
+                <span>Source AS</span>
             </div>
             <div class="legend-item">
-                <span class="legend-color" style="background-color: #4CAF50;"></span>
-                <span>Origin AS</span>
+                <span class="legend-color" style="background-color: #ff9800;"></span>
+                <span>Destination AS</span>
             </div>
             <div class="legend-item">
-                <span class="legend-color" style="background-color: #2196F3;"></span>
-                <span>Processing AS</span>
+                <span class="legend-color" style="background-color: #9c27b0;"></span>
+                <span>Active AS (Sending Updates)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #03a9f4;"></span>
+                <span>Selected Best Path</span>
             </div>
         </div>
         
-        <div id="tooltip" class="tooltip"></div>
-        <canvas id="networkCanvas" width="800" height="400"></canvas>
+        <canvas id="networkCanvas" width="600" height="400"></canvas>
         
-        <div class="grid-container">
-            <div class="routing-tables">
-                <h2>BGP Routing Tables</h2>
+        <div class="grid-layout">
+            <div>
+                <h2>Routing Tables</h2>
                 <div id="routingTables" class="table-container"></div>
             </div>
             
-            <div class="simulation-steps">
-                <h2>Path Vector Updates</h2>
+            <div>
+                <h2>Algorithm Steps</h2>
                 <div id="stepsLog" class="steps-log"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Define Autonomous Systems (ASes)
-        const autonomousSystems = [
-            { id: "AS1", x: 400, y: 80, radius: 40, color: "#FFCDD2", textColor: "#B71C1C", 
-              originates: ["10.0.0.0/8"], localPref: {} },
-            
-            { id: "AS2", x: 200, y: 200, radius: 40, color: "#C8E6C9", textColor: "#1B5E20", 
-              originates: [], localPref: { "AS1": 200, "AS3": 100 } },
-            
-            { id: "AS3", x: 400, y: 200, radius: 40, color: "#BBDEFB", textColor: "#0D47A1", 
-              originates: ["172.16.0.0/12"], localPref: { "AS1": 200, "AS5": 150 } },
-            
-            { id: "AS4", x: 600, y: 200, radius: 40, color: "#D1C4E9", textColor: "#4527A0", 
-              originates: [], localPref: { "AS3": 150, "AS5": 100 } },
-            
-            { id: "AS5", x: 400, y: 320, radius: 40, color: "#FFECB3", textColor: "#FF6F00", 
-              originates: ["192.168.0.0/16"], localPref: { "AS2": 150, "AS3": 200, "AS4": 100 } }
+        // Network topology definition - ASes (Autonomous Systems)
+        const nodes = [
+            { id: 'AS1', x: 100, y: 100, color: '#607d8b', status: 'normal' },
+            { id: 'AS2', x: 300, y: 50, color: '#607d8b', status: 'normal' },
+            { id: 'AS3', x: 500, y: 100, color: '#607d8b', status: 'normal' },
+            { id: 'AS4', x: 100, y: 300, color: '#607d8b', status: 'normal' },
+            { id: 'AS5', x: 300, y: 300, color: '#607d8b', status: 'normal' },
+            { id: 'AS6', x: 500, y: 300, color: '#607d8b', status: 'normal' }
         ];
 
-        // Define connections between ASes
-        const asConnections = [
-            { from: "AS1", to: "AS2" },
-            { from: "AS1", to: "AS3" },
-            { from: "AS2", to: "AS5" },
-            { from: "AS3", to: "AS4" },
-            { from: "AS3", to: "AS5" },
-            { from: "AS4", to: "AS5" }
+        // Links between ASes (with costs/preferences)
+        const edges = [
+            { from: 'AS1', to: 'AS2', cost: 10, policy: 'prefer' },
+            { from: 'AS1', to: 'AS4', cost: 15, policy: 'standard' },
+            { from: 'AS2', to: 'AS3', cost: 5, policy: 'prefer' },
+            { from: 'AS2', to: 'AS5', cost: 20, policy: 'standard' },
+            { from: 'AS3', to: 'AS6', cost: 10, policy: 'prefer' },
+            { from: 'AS4', to: 'AS5', cost: 5, policy: 'prefer' },
+            { from: 'AS5', to: 'AS6', cost: 15, policy: 'standard' },
+            { from: 'AS2', to: 'AS4', cost: 25, policy: 'backup' }
         ];
 
         // Get DOM elements
         const canvas = document.getElementById('networkCanvas');
         const ctx = canvas.getContext('2d');
-        const targetPrefixSelect = document.getElementById('targetPrefix');
+        const sourceASSelect = document.getElementById('sourceAS');
+        const destinationASSelect = document.getElementById('destinationAS');
         const startBtn = document.getElementById('startBtn');
         const stepBtn = document.getElementById('stepBtn');
         const resetBtn = document.getElementById('resetBtn');
         const routingTablesContainer = document.getElementById('routingTables');
         const stepsLog = document.getElementById('stepsLog');
-        const tooltip = document.getElementById('tooltip');
-        const showLocalPref = document.getElementById('showLocalPref');
 
-        // Simulation variables
-        let currentStep = 0;
-        let simulationSteps = [];
+        // Variables for algorithm
+        let sourceAS = '';
+        let destinationAS = '';
         let routingTables = {};
-        let bestPaths = {};
-        let selectedPrefix = "";
-        let originAS = "";
-        let propagationOrder = [];
-        let currentUpdate = 0;
-        let currentAS = "";
-        let pathsToShow = {};
-        let simulationComplete = false;
+        let simulationSteps = [];
+        let currentStep = 0;
+        let totalSteps = 0;
+        let simulationFinished = false;
+        let currentActiveAS = null;
+        let selectedPath = [];
 
-        // Initialize the simulator
-        function initSimulator() {
-            // Reset variables
-            currentStep = 0;
-            simulationSteps = [];
-            routingTables = {};
-            bestPaths = {};
-            currentUpdate = 0;
-            currentAS = "";
-            pathsToShow = {};
-            simulationComplete = false;
+        // Initialize the UI
+        function initUI() {
+            // Populate AS dropdowns
+            sourceASSelect.innerHTML = '';
+            destinationASSelect.innerHTML = '';
             
-            // Initialize routing tables for each AS
-            autonomousSystems.forEach(as => {
-                routingTables[as.id] = {};
-                bestPaths[as.id] = {};
-            });
-            
-            // Get selected prefix and determine origin AS
-            selectedPrefix = targetPrefixSelect.value;
-            originAS = autonomousSystems.find(as => as.originates.includes(selectedPrefix))?.id || "";
-            
-            if (!originAS) {
-                stepsLog.innerHTML = "Error: Could not find origin AS for selected prefix.";
-                return;
-            }
-            
-            // Add origin information to simulation steps
-            simulationSteps.push({
-                type: "init",
-                message: `Initializing Path Vector simulation for prefix ${selectedPrefix} originated by ${originAS}`
-            });
-            
-            // Define propagation order (BFS from origin)
-            propagationOrder = [];
-            let visited = new Set([originAS]);
-            let queue = [originAS];
-            
-            while (queue.length > 0) {
-                const current = queue.shift();
-                propagationOrder.push(current);
+            nodes.forEach(node => {
+                // Source AS options
+                const sourceOption = document.createElement('option');
+                sourceOption.value = node.id;
+                sourceOption.textContent = node.id;
+                sourceASSelect.appendChild(sourceOption);
                 
-                // Find neighbors
-                const neighbors = asConnections
-                    .filter(conn => conn.from === current || conn.to === current)
-                    .map(conn => conn.from === current ? conn.to : conn.from)
-                    .filter(neighbor => !visited.has(neighbor));
-                
-                neighbors.forEach(neighbor => {
-                    visited.add(neighbor);
-                    queue.push(neighbor);
-                });
-            }
-            
-            // Origin AS announces its prefix
-            routingTables[originAS][selectedPrefix] = {
-                prefix: selectedPrefix,
-                nextHop: "Local",
-                asPath: [],
-                origin: "i", // i for IGP
-                localPref: 100,
-                med: 0,
-                best: true
-            };
-            
-            bestPaths[originAS][selectedPrefix] = "Local";
-            
-            // Create initial announcement
-            simulationSteps.push({
-                type: "announce",
-                asId: originAS,
-                message: `${originAS} originates prefix ${selectedPrefix} and adds to its local routing table.`,
-                updates: [{
-                    asId: originAS,
-                    prefix: selectedPrefix,
-                    route: routingTables[originAS][selectedPrefix]
-                }]
+                // Destination AS options
+                const destOption = document.createElement('option');
+                destOption.value = node.id;
+                destOption.textContent = node.id;
+                destinationASSelect.appendChild(destOption);
             });
             
-            // Calculate rest of the updates for simulation steps
-            calculatePropagationSteps();
+            // Set default values
+            sourceAS = nodes[0].id;
+            destinationAS = nodes[nodes.length - 1].id;
+            sourceASSelect.value = sourceAS;
+            destinationASSelect.value = destinationAS;
             
-            // Update UI
-            updateRoutingTables();
-            updateStepsLog();
+            // Reset node colors
+            nodes.forEach(node => {
+                node.color = '#607d8b';
+                node.status = 'normal';
+            });
+            
+            // Draw the network
             drawNetwork();
             
-            // Enable step button
-            startBtn.disabled = true;
-            stepBtn.disabled = false;
-        }
-
-        // Calculate the steps for BGP propagation
-        function calculatePropagationSteps() {
-            // Process ASes in propagation order (excluding origin which was handled earlier)
-            for (let i = 1; i < propagationOrder.length; i++) {
-                const currentAS = propagationOrder[i];
+            // Clear routing tables and steps log
+            routingTablesContainer.innerHTML = '';
+            stepsLog.innerHTML = '';
+            
+            // Enable/disable buttons
+            startBtn.disabled = false;
+            stepBtn.disabled = true;
+            
+            // Reset algorithm variables
+            routingTables = {};
+            simulationSteps = [];
+            currentStep = 0;
+            totalSteps = 0;
+            simulationFinished = false;
+            currentActiveAS = null;
+            selectedPath = [];
+            
+            // Initialize routing tables
+            nodes.forEach(node => {
+                routingTables[node.id] = {};
                 
-                // Find all neighbors that already have the route
-                const neighbors = asConnections
-                    .filter(conn => (conn.from === currentAS || conn.to === currentAS))
-                    .map(conn => conn.from === currentAS ? conn.to : conn.from)
-                    .filter(neighbor => propagationOrder.indexOf(neighbor) < i);
-                
-                if (neighbors.length === 0) continue;
-                
-                // Log received updates
-                let receivedUpdates = [];
-                neighbors.forEach(neighbor => {
-                    if (bestPaths[neighbor][selectedPrefix]) {
-                        const neighborRoute = routingTables[neighbor][selectedPrefix];
-                        
-                        // Create a copy of the received route
-                        const receivedRoute = {
-                            prefix: selectedPrefix,
-                            nextHop: neighbor,
-                            asPath: [neighbor, ...neighborRoute.asPath],
-                            origin: neighborRoute.origin,
-                            localPref: showLocalPref.checked && autonomousSystems.find(as => as.id === currentAS).localPref[neighbor] 
-                                ? autonomousSystems.find(as => as.id === currentAS).localPref[neighbor] 
-                                : 100,
-                            med: 0
+                // Each AS initially only knows about itself
+                nodes.forEach(dest => {
+                    if (node.id === dest.id) {
+                        // Path to self is just self with cost 0
+                        routingTables[node.id][dest.id] = {
+                            path: [node.id],
+                            cost: 0
                         };
-                        
-                        receivedUpdates.push({
-                            fromAS: neighbor,
-                            route: receivedRoute
-                        });
+                    } else {
+                        // Path to other ASes is initially unknown
+                        routingTables[node.id][dest.id] = {
+                            path: [],
+                            cost: Infinity
+                        };
                     }
                 });
-                
-                simulationSteps.push({
-                    type: "receive",
-                    asId: currentAS,
-                    message: `${currentAS} receives updates from neighbors: ${neighbors.join(", ")}`,
-                    updates: receivedUpdates
-                });
-                
-                // Process received routes and select best path
-                if (receivedUpdates.length > 0) {
-                    // Create a temp copy of routing table before processing
-                    const tempRoutingTable = JSON.parse(JSON.stringify(routingTables));
-                    
-                    // Process each received route
-                    receivedUpdates.forEach(update => {
-                        // Check for AS path loop
-                        if (update.route.asPath.includes(currentAS)) {
-                            simulationSteps.push({
-                                type: "loop",
-                                asId: currentAS,
-                                message: `${currentAS} detects loop in AS path ${update.route.asPath.join(" → ")} and discards update from ${update.fromAS}`
-                            });
-                            return;
-                        }
-                        
-                        // Add route to routing table
-                        if (!tempRoutingTable[currentAS][selectedPrefix]) {
-                            tempRoutingTable[currentAS][selectedPrefix] = [];
-                        }
-                        
-                        // Add received route
-                        tempRoutingTable[currentAS][selectedPrefix] = 
-                            Array.isArray(tempRoutingTable[currentAS][selectedPrefix]) ? 
-                            [...tempRoutingTable[currentAS][selectedPrefix], update.route] : 
-                            [update.route];
-                    });
-                    
-                    // Select best path
-                    let routes = Array.isArray(tempRoutingTable[currentAS][selectedPrefix]) ? 
-                        tempRoutingTable[currentAS][selectedPrefix] : 
-                        [tempRoutingTable[currentAS][selectedPrefix]];
-                    
-                    if (routes.length > 0) {
-                        // Apply BGP path selection process
-                        let bestRoute = selectBestPath(routes, currentAS);
-                        
-                        // Update routing table with best path marked
-                        routingTables[currentAS][selectedPrefix] = routes.map(route => ({
-                            ...route,
-                            best: route.nextHop === bestRoute.nextHop && 
-                                  route.asPath.toString() === bestRoute.asPath.toString()
-                        }));
-                        
-                        // Record best path
-                        bestPaths[currentAS][selectedPrefix] = bestRoute.nextHop;
-                        
-                        // Create step for selection
-                        simulationSteps.push({
-                            type: "select",
-                            asId: currentAS,
-                            message: `${currentAS} selects best path to ${selectedPrefix} via ${bestRoute.nextHop} with AS path: ${bestRoute.asPath.length > 0 ? bestRoute.asPath.join(" → ") : "Local"}`,
-                            bestRoute: bestRoute
-                        });
-                        
-                        // Propagate to neighbors (will be done in next steps)
-                    }
-                }
-            }
-            
-            // Final step showing complete state
-            simulationSteps.push({
-                type: "complete",
-                message: `Path Vector routing has converged for prefix ${selectedPrefix}. All ASes have selected their best paths.`
             });
         }
 
-        // Select best path using BGP path selection algorithm
-        function selectBestPath(routes, asId) {
-            if (routes.length === 1) return routes[0];
-            
-            let selectionStep = "BGP path selection process for " + asId + ":\n";
-            
-            // 1. Highest Local Preference
-            if (showLocalPref.checked) {
-                selectionStep += "\n1. Comparing Local Preference values:\n";
-                const highestLocalPref = Math.max(...routes.map(route => route.localPref));
-                routes = routes.filter(route => route.localPref >= highestLocalPref);
-                selectionStep += `   - Highest Local Preference: ${highestLocalPref}\n`;
-                selectionStep += `   - Remaining candidates: ${routes.map(r => r.nextHop).join(", ")}\n`;
-            } else {
-                selectionStep += "\n1. Local Preference comparison skipped (policy disabled)\n";
-            }
-            
-            // 2. Shortest AS Path
-            if (routes.length > 1) {
-                selectionStep += "\n2. Comparing AS Path length:\n";
-                const shortestASPathLength = Math.min(...routes.map(route => route.asPath.length));
-                routes = routes.filter(route => route.asPath.length <= shortestASPathLength);
-                selectionStep += `   - Shortest AS Path length: ${shortestASPathLength}\n`;
-                selectionStep += `   - Remaining candidates: ${routes.map(r => r.nextHop).join(", ")}\n`;
-            }
-            
-            // 3. Origin (IGP > EGP > Incomplete)
-            if (routes.length > 1) {
-                selectionStep += "\n3. Comparing Origin attribute (IGP > EGP > Incomplete):\n";
-                const originPriority = { "i": 3, "e": 2, "?": 1 };
-                const highestOriginValue = Math.max(...routes.map(route => originPriority[route.origin]));
-                routes = routes.filter(route => originPriority[route.origin] >= highestOriginValue);
-                selectionStep += `   - Highest Origin value: ${Object.keys(originPriority).find(key => originPriority[key] === highestOriginValue)}\n`;
-                selectionStep += `   - Remaining candidates: ${routes.map(r => r.nextHop).join(", ")}\n`;
-            }
-            
-            // 4. Lowest MED
-            if (routes.length > 1) {
-                selectionStep += "\n4. Comparing MED values:\n";
-                const lowestMED = Math.min(...routes.map(route => route.med));
-                routes = routes.filter(route => route.med <= lowestMED);
-                selectionStep += `   - Lowest MED: ${lowestMED}\n`;
-                selectionStep += `   - Remaining candidates: ${routes.map(r => r.nextHop).join(", ")}\n`;
-            }
-            
-            // 5. eBGP over iBGP (simplified in our case - all are eBGP)
-            
-            // 6. Lowest IGP cost to next hop (not implemented)
-            
-            // 7. Tie breaker - pick first one (lowest router ID in real BGP)
-            selectionStep += "\n7. Using tie-breaker (lowest AS ID as router ID):\n";
-            routes.sort((a, b) => a.nextHop.localeCompare(b.nextHop));
-            selectionStep += `   - Selected route: via ${routes[0].nextHop} with AS path: ${routes[0].asPath.join(" → ")}\n`;
-            
-            simulationSteps.push({
-                type: "selection-process",
-                asId: asId,
-                message: selectionStep
-            });
-            
-            return routes[0];
-        }
-
-        // Draw the network topology
+        // Draw the network graph
         function drawNetwork() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw connections first (lower layer)
-            asConnections.forEach(conn => {
-                const fromAS = autonomousSystems.find(as => as.id === conn.from);
-                const toAS = autonomousSystems.find(as => as.id === conn.to);
+            // Draw edges
+            edges.forEach(edge => {
+                const fromNode = nodes.find(n => n.id === edge.from);
+                const toNode = nodes.find(n => n.id === edge.to);
+                
+                // Determine if edge is part of selected path
+                const isSelectedPath = isEdgeInPath(edge, selectedPath);
                 
                 ctx.beginPath();
-                ctx.moveTo(fromAS.x, fromAS.y);
-                ctx.lineTo(toAS.x, toAS.y);
+                ctx.moveTo(fromNode.x, fromNode.y);
+                ctx.lineTo(toNode.x, toNode.y);
                 
-                // Check if this connection is part of the current path being visualized
-                const isPathHighlighted = 
-                    (pathsToShow[conn.from] && pathsToShow[conn.from].includes(conn.to)) ||
-                    (pathsToShow[conn.to] && pathsToShow[conn.to].includes(conn.from));
-                
-                if (isPathHighlighted) {
-                    ctx.strokeStyle = "#FF9800";
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([5, 3]);
+                if (isSelectedPath) {
+                    ctx.strokeStyle = '#03a9f4';
+                    ctx.lineWidth = 4;
                 } else {
-                    ctx.strokeStyle = "#888";
+                    // Edge color based on policy
+                    switch(edge.policy) {
+                        case 'prefer':
+                            ctx.strokeStyle = '#4CAF50';
+                            break;
+                        case 'standard':
+                            ctx.strokeStyle = '#888';
+                            break;
+                        case 'backup':
+                            ctx.strokeStyle = '#F44336';
+                            break;
+                        default:
+                            ctx.strokeStyle = '#888';
+                    }
                     ctx.lineWidth = 2;
-                    ctx.setLineDash([]);
                 }
                 
                 ctx.stroke();
-                ctx.setLineDash([]);
+                
+                // Draw the edge cost label
+                const midX = (fromNode.x + toNode.x) / 2;
+                const midY = (fromNode.y + toNode.y) / 2;
+                
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(midX, midY, 10, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = '#888';
+                ctx.stroke();
+                
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(edge.cost.toString(), midX, midY);
             });
             
-            // Draw ASes
-            autonomousSystems.forEach(as => {
-                // Determine if this AS is special
-                const isOrigin = as.id === originAS;
-                const isCurrentlyProcessing = as.id === currentAS;
-                const statusColor = isOrigin ? "#4CAF50" : (isCurrentlyProcessing ? "#2196F3" : as.color);
+            // Draw nodes
+            nodes.forEach(node => {
+                // Node color based on status
+                let nodeColor = node.color;
+                if (node.id === sourceAS) {
+                    nodeColor = '#8bc34a'; // Source AS color
+                } else if (node.id === destinationAS) {
+                    nodeColor = '#ff9800'; // Destination AS color
+                } else if (node.id === currentActiveAS) {
+                    nodeColor = '#9c27b0'; // Active AS (sending updates)
+                }
                 
-                // Draw AS circle
                 ctx.beginPath();
-                ctx.arc(as.x, as.y, as.radius, 0, 2 * Math.PI);
-                ctx.fillStyle = statusColor;
+                ctx.arc(node.x, node.y, 25, 0, 2 * Math.PI);
+                ctx.fillStyle = nodeColor;
                 ctx.fill();
-                ctx.strokeStyle = "#000";
+                ctx.strokeStyle = '#333';
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
-                // Draw AS ID
-                ctx.fillStyle = as.textColor;
-                ctx.font = "bold 16px Arial";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText(as.id, as.x, as.y);
-                
-                // Add small indicator for originated prefixes
-                if (as.originates.length > 0) {
-                    ctx.font = "12px Arial";
-                    ctx.fillStyle = "#333";
-                    const prefixText = as.originates.includes(selectedPrefix) ? 
-                        selectedPrefix : `${as.originates.length} prefix(es)`;
-                    ctx.fillText(prefixText, as.x, as.y + as.radius + 15);
-                }
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.id, node.x, node.y);
             });
+        }
+
+        // Check if an edge is part of the selected path
+        function isEdgeInPath(edge, path) {
+            if (path.length < 2) return false;
+            
+            for (let i = 0; i < path.length - 1; i++) {
+                if ((edge.from === path[i] && edge.to === path[i+1]) || 
+                    (edge.to === path[i] && edge.from === path[i+1])) {
+                    return true;
+                }
+            }
+            
+            return false;
         }
 
         // Update routing tables display
         function updateRoutingTables() {
-            let tablesHTML = "";
+            const displayedASes = simulationFinished ? nodes.map(n => n.id) : [sourceAS];
+            let tablesHTML = '';
             
-            autonomousSystems.forEach(as => {
-                tablesHTML += `<h3>${as.id} Routing Table</h3>`;
+            displayedASes.forEach(asId => {
+                tablesHTML += `<h3>Routing Table for ${asId}</h3>`;
+                tablesHTML += `
+                    <table>
+                        <tr>
+                            <th>Destination</th>
+                            <th>Path Vector</th>
+                            <th>Cost</th>
+                        </tr>
+                `;
                 
-                if (!routingTables[as.id][selectedPrefix] || 
-                    (Array.isArray(routingTables[as.id][selectedPrefix]) && 
-                     routingTables[as.id][selectedPrefix].length === 0)) {
-                    tablesHTML += `<p>No routes for ${selectedPrefix}</p>`;
-                } else {
+                // Sort destinations for consistent display
+                const destinations = Object.keys(routingTables[asId]).sort();
+                
+                destinations.forEach(destId => {
+                    const entry = routingTables[asId][destId];
+                    const pathStr = entry.path.length > 0 ? entry.path.join(' → ') : 'No path';
+                    const costStr = entry.cost === Infinity ? '∞' : entry.cost;
+                    
+                    // Highlight the row if it's the selected destination
+                    const rowClass = (destId === destinationAS && asId === sourceAS) ? 'highlight-row' : '';
+                    
                     tablesHTML += `
-                        <table>
-                            <tr>
-                                <th>Prefix</th>
-                                <th>Next Hop</th>
-                                <th>AS Path</th>
-                                <th>Local Pref</th>
-                                <th>Status</th>
-                            </tr>
+                        <tr class="${rowClass}">
+                            <td>${destId}</td>
+                            <td>${pathStr}</td>
+                            <td>${costStr}</td>
+                        </tr>
                     `;
-                    
-                    const routes = Array.isArray(routingTables[as.id][selectedPrefix]) ? 
-                        routingTables[as.id][selectedPrefix] : 
-                        [routingTables[as.id][selectedPrefix]];
-                    
-                    routes.forEach(route => {
-                        const asPath = route.asPath.length > 0 ? route.asPath.join(" → ") : "-";
-                        const isBest = route.best ? "✓ Best" : "";
-                        
-                        tablesHTML += `
-                            <tr class="${route.best ? 'highlight-row' : ''}">
-                                <td>${selectedPrefix}</td>
-                                <td>${route.nextHop}</td>
-                                <td>${asPath}</td>
-                                <td>${route.localPref}</td>
-                                <td>${isBest}</td>
-                            </tr>
-                        `;
-                    });
-                    
-                    tablesHTML += `</table>`;
-                }
+                });
+                
+                tablesHTML += `</table>`;
             });
             
             routingTablesContainer.innerHTML = tablesHTML;
         }
 
-        // Update steps log
-        function updateStepsLog() {
-            let logContent = "";
+        // Initialize Path Vector simulation
+        function initSimulation() {
+            sourceAS = sourceASSelect.value;
+            destinationAS = destinationASSelect.value;
             
-            for (let i = 0; i <= currentStep; i++) {
-                if (i < simulationSteps.length) {
-                    const step = simulationSteps[i];
-                    
-                    if (i === currentStep) {
-                        logContent += `<span class="step-highlight">${step.message}</span>\n\n`;
+            if (sourceAS === destinationAS) {
+                alert("Source and destination AS must be different!");
+                return false;
+            }
+            
+            // Reset variables
+            routingTables = {};
+            simulationSteps = [];
+            currentStep = 0;
+            simulationFinished = false;
+            currentActiveAS = null;
+            selectedPath = [];
+            
+            // Reset node colors
+            nodes.forEach(node => {
+                node.color = '#607d8b';
+                node.status = 'normal';
+            });
+            
+            // Initialize routing tables
+            nodes.forEach(node => {
+                routingTables[node.id] = {};
+                
+                // Each AS initially only knows about itself
+                nodes.forEach(dest => {
+                    if (node.id === dest.id) {
+                        // Path to self is just self with cost 0
+                        routingTables[node.id][dest.id] = {
+                            path: [node.id],
+                            cost: 0
+                        };
                     } else {
-                        logContent += `${step.message}\n\n`;
+                        // Path to other ASes is initially unknown
+                        routingTables[node.id][dest.id] = {
+                            path: [],
+                            cost: Infinity
+                        };
                     }
+                });
+            });
+            
+            // Log initialization step
+            simulationSteps.push({
+                type: 'init',
+                message: `Initializing Path Vector Routing from ${sourceAS} to ${destinationAS}\n\n` + 
+                         `1. Each AS begins with knowledge only of itself\n` +
+                         `2. ASes will exchange path vectors with their neighbors\n` +
+                         `3. Path selection considers both cost and policy preferences\n`
+            });
+            
+            // Prepare for first round of updates
+            simulationSteps.push({
+                type: 'round-start',
+                message: `\n## Round 1: Initial Path Advertisement\n\n` +
+                         `Each AS advertises its existence to its neighbors\n`
+            });
+            
+            // Initial advertisements from every AS
+            nodes.forEach(node => {
+                const neighbors = getNeighbors(node.id);
+                
+                if (neighbors.length > 0) {
+                    let msg = `${node.id} advertises itself to neighbors: ${neighbors.map(n => n.id).join(', ')}\n`;
+                    
+                    neighbors.forEach(neighbor => {
+                        // Update neighbor's routing table with direct path to this AS
+                        const edge = getEdge(node.id, neighbor.id);
+                        if (edge) {
+                            routingTables[neighbor.id][node.id] = {
+                                path: [neighbor.id, node.id],
+                                cost: edge.cost
+                            };
+                            
+                            msg += `  → ${neighbor.id} learns path to ${node.id}: [${neighbor.id} → ${node.id}] with cost ${edge.cost}\n`;
+                        }
+                    });
+                    
+                    simulationSteps.push({
+                        type: 'update',
+                        asId: node.id,
+                        message: msg
+                    });
+                }
+            });
+            
+            // Start Round 2
+            simulationSteps.push({
+                type: 'round-start',
+                message: `\n## Round 2: Path Propagation\n\n` +
+                         `ASes exchange learned paths with their neighbors\n`
+            });
+            
+            // Each AS propagates its knowledge
+            nodes.forEach(node => {
+                propagatePathsFromAS(node.id, 2);
+            });
+            
+            // Add final convergence step
+            simulationSteps.push({
+                type: 'round-start',
+                message: `\n## Final Round: Route Selection\n\n` +
+                         `Each AS selects best paths based on path length, cost, and policy\n`
+            });
+            
+            // Show the best path from source to destination
+            const bestPath = routingTables[sourceAS][destinationAS].path;
+            const bestCost = routingTables[sourceAS][destinationAS].cost;
+            
+            if (bestPath.length > 0) {
+                simulationSteps.push({
+                    type: 'best-path',
+                    path: bestPath,
+                    message: `Best path from ${sourceAS} to ${destinationAS}:\n` +
+                             `Path: ${bestPath.join(' → ')}\n` +
+                             `Cost: ${bestCost}\n\n` +
+                             `Path Vector routing ensures loop-free paths by including the entire AS path.\n` +
+                             `ASes can implement policy decisions based on the complete path information.\n`
+                });
+            } else {
+                simulationSteps.push({
+                    type: 'no-path',
+                    message: `No path exists from ${sourceAS} to ${destinationAS}.\n\n` +
+                             `This could be due to network partitioning or policy restrictions.\n`
+                });
+            }
+            
+            totalSteps = simulationSteps.length;
+            currentStep = 0;
+            
+            updateStepsLog();
+            drawNetwork();
+            updateRoutingTables();
+            
+            return true;
+        }
+
+        // Helper function to propagate paths from an AS
+        function propagatePathsFromAS(asId, round) {
+            const neighbors = getNeighbors(asId);
+            
+            if (neighbors.length === 0) return;
+            
+            let hasUpdates = false;
+            let msg = `${asId} advertises paths to neighbors: ${neighbors.map(n => n.id).join(', ')}\n`;
+            
+            // For each destination this AS knows about
+            Object.keys(routingTables[asId]).forEach(destId => {
+                // Skip advertising paths to self
+                if (destId === asId) return;
+                
+                const pathToDestination = routingTables[asId][destId];
+                
+                // Only advertise if there's a valid path
+                if (pathToDestination.path.length > 0) {
+                    neighbors.forEach(neighbor => {
+                        // Don't advertise paths back to the neighbor
+                        if (pathToDestination.path.includes(neighbor.id)) {
+                            return;
+                        }
+                        
+                        // Calculate cost through this AS
+                        const edge = getEdge(asId, neighbor.id);
+                        const newCost = pathToDestination.cost + edge.cost;
+                        
+                        // Construct new path vector
+                        const newPath = [neighbor.id, ...pathToDestination.path];
+                        
+                        // Check if this is a better path or new destination
+                        const currentPath = routingTables[neighbor.id][destId];
+                        
+                        if (currentPath.path.length === 0 || newCost < currentPath.cost) {
+                            // Update routing table with better path
+                            routingTables[neighbor.id][destId] = {
+                                path: newPath,
+                                cost: newCost
+                            };
+                            
+                            msg += `  → ${neighbor.id} learns path to ${destId}: [${newPath.join(' → ')}] with cost ${newCost}\n`;
+                            hasUpdates = true;
+                        }
+                    });
+                }
+            });
+            
+            if (hasUpdates) {
+                simulationSteps.push({
+                    type: 'update',
+                    asId: asId,
+                    message: msg
+                });
+                
+                // Recursively propagate if needed
+                if (round < 4) { // Limit to prevent infinite recursion
+                    neighbors.forEach(neighbor => {
+                        propagatePathsFromAS(neighbor.id, round + 1);
+                    });
+                }
+            }
+        }
+
+        // Perform one step of the simulation
+        function performSimulationStep() {
+            if (currentStep >= totalSteps) {
+                simulationFinished = true;
+                return false;
+            }
+            
+            const step = simulationSteps[currentStep];
+            
+            // Reset active AS
+            currentActiveAS = null;
+            selectedPath = [];
+            
+            // Process different step types
+            switch (step.type) {
+                case 'update':
+                    currentActiveAS = step.asId;
+                    break;
+                    
+                case 'best-path':
+                    selectedPath = step.path;
+                    break;
+            }
+            
+            currentStep++;
+            
+            // Check if simulation is finished
+            if (currentStep >= totalSteps) {
+                simulationFinished = true;
+                updateRoutingTables(); // Show all tables at the end
+            }
+            
+            updateStepsLog();
+            drawNetwork();
+            updateRoutingTables();
+            
+            return !simulationFinished;
+        }
+
+        // Helper function to get neighboring ASes
+        function getNeighbors(asId) {
+            const neighbors = [];
+            
+            edges.forEach(edge => {
+                if (edge.from === asId) {
+                    neighbors.push(nodes.find(n => n.id === edge.to));
+                } else if (edge.to === asId) {
+                    neighbors.push(nodes.find(n => n.id === edge.from));
+                }
+            });
+            
+            return neighbors;
+        }
+
+        // Helper function to get edge between two ASes
+        function getEdge(as1, as2) {
+            return edges.find(e => 
+                (e.from === as1 && e.to === as2) || 
+                (e.from === as2 && e.to === as1)
+            );
+        }
+
+        // Update the steps log with current simulation steps
+        function updateStepsLog() {
+            let logContent = '';
+            
+            for (let i = 0; i < currentStep; i++) {
+                const step = simulationSteps[i];
+                
+                if (i === currentStep - 1) {
+                    logContent += `<span class="step-highlight">${step.message}</span>\n`;
+                } else {
+                    logContent += `${step.message}\n`;
                 }
             }
             
@@ -681,205 +750,37 @@
             stepsLog.scrollTop = stepsLog.scrollHeight;
         }
 
-        // Process next step in simulation
-        function processNextStep() {
-            if (currentStep < simulationSteps.length - 1) {
-                currentStep++;
-                const step = simulationSteps[currentStep];
-                
-                // Update current AS being processed
-                if (step.asId) {
-                    currentAS = step.asId;
-                } else {
-                    currentAS = "";
-                }
-                
-                // Update paths to show based on step
-                updatePathsToShow(step);
-                
-                // Update UI
-                updateStepsLog();
-                updateRoutingTables();
-                drawNetwork();
-                
-                // Check if simulation is complete
-                if (currentStep === simulationSteps.length - 1) {
-                    simulationComplete = true;
-                    stepBtn.disabled = true;
-                }
-            }
-        }
-
-        // Update which paths should be highlighted based on current step
-        function updatePathsToShow(step) {
-            pathsToShow = {};
-            
-            if (step.type === "select" && step.bestRoute) {
-                const route = step.bestRoute;
-                const asId = step.asId;
-                
-                if (route.asPath.length > 0) {
-                    // Construct end-to-end path
-                    let currentNode = asId;
-                    for (let i = 0; i < route.asPath.length; i++) {
-                        const nextNode = route.asPath[i];
-                        
-                        if (!pathsToShow[currentNode]) {
-                            pathsToShow[currentNode] = [];
-                        }
-                        
-                        pathsToShow[currentNode].push(nextNode);
-                        currentNode = nextNode;
-                    }
-                }
-            } else if (step.type === "complete") {
-                // Show all best paths
-                autonomousSystems.forEach(as => {
-                    if (bestPaths[as.id][selectedPrefix]) {
-                        const nextHop = bestPaths[as.id][selectedPrefix];
-                        
-                        if (nextHop !== "Local") {
-                            if (!pathsToShow[as.id]) {
-                                pathsToShow[as.id] = [];
-                            }
-                            
-                            pathsToShow[as.id].push(nextHop);
-                        }
-                    }
-                });
-            }
-        }
-
         // Event listeners
         startBtn.addEventListener('click', () => {
-            initSimulator();
+            if (initSimulation()) {
+                startBtn.disabled = true;
+                stepBtn.disabled = false;
+            }
         });
 
         stepBtn.addEventListener('click', () => {
-            processNextStep();
+            const moreSteps = performSimulationStep();
+            if (!moreSteps) {
+                stepBtn.disabled = true;
+            }
         });
 
         resetBtn.addEventListener('click', () => {
-            currentStep = 0;
-            simulationSteps = [];
-            routingTables = {};
-            bestPaths = {};
-            pathsToShow = {};
-            currentAS = "";
-            simulationComplete = false;
-            
-            startBtn.disabled = false;
-            stepBtn.disabled = true;
-            
-            stepsLog.innerHTML = '';
-            routingTablesContainer.innerHTML = '';
-            
-            drawNetwork();
+            initUI();
         });
 
-        showLocalPref.addEventListener('change', () => {
-            // Reset and re-initialize if local preference policy changes
-            if (!startBtn.disabled) {
-                return; // Only reinitialize if simulation has been started
-            }
-            
-            currentStep = 0;
-            initSimulator();
+        sourceASSelect.addEventListener('change', () => {
+            sourceAS = sourceASSelect.value;
         });
 
-        // Setup tooltip functionality
-        canvas.addEventListener('mousemove', (event) => {
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = event.clientX - rect.left;
-            const mouseY = event.clientY - rect.top;
-            
-            // Check if mouse is over an AS
-            let hoveredAS = null;
-            for (let as of autonomousSystems) {
-                const distance = Math.sqrt(Math.pow(mouseX - as.x, 2) + Math.pow(mouseY - as.y, 2));
-                if (distance <= as.radius) {
-                   hoveredAS = as;
-                    break;
-                }
-            }
-            
-            if (hoveredAS) {
-                tooltip.style.display = 'block';
-                tooltip.style.left = (event.clientX + 10) + 'px';
-                tooltip.style.top = (event.clientY + 10) + 'px';
-                
-                // Get route information for the tooltip
-                let tooltipContent = `<strong>${hoveredAS.id}</strong><br>`;
-                
-                if (hoveredAS.originates.includes(selectedPrefix)) {
-                    tooltipContent += `Originates ${selectedPrefix}<br>`;
-                }
-                
-                if (routingTables[hoveredAS.id] && routingTables[hoveredAS.id][selectedPrefix]) {
-                    const routes = Array.isArray(routingTables[hoveredAS.id][selectedPrefix]) ? 
-                        routingTables[hoveredAS.id][selectedPrefix] : 
-                        [routingTables[hoveredAS.id][selectedPrefix]];
-                    
-                    const bestRoute = routes.find(route => route.best);
-                    
-                    if (bestRoute) {
-                        tooltipContent += `Best path: via ${bestRoute.nextHop}<br>`;
-                        tooltipContent += `AS Path: ${bestRoute.asPath.length > 0 ? bestRoute.asPath.join(" → ") : "Local"}<br>`;
-                        tooltipContent += `Local Pref: ${bestRoute.localPref}`;
-                    }
-                } else {
-                    tooltipContent += `No route to ${selectedPrefix}`;
-                }
-                
-                tooltip.innerHTML = tooltipContent;
-            } else {
-                tooltip.style.display = 'none';
-            }
+        destinationASSelect.addEventListener('change', () => {
+            destinationAS = destinationASSelect.value;
         });
-        
-        canvas.addEventListener('mouseout', () => {
-            tooltip.style.display = 'none';
-        });
-        
-        // Adjust canvas size on window resize
-        window.addEventListener('resize', () => {
-            if (window.innerWidth < 840) {
-                canvas.width = window.innerWidth - 40;
-                // Recalculate AS positions
-                const centerX = canvas.width / 2;
-                autonomousSystems.forEach(as => {
-                    if (as.x === 400) { // center aligned AS
-                        as.x = centerX;
-                    } else if (as.x < 400) { // left aligned AS
-                        as.x = centerX - (400 - as.x) * (centerX / 400);
-                    } else { // right aligned AS
-                        as.x = centerX + (as.x - 400) * (centerX / 400);
-                    }
-                });
-            } else if (canvas.width !== 800) {
-                canvas.width = 800;
-                // Reset AS positions
-                autonomousSystems[0].x = 400; // AS1
-                autonomousSystems[1].x = 200; // AS2
-                autonomousSystems[2].x = 400; // AS3
-                autonomousSystems[3].x = 600; // AS4
-                autonomousSystems[4].x = 400; // AS5
-            }
-            drawNetwork();
-        });
-        
-        // Initialize network view
-        drawNetwork();
 
-        // Tutorial message
-        document.addEventListener('DOMContentLoaded', () => {
-            stepsLog.innerHTML = "Welcome to the Path Vector Routing Simulator!\n\n" +
-                "1. Select a destination prefix from the dropdown\n" +
-                "2. Click 'Start Simulation' to initialize\n" +
-                "3. Click 'Next Update' to step through the BGP update process\n" +
-                "4. Monitor routing tables and path selections\n\n" +
-                "The simulation shows how BGP, a path vector protocol, exchanges routing information between autonomous systems (ASes) with policy-based decision making.";
-        });
+        // Initialize the UI on page load
+        window.onload = () => {
+            initUI();
+        };
     </script>
 </body>
-</html> 
+</html>
