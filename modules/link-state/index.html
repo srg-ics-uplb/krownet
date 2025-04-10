@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link State Routing Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background-color: white;
+            display: block;
+            margin: 20px auto;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .steps-log {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fafafa;
+            font-family: monospace;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        .info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e7f3fe;
+            border-left: 5px solid #2196F3;
+        }
+        .step-highlight {
+            background-color: #fffacd;
+            font-weight: bold;
+        }
+        .highlight-row {
+            background-color: #e6ffe6;
+        }
+        .highlight-cell {
+            background-color: #b3ffb3;
+            font-weight: bold;
+        }
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 10px 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            display: inline-block;
+        }
+        .path-animation {
+            transition: stroke-dashoffset 0.5s linear;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Link State Routing Algorithm Simulator</h1>
+        
+        <div class="info">
+            <p>This simulator demonstrates Link State Routing using Dijkstra's shortest path algorithm. Unlike Distance Vector routing, Link State routing builds a complete map of the network topology and calculates the shortest paths from a source node to all destinations.</p>
+            <p>The example network consists of 6 nodes (routers) interconnected with weighted links representing communication costs.</p>
+        </div>
+        
+        <div class="controls">
+            <label for="sourceNode">Source Node:</label>
+            <select id="sourceNode"></select>
+            <button id="startBtn">Run Algorithm</button>
+            <button id="stepBtn" disabled>Next Step</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #4CAF50;"></span>
+                <span>Permanent Node</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #FFA500;"></span>
+                <span>Tentative Node</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #888;"></span>
+                <span>Unvisited Node</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background-color: #39F;"></span>
+                <span>Shortest Path</span>
+            </div>
+        </div>
+        
+        <canvas id="networkCanvas" width="600" height="400"></canvas>
+        
+        <div class="grid-layout">
+            <div>
+                <h2>Routing Table</h2>
+                <div id="routingTable" class="table-container"></div>
+            </div>
+            
+            <div>
+                <h2>Algorithm Steps</h2>
+                <div id="stepsLog" class="steps-log"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Network topology definition
+        const nodes = [
+            { id: 'A', x: 100, y: 100, color: '#888', status: 'unvisited' },
+            { id: 'B', x: 300, y: 50, color: '#888', status: 'unvisited' },
+            { id: 'C', x: 500, y: 100, color: '#888', status: 'unvisited' },
+            { id: 'D', x: 100, y: 300, color: '#888', status: 'unvisited' },
+            { id: 'E', x: 300, y: 300, color: '#888', status: 'unvisited' },
+            { id: 'F', x: 500, y: 300, color: '#888', status: 'unvisited' }
+        ];
+
+        const edges = [
+            { from: 'A', to: 'B', cost: 3 },
+            { from: 'A', to: 'D', cost: 4 },
+            { from: 'B', to: 'C', cost: 2 },
+            { from: 'B', to: 'E', cost: 5 },
+            { from: 'C', to: 'F', cost: 3 },
+            { from: 'D', to: 'E', cost: 2 },
+            { from: 'E', to: 'F', cost: 4 },
+            { from: 'B', to: 'D', cost: 4 }
+        ];
+
+        // Get DOM elements
+        const canvas = document.getElementById('networkCanvas');
+        const ctx = canvas.getContext('2d');
+        const sourceNodeSelect = document.getElementById('sourceNode');
+        const startBtn = document.getElementById('startBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const routingTableContainer = document.getElementById('routingTable');
+        const stepsLog = document.getElementById('stepsLog');
+
+        // Variables for algorithm
+        let sourceNode = '';
+        let distances = {};
+        let previous = {};
+        let permanentNodes = new Set();
+        let tentativeNodes = new Set();
+        let shortestPaths = {};
+        let simulationSteps = [];
+        let currentStep = 0;
+        let totalSteps = 0;
+        let algorithmFinished = false;
+
+        // Initialize the UI
+        function initUI() {
+            // Populate source node dropdown
+            sourceNodeSelect.innerHTML = '';
+            nodes.forEach(node => {
+                const option = document.createElement('option');
+                option.value = node.id;
+                option.textContent = `Node ${node.id}`;
+                sourceNodeSelect.appendChild(option);
+            });
+            
+            // Set default source node
+            sourceNode = nodes[0].id;
+            sourceNodeSelect.value = sourceNode;
+            
+            // Reset node colors
+            nodes.forEach(node => {
+                node.color = '#888';
+                node.status = 'unvisited';
+            });
+            
+            // Draw the network
+            drawNetwork();
+            
+            // Clear routing table and steps log
+            routingTableContainer.innerHTML = '';
+            stepsLog.innerHTML = '';
+            
+            // Enable/disable buttons
+            startBtn.disabled = false;
+            stepBtn.disabled = true;
+            
+            // Reset algorithm variables
+            distances = {};
+            previous = {};
+            permanentNodes = new Set();
+            tentativeNodes = new Set();
+            shortestPaths = {};
+            simulationSteps = [];
+            currentStep = 0;
+            totalSteps = 0;
+            algorithmFinished = false;
+        }
+
+        // Draw the network graph
+        function drawNetwork() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw edges
+            edges.forEach(edge => {
+                const fromNode = nodes.find(n => n.id === edge.from);
+                const toNode = nodes.find(n => n.id === edge.to);
+                
+                ctx.beginPath();
+                ctx.moveTo(fromNode.x, fromNode.y);
+                ctx.lineTo(toNode.x, toNode.y);
+                
+                // Check if this edge is part of a shortest path
+                const isShortestPath = 
+                    (shortestPaths[edge.from] && shortestPaths[edge.from].includes(edge.to)) ||
+                    (shortestPaths[edge.to] && shortestPaths[edge.to].includes(edge.from));
+                
+                if (isShortestPath) {
+                    ctx.strokeStyle = '#39F';
+                    ctx.lineWidth = 3;
+                } else {
+                    ctx.strokeStyle = '#888';
+                    ctx.lineWidth = 2;
+                }
+                
+                ctx.stroke();
+                
+                // Draw the edge cost label
+                const midX = (fromNode.x + toNode.x) / 2;
+                const midY = (fromNode.y + toNode.y) / 2;
+                
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(midX, midY, 10, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = '#888';
+                ctx.stroke();
+                
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(edge.cost.toString(), midX, midY);
+            });
+            
+            // Draw nodes
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 20, 0, 2 * Math.PI);
+                ctx.fillStyle = node.color;
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.id, node.x, node.y);
+            });
+        }
+
+        // Update the routing table display
+        function updateRoutingTable() {
+            let tableHTML = `
+                <table>
+                    <tr>
+                        <th>Destination</th>
+                        <th>Distance</th>
+                        <th>Path</th>
+                    </tr>
+            `;
+            
+            nodes.forEach(node => {
+                if (node.id !== sourceNode) {
+                    const distance = distances[node.id] === Infinity ? '∞' : distances[node.id];
+                    let path = getPathToNode(node.id);
+                    
+                    const rowClass = permanentNodes.has(node.id) ? 'highlight-row' : '';
+                    
+                    tableHTML += `
+                        <tr class="${rowClass}">
+                            <td>${sourceNode} → ${node.id}</td>
+                            <td>${distance}</td>
+                            <td>${path}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            tableHTML += `</table>`;
+            routingTableContainer.innerHTML = tableHTML;
+        }
+
+        // Get the path to a node
+        function getPathToNode(nodeId) {
+            if (distances[nodeId] === Infinity) return 'No path';
+            
+            const path = [];
+            let current = nodeId;
+            
+            while (current !== sourceNode) {
+                path.unshift(current);
+                current = previous[current];
+                if (!current) return 'Not yet computed';
+            }
+            
+            path.unshift(sourceNode);
+            return path.join(' → ');
+        }
+
+        // Initialize the Dijkstra algorithm
+        function initDijkstra() {
+            sourceNode = sourceNodeSelect.value;
+            distances = {};
+            previous = {};
+            permanentNodes = new Set();
+            tentativeNodes = new Set();
+            shortestPaths = {};
+            simulationSteps = [];
+            currentStep = 0;
+            algorithmFinished = false;
+            
+            // Reset node status and colors
+            nodes.forEach(node => {
+                node.status = 'unvisited';
+                node.color = '#888';
+                
+                // Initialize distances to Infinity
+                distances[node.id] = Infinity;
+            });
+            
+            // Distance to source is 0
+            distances[sourceNode] = 0;
+            
+            // Add source to tentative nodes
+            tentativeNodes.add(sourceNode);
+            const sourceNodeObj = nodes.find(n => n.id === sourceNode);
+            sourceNodeObj.status = 'tentative';
+            sourceNodeObj.color = '#FFA500';
+            
+            // Log initialization step
+            simulationSteps.push({
+                type: 'init',
+                message: `Initializing Link State Routing (Dijkstra's Algorithm) from source node ${sourceNode}\n\n` + 
+                         `1. Set distance to source node ${sourceNode} = 0\n` +
+                         `2. Set distance to all other nodes = ∞\n` +
+                         `3. Add source node ${sourceNode} to tentative set\n`
+            });
+            
+            updateStepsLog();
+            drawNetwork();
+            updateRoutingTable();
+        }
+
+        // Perform one step of Dijkstra's algorithm
+        function performDijkstraStep() {
+            if (algorithmFinished) return false;
+            
+            // Find the tentative node with minimum distance
+            let minDistance = Infinity;
+            let minDistanceNode = null;
+            
+            tentativeNodes.forEach(nodeId => {
+                if (distances[nodeId] < minDistance) {
+                    minDistance = distances[nodeId];
+                    minDistanceNode = nodeId;
+                }
+            });
+            
+            // If no tentative nodes or all remaining nodes are unreachable
+            if (minDistanceNode === null) {
+                simulationSteps.push({
+                    type: 'finish',
+                    message: `Algorithm complete. All reachable nodes have been assigned permanent distances.`
+                });
+                algorithmFinished = true;
+                updateStepsLog();
+                return false;
+            }
+            
+            // Move node from tentative to permanent
+            tentativeNodes.delete(minDistanceNode);
+            permanentNodes.add(minDistanceNode);
+            
+            // Update node status and color
+            const currentNode = nodes.find(n => n.id === minDistanceNode);
+            currentNode.status = 'permanent';
+            currentNode.color = '#4CAF50';
+            
+            // Build step log message
+            let stepMessage = `\n## Processing node ${minDistanceNode} (current distance: ${distances[minDistanceNode]})\n\n`;
+            stepMessage += `Moving ${minDistanceNode} from tentative to permanent set\n\n`;
+            
+            // Get neighbors
+            const neighbors = getNeighbors(minDistanceNode);
+            stepMessage += `Examining neighbors of ${minDistanceNode}: ${neighbors.map(n => n.id).join(', ')}\n\n`;
+            
+            // Update distances to neighbors
+            neighbors.forEach(neighbor => {
+                const neighborId = neighbor.id;
+                
+                // Skip permanent nodes
+                if (permanentNodes.has(neighborId)) {
+                    stepMessage += `Node ${neighborId} is already permanent, skipping\n`;
+                    return;
+                }
+                
+                // Calculate new distance
+                const edgeCost = getEdgeCost(minDistanceNode, neighborId);
+                const newDistance = distances[minDistanceNode] + edgeCost;
+                
+                stepMessage += `Checking path to ${neighborId}:\n`;
+                stepMessage += `  Current best distance: ${distances[neighborId] === Infinity ? '∞' : distances[neighborId]}\n`;
+                stepMessage += `  New potential distance: ${distances[minDistanceNode]} + ${edgeCost} = ${newDistance}\n`;
+                
+                // Update if new path is better
+                if (newDistance < distances[neighborId]) {
+                    distances[neighborId] = newDistance;
+                    previous[neighborId] = minDistanceNode;
+                    
+                    // Add to tentative set if not already there
+                    if (!tentativeNodes.has(neighborId)) {
+                        tentativeNodes.add(neighborId);
+                        const neighborNode = nodes.find(n => n.id === neighborId);
+                        neighborNode.status = 'tentative';
+                        neighborNode.color = '#FFA500';
+                    }
+                    
+                    stepMessage += `  → Better path found! Updated distance to ${neighborId}: ${newDistance}\n`;
+                    stepMessage += `  → Updated previous node for ${neighborId}: ${minDistanceNode}\n`;
+                    
+                    // Add to shortest paths
+                    if (!shortestPaths[minDistanceNode]) {
+                        shortestPaths[minDistanceNode] = [];
+                    }
+                    shortestPaths[minDistanceNode].push(neighborId);
+                } else {
+                    stepMessage += `  → Keeping current path (new path not better)\n`;
+                }
+            });
+            
+            // Log tentative set and distances
+            stepMessage += `\nAfter processing ${minDistanceNode}:\n`;
+            stepMessage += `Permanent nodes: ${Array.from(permanentNodes).join(', ')}\n`;
+            stepMessage += `Tentative nodes: ${Array.from(tentativeNodes).join(', ') || 'none'}\n\n`;
+            stepMessage += `Current distances from ${sourceNode}:\n`;
+            
+            nodes.forEach(node => {
+                if (node.id !== sourceNode) {
+                    const distance = distances[node.id] === Infinity ? '∞' : distances[node.id];
+                    stepMessage += `  ${sourceNode} → ${node.id}: ${distance}\n`;
+                }
+            });
+            
+            // Add step to log
+            simulationSteps.push({
+                type: 'step',
+                message: stepMessage
+            });
+            
+            // Check if algorithm is complete
+            if (tentativeNodes.size === 0) {
+                simulationSteps.push({
+                    type: 'finish',
+                    message: `\nAlgorithm complete. All nodes have been assigned permanent distances.\n\n` +
+                             `Final shortest paths from ${sourceNode}:\n`
+                });
+                
+                nodes.forEach(node => {
+                    if (node.id !== sourceNode) {
+                        const distance = distances[node.id] === Infinity ? '∞' : distances[node.id];
+                        let path = getPathToNode(node.id);
+                        simulationSteps[simulationSteps.length - 1].message += `  ${sourceNode} → ${node.id}: distance = ${distance}, path = ${path}\n`;
+                    }
+                });
+                
+                algorithmFinished = true;
+            }
+            
+            totalSteps = simulationSteps.length;
+            currentStep = totalSteps;
+            
+            updateStepsLog();
+            drawNetwork();
+            updateRoutingTable();
+            
+            return true;
+        }
+
+        // Helper function to get neighbors of a node
+        function getNeighbors(nodeId) {
+            const neighbors = [];
+            
+            edges.forEach(edge => {
+                if (edge.from === nodeId) {
+                    neighbors.push(nodes.find(n => n.id === edge.to));
+                } else if (edge.to === nodeId) {
+                    neighbors.push(nodes.find(n => n.id === edge.from));
+                }
+            });
+            
+            return neighbors;
+        }
+
+        // Helper function to get the cost of an edge between two nodes
+        function getEdgeCost(node1, node2) {
+            const edge = edges.find(e => 
+                (e.from === node1 && e.to === node2) || 
+                (e.from === node2 && e.to === node1)
+            );
+            
+            return edge ? edge.cost : Infinity;
+        }
+
+        // Update the steps log with current simulation steps
+        function updateStepsLog() {
+            let logContent = '';
+            
+            for (let i = 0; i < simulationSteps.length; i++) {
+                const step = simulationSteps[i];
+                
+                if (i === currentStep - 1) {
+                    logContent += `<span class="step-highlight">${step.message}</span>\n`;
+                } else {
+                    logContent += `${step.message}\n`;
+                }
+            }
+            
+            stepsLog.innerHTML = logContent;
+            stepsLog.scrollTop = stepsLog.scrollHeight;
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', () => {
+            initDijkstra();
+            startBtn.disabled = true;
+            stepBtn.disabled = false;
+        });
+
+        stepBtn.addEventListener('click', () => {
+            const moreSteps = performDijkstraStep();
+            if (!moreSteps) {
+                stepBtn.disabled = true;
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            initUI();
+        });
+
+        sourceNodeSelect.addEventListener('change', () => {
+            sourceNode = sourceNodeSelect.value;
+        });
+
+        // Initialize the UI on page load
+        window.onload = () => {
+            initUI();
+        };
+    </script>
+</body>
+</html>

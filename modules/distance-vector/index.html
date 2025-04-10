@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distance Vector Routing Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            background-color: white;
+            display: block;
+            margin: 20px auto;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 12px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .routing-table {
+            margin-bottom: 30px;
+        }
+        .steps-log {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fafafa;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e7f3fe;
+            border-left: 5px solid #2196F3;
+        }
+        .step-highlight {
+            background-color: #fffacd;
+            font-weight: bold;
+        }
+        .convergence {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .edge-label {
+            position: absolute;
+            background-color: white;
+            padding: 2px 5px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Distance Vector Routing Algorithm Simulator</h1>
+        
+        <div class="info">
+            <p>This simulator demonstrates the Distance Vector routing algorithm (also known as Bellman-Ford algorithm) used in computer networks. The algorithm allows routers to determine the shortest paths to all destinations in a network.</p>
+            <p>The example network consists of 5 nodes (routers) interconnected with weighted links representing communication costs.</p>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn">Start Simulation</button>
+            <button id="stepBtn" disabled>Next Step</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        
+        <canvas id="networkCanvas" width="600" height="400"></canvas>
+        
+        <div id="tableContainer" class="table-container">
+            <h2>Routing Tables</h2>
+            <div id="routingTables"></div>
+        </div>
+        
+        <h2>Calculation Steps</h2>
+        <div id="stepsLog" class="steps-log"></div>
+    </div>
+
+    <script>
+        // Define the network topology
+        const nodes = [
+            { id: 'A', x: 150, y: 100, color: '#FF5733' },
+            { id: 'B', x: 300, y: 100, color: '#33A8FF' },
+            { id: 'C', x: 450, y: 100, color: '#33FF57' },
+            { id: 'D', x: 225, y: 250, color: '#CB33FF' },
+            { id: 'E', x: 375, y: 250, color: '#FFD433' }
+        ];
+
+        const edges = [
+            { from: 'A', to: 'B', cost: 1 },
+            { from: 'B', to: 'C', cost: 3 },
+            { from: 'A', to: 'D', cost: 4 },
+            { from: 'B', to: 'D', cost: 2 },
+            { from: 'B', to: 'E', cost: 5 },
+            { from: 'C', to: 'E', cost: 2 },
+            { from: 'D', to: 'E', cost: 1 }
+        ];
+
+        // Initialize the distance vector tables
+        let distanceVectors = {};
+        let prevDistanceVectors = {};
+        let routingTables = {};
+        let iterations = 0;
+        let currentStep = 0;
+        let totalSteps = 0;
+        let simulationSteps = [];
+        let converged = false;
+
+        // Get DOM elements
+        const canvas = document.getElementById('networkCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const stepBtn = document.getElementById('stepBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const routingTablesContainer = document.getElementById('routingTables');
+        const stepsLog = document.getElementById('stepsLog');
+
+        // Initialize the simulation
+        function initSimulation() {
+            // Reset variables
+            distanceVectors = {};
+            prevDistanceVectors = {};
+            routingTables = {};
+            iterations = 0;
+            currentStep = 0;
+            totalSteps = 0;
+            simulationSteps = [];
+            converged = false;
+            stepsLog.innerHTML = '';
+
+            // Initialize distance vectors with infinity for all destinations except self (0)
+            nodes.forEach(node => {
+                distanceVectors[node.id] = {};
+                routingTables[node.id] = {};
+                
+                nodes.forEach(dest => {
+                    if (node.id === dest.id) {
+                        distanceVectors[node.id][dest.id] = 0;
+                    } else {
+                        distanceVectors[node.id][dest.id] = Infinity;
+                    }
+                    routingTables[node.id][dest.id] = dest.id;
+                });
+                
+                // Update direct neighbors with known link costs
+                edges.forEach(edge => {
+                    if (edge.from === node.id) {
+                        distanceVectors[node.id][edge.to] = edge.cost;
+                    } else if (edge.to === node.id) {
+                        distanceVectors[node.id][edge.from] = edge.cost;
+                    }
+                });
+            });
+
+            // Clone initial distance vectors to prevDistanceVectors
+            Object.keys(distanceVectors).forEach(node => {
+                prevDistanceVectors[node] = {...distanceVectors[node]};
+            });
+
+            // Draw network
+            drawNetwork();
+            
+            // Display initial routing tables
+            updateRoutingTables();
+            
+            simulationSteps.push({
+                type: 'initialize',
+                message: "Initializing distance vectors for all nodes."
+            });
+
+            // Initial state explanation
+            let initialExplanation = "INITIAL STATE:\n";
+            Object.keys(distanceVectors).sort().forEach(node => {
+                initialExplanation += `Node ${node} distance vector:\n`;
+                
+                Object.keys(distanceVectors[node]).sort().forEach(dest => {
+                    const cost = distanceVectors[node][dest] === Infinity ? "∞" : distanceVectors[node][dest];
+                    initialExplanation += `  → ${dest}: ${cost}\n`;
+                });
+                initialExplanation += "\n";
+            });
+            
+            simulationSteps.push({
+                type: 'state',
+                message: initialExplanation
+            });
+            
+            // Display initial steps
+            updateStepsLog();
+        }
+
+        // Draw the network graph
+        function drawNetwork() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw edges
+            edges.forEach(edge => {
+                const fromNode = nodes.find(n => n.id === edge.from);
+                const toNode = nodes.find(n => n.id === edge.to);
+                
+                ctx.beginPath();
+                ctx.moveTo(fromNode.x, fromNode.y);
+                ctx.lineTo(toNode.x, toNode.y);
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw the edge cost label
+                const midX = (fromNode.x + toNode.x) / 2;
+                const midY = (fromNode.y + toNode.y) / 2;
+                
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(midX, midY, 10, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = '#888';
+                ctx.stroke();
+                
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(edge.cost.toString(), midX, midY);
+            });
+            
+            // Draw nodes
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 20, 0, 2 * Math.PI);
+                ctx.fillStyle = node.color;
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.id, node.x, node.y);
+            });
+        }
+
+        // Update and display the routing tables
+        function updateRoutingTables() {
+            let tablesHTML = '';
+            
+            nodes.forEach(node => {
+                tablesHTML += `
+                    <div class="routing-table">
+                        <h3>Node ${node.id} Routing Table</h3>
+                        <table>
+                            <tr>
+                                <th>Destination</th>
+                                <th>Distance</th>
+                                <th>Next Hop</th>
+                            </tr>
+                `;
+                
+                Object.keys(distanceVectors[node.id]).sort().forEach(dest => {
+                    const distance = distanceVectors[node.id][dest];
+                    const nextHop = routingTables[node.id][dest];
+                    
+                    tablesHTML += `
+                        <tr>
+                            <td>${dest}</td>
+                            <td>${distance === Infinity ? '∞' : distance}</td>
+                            <td>${nextHop === dest ? '-' : nextHop}</td>
+                        </tr>
+                    `;
+                });
+                
+                tablesHTML += `
+                        </table>
+                    </div>
+                `;
+            });
+            
+            routingTablesContainer.innerHTML = tablesHTML;
+        }
+
+        // Perform one iteration of the distance vector algorithm
+        function performIteration() {
+            iterations++;
+            let changed = false;
+            let iterationLog = `ITERATION ${iterations}:\n`;
+            
+            // Store current distance vectors for comparison
+            Object.keys(distanceVectors).forEach(node => {
+                prevDistanceVectors[node] = {...distanceVectors[node]};
+            });
+            
+            // For each node
+            nodes.forEach(node => {
+                const nodeId = node.id;
+                iterationLog += `\nProcessing Node ${nodeId}:\n`;
+                
+                // For each destination
+                nodes.forEach(dest => {
+                    const destId = dest.id;
+                    if (nodeId === destId) return; // Skip self
+                    
+                    const currentDist = distanceVectors[nodeId][destId];
+                    let minDistance = currentDist;
+                    let bestNextHop = routingTables[nodeId][destId];
+                    
+                    // Check each neighbor for a better path
+                    let neighborChecks = '';
+                    
+                    // Find neighbors
+                    const neighbors = [];
+                    edges.forEach(edge => {
+                        if (edge.from === nodeId) neighbors.push(edge.to);
+                        else if (edge.to === nodeId) neighbors.push(edge.from);
+                    });
+                    
+                    neighbors.forEach(neighbor => {
+                        if (neighbor === destId) return; // Skip if neighbor is the destination (direct link already considered)
+                        
+                        const linkCost = getEdgeCost(nodeId, neighbor);
+                        const neighborToDest = prevDistanceVectors[neighbor][destId];
+                        const totalCost = linkCost + neighborToDest;
+                        
+                        neighborChecks += `  Check via ${neighbor}: cost(${nodeId}->${neighbor}) + dist(${neighbor}->${destId}) = ${linkCost} + ${neighborToDest === Infinity ? '∞' : neighborToDest} = ${totalCost === Infinity ? '∞' : totalCost}\n`;
+                        
+                        if (totalCost < minDistance) {
+                            minDistance = totalCost;
+                            bestNextHop = neighbor;
+                            neighborChecks += `  → New best path: via ${neighbor} with cost ${minDistance}\n`;
+                        }
+                    });
+                    
+                    iterationLog += `  Destination ${destId} (current = ${currentDist === Infinity ? '∞' : currentDist}):\n`;
+                    iterationLog += neighborChecks;
+                    
+                    // Update distance vector if a better path is found
+                    if (minDistance < currentDist) {
+                        distanceVectors[nodeId][destId] = minDistance;
+                        routingTables[nodeId][destId] = bestNextHop;
+                        changed = true;
+                        iterationLog += `  → Updated distance to ${destId}: ${currentDist === Infinity ? '∞' : currentDist} → ${minDistance}\n`;
+                        iterationLog += `  → Updated next hop to ${destId}: ${bestNextHop}\n`;
+                    } else {
+                        iterationLog += `  → No change for destination ${destId}\n`;
+                    }
+                });
+            });
+            
+            simulationSteps.push({
+                type: 'iteration',
+                message: iterationLog
+            });
+            
+            // Check for convergence
+            if (!changed) {
+                converged = true;
+                simulationSteps.push({
+                    type: 'converge',
+                    message: `\nCONVERGENCE ACHIEVED after ${iterations} iterations.\nAll distance vectors are stable and no further updates are needed.`
+                });
+            }
+            
+            totalSteps = simulationSteps.length;
+            updateRoutingTables();
+            return changed;
+        }
+
+        // Helper function to get edge cost between two nodes
+        function getEdgeCost(node1, node2) {
+            const edge = edges.find(e => 
+                (e.from === node1 && e.to === node2) || 
+                (e.from === node2 && e.to === node1)
+            );
+            return edge ? edge.cost : Infinity;
+        }
+
+        // Update the steps log with current simulation steps
+        function updateStepsLog() {
+            if (currentStep <= totalSteps) {
+                let logContent = '';
+                
+                for (let i = 0; i < currentStep; i++) {
+                    const step = simulationSteps[i];
+                    
+                    if (step.type === 'converge') {
+                        logContent += `<span class="convergence">${step.message}</span>\n`;
+                    } else if (i === currentStep - 1) {
+                        logContent += `<span class="step-highlight">${step.message}</span>\n`;
+                    } else {
+                        logContent += `${step.message}\n`;
+                    }
+                }
+                
+                stepsLog.innerHTML = logContent;
+                stepsLog.scrollTop = stepsLog.scrollHeight;
+            }
+        }
+
+        // Event listeners
+        startBtn.addEventListener('click', () => {
+            initSimulation();
+            startBtn.disabled = true;
+            stepBtn.disabled = false;
+            currentStep = 2; // Show initial state
+            updateStepsLog();
+        });
+
+        stepBtn.addEventListener('click', () => {
+            if (currentStep >= totalSteps) {
+                if (!converged) {
+                    performIteration();
+                    currentStep++;
+                    updateStepsLog();
+                } else {
+                    stepBtn.disabled = true;
+                }
+            } else {
+                currentStep++;
+                updateStepsLog();
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            initSimulation();
+            startBtn.disabled = false;
+            stepBtn.disabled = true;
+            currentStep = 0;
+            updateStepsLog();
+        });
+
+        // Initialize the simulation on page load
+        window.onload = () => {
+            initSimulation();
+        };
+    </script>
+</body>
+</html>
