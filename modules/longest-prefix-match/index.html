@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Longest Prefix Match Algorithm Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1, h2 {
+            color: #333;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 5px;
+        }
+        
+        select, button {
+            padding: 8px 12px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .visualization {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .topology {
+            width: 48%;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            position: relative;
+            height: 300px;
+        }
+        
+        .topology-node {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .topology-line {
+            position: absolute;
+            background-color: #333;
+            height: 2px;
+            transform-origin: 0 0;
+        }
+        
+        .forwarding-table {
+            width: 48%;
+            overflow: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        tr.selected {
+            background-color: #e6ffe6;
+        }
+        
+        tr.checking {
+            background-color: #fff0cc;
+        }
+        
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-left: 5px solid #4CAF50;
+        }
+        
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .step.active {
+            display: block;
+        }
+        
+        .packet {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #ff6347;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            transition: all 1s ease;
+        }
+        
+        .legend {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
+        
+        .binary-comparison {
+            font-family: monospace;
+            background-color: #f5f5f5;
+            padding: 5px;
+            margin-top: 5px;
+            border-radius: 3px;
+        }
+        
+        .match {
+            background-color: #c8e6c9;
+        }
+        
+        .no-match {
+            background-color: #ffcdd2;
+        }
+        
+        .prefix-length-indicator {
+            border-bottom: 2px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Longest Prefix Match Algorithm Visualization</h1>
+        
+        <div class="controls">
+            <label for="destination">Destination IP Address:</label>
+            <select id="destination">
+                <option value="192.168.1.5">192.168.1.5</option>
+                <option value="192.168.2.10">192.168.2.10</option>
+                <option value="192.168.5.20">192.168.5.20</option>
+                <option value="172.16.8.15">172.16.8.15</option>
+                <option value="10.10.5.7">10.10.5.7</option>
+            </select>
+            <button id="startBtn">Start Visualization</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        
+        <div class="visualization">
+            <div class="topology" id="topology">
+                <!-- Network topology will be rendered here -->
+            </div>
+            
+            <div class="forwarding-table">
+                <h2>Forwarding Table</h2>
+                <table id="forwardingTable">
+                    <thead>
+                        <tr>
+                            <th>Prefix</th>
+                            <th>Prefix Length</th>
+                            <th>Next Hop</th>
+                            <th>Interface</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-prefix="192.168.1.0" data-length="24">
+                            <td>192.168.1.0/24</td>
+                            <td>24</td>
+                            <td>Router B</td>
+                            <td>Interface 1</td>
+                        </tr>
+                        <tr data-prefix="192.168.0.0" data-length="16">
+                            <td>192.168.0.0/16</td>
+                            <td>16</td>
+                            <td>Router C</td>
+                            <td>Interface 2</td>
+                        </tr>
+                        <tr data-prefix="172.16.0.0" data-length="16">
+                            <td>172.16.0.0/16</td>
+                            <td>16</td>
+                            <td>Router D</td>
+                            <td>Interface 3</td>
+                        </tr>
+                        <tr data-prefix="10.0.0.0" data-length="8">
+                            <td>10.0.0.0/8</td>
+                            <td>8</td>
+                            <td>Router E</td>
+                            <td>Interface 4</td>
+                        </tr>
+                        <tr data-prefix="0.0.0.0" data-length="0">
+                            <td>0.0.0.0/0</td>
+                            <td>0</td>
+                            <td>Default Gateway</td>
+                            <td>Interface 5</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="explanation" id="explanation">
+            <h2>Algorithm Explanation</h2>
+            <div id="steps"></div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4CAF50;"></div>
+                <span>Router</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ff6347;"></div>
+                <span>Packet</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fff0cc;"></div>
+                <span>Entry being checked</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e6ffe6;"></div>
+                <span>Matching entry</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #c8e6c9;"></div>
+                <span>Matching bits</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffcdd2;"></div>
+                <span>Non-matching bits</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Network topology setup
+            const topology = document.getElementById('topology');
+            const forwardingTable = document.getElementById('forwardingTable');
+            const stepsContainer = document.getElementById('steps');
+            const startBtn = document.getElementById('startBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const destinationSelect = document.getElementById('destination');
+            
+            // Clear any existing content
+            topology.innerHTML = '';
+            
+            // Create router nodes
+            const routers = [
+                { id: 'A', label: 'Router A', x: 150, y: 150 },
+                { id: 'B', label: 'Router B', x: 50, y: 50 },
+                { id: 'C', label: 'Router C', x: 250, y: 50 },
+                { id: 'D', label: 'Router D', x: 50, y: 250 },
+                { id: 'E', label: 'Router E', x: 250, y: 250 }
+            ];
+            
+            // Create connections
+            const connections = [
+                { from: 'A', to: 'B', label: 'Interface 1' },
+                { from: 'A', to: 'C', label: 'Interface 2' },
+                { from: 'A', to: 'D', label: 'Interface 3' },
+                { from: 'A', to: 'E', label: 'Interface 4' }
+            ];
+            
+            // Draw routers
+            routers.forEach(router => {
+                const node = document.createElement('div');
+                node.className = 'topology-node';
+                node.id = 'router' + router.id;
+                node.style.left = router.x + 'px';
+                node.style.top = router.y + 'px';
+                node.textContent = router.id;
+                node.setAttribute('data-label', router.label);
+                topology.appendChild(node);
+            });
+            
+            // Draw connections
+            connections.forEach(conn => {
+                const fromNode = document.getElementById('router' + conn.from);
+                const toNode = document.getElementById('router' + conn.to);
+                
+                const fromRect = fromNode.getBoundingClientRect();
+                const toRect = toNode.getBoundingClientRect();
+                
+                const fromX = parseInt(fromNode.style.left) + 30;
+                const fromY = parseInt(fromNode.style.top) + 30;
+                const toX = parseInt(toNode.style.left) + 30;
+                const toY = parseInt(toNode.style.top) + 30;
+                
+                const length = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
+                const angle = Math.atan2(toY - fromY, toX - fromX) * 180 / Math.PI;
+                
+                const line = document.createElement('div');
+                line.className = 'topology-line';
+                line.style.width = length + 'px';
+                line.style.left = fromX + 'px';
+                line.style.top = fromY + 'px';
+                line.style.transform = `rotate(${angle}deg)`;
+                topology.appendChild(line);
+            });
+            
+            // Function to convert IP to binary
+            function ipToBinary(ip) {
+                return ip.split('.').map(octet => {
+                    let binary = parseInt(octet).toString(2);
+                    return '0'.repeat(8 - binary.length) + binary;
+                }).join('');
+            }
+            
+            // Function to format binary IP for display, with sections
+            function formatBinary(binary) {
+                return binary.match(/.{1,8}/g).join('.');
+            }
+            
+            // Function to check if IP matches prefix
+            function matchesPrefix(ip, prefix, length) {
+                const ipBinary = ipToBinary(ip);
+                const prefixBinary = ipToBinary(prefix);
+                
+                // Compare only the first 'length' bits
+                return ipBinary.substring(0, length) === prefixBinary.substring(0, length);
+            }
+            
+            // Function to create binary comparison HTML
+            function createBinaryComparison(ip, prefix, length) {
+                const ipBinary = ipToBinary(ip);
+                const prefixBinary = ipToBinary(prefix);
+                
+                let html = '<div class="binary-comparison">';
+                
+                // Add prefix with length indicator
+                html += 'Prefix: ';
+                for (let i = 0; i < prefixBinary.length; i++) {
+                    if (i < length) {
+                        html += `<span class="prefix-length-indicator">${prefixBinary[i]}</span>`;
+                    } else {
+                        html += prefixBinary[i];
+                    }
+                    
+                    if ((i + 1) % 8 === 0 && i < prefixBinary.length - 1) {
+                        html += '.';
+                    }
+                }
+                html += ` (${formatBinary(prefixBinary)})<br>`;
+                
+                // Add destination IP
+                html += 'Dest IP: ';
+                for (let i = 0; i < ipBinary.length; i++) {
+                    if (i < length) {
+                        // Check if this bit matches
+                        const matchClass = (ipBinary[i] === prefixBinary[i]) ? 'match' : 'no-match';
+                        html += `<span class="${matchClass}">${ipBinary[i]}</span>`;
+                    } else {
+                        html += ipBinary[i];
+                    }
+                    
+                    if ((i + 1) % 8 === 0 && i < ipBinary.length - 1) {
+                        html += '.';
+                    }
+                }
+                html += ` (${formatBinary(ipBinary)})<br>`;
+                
+                // Add comparison result
+                const matches = ipBinary.substring(0, length) === prefixBinary.substring(0, length);
+                if (matches) {
+                    html += `<strong>Result: First ${length} bits match! ✓</strong>`;
+                } else {
+                    // Find where the mismatch occurs
+                    let mismatchPos = 0;
+                    while (mismatchPos < length && ipBinary[mismatchPos] === prefixBinary[mismatchPos]) {
+                        mismatchPos++;
+                    }
+                    html += `<strong>Result: Mismatch at bit ${mismatchPos + 1} ✗</strong>`;
+                }
+                
+                html += '</div>';
+                return html;
+            }
+            
+            // Start visualization
+            startBtn.addEventListener('click', async function() {
+                resetBtn.disabled = true;
+                startBtn.disabled = true;
+                
+                const destinationIP = destinationSelect.value;
+                stepsContainer.innerHTML = '';
+                
+                // Reset table styling
+                Array.from(forwardingTable.querySelectorAll('tbody tr')).forEach(row => {
+                    row.classList.remove('selected', 'checking');
+                });
+                
+                // Remove any existing packet
+                const existingPacket = topology.querySelector('.packet');
+                if (existingPacket) {
+                    existingPacket.remove();
+                }
+                
+                // Create a new packet
+                const packet = document.createElement('div');
+                packet.className = 'packet';
+                packet.textContent = 'P';
+                packet.setAttribute('title', destinationIP);
+                packet.style.left = '150px';
+                packet.style.top = '150px';
+                topology.appendChild(packet);
+                
+                // Add initial step
+                addStep(`Starting lookup for destination IP: ${destinationIP}`);
+                addStep(`Converting ${destinationIP} to binary: ${formatBinary(ipToBinary(destinationIP))}`);
+                await sleep(1000);
+                
+                // Get all table rows sorted by prefix length (longest first)
+                const rows = Array.from(forwardingTable.querySelectorAll('tbody tr'))
+                    .sort((a, b) => parseInt(b.dataset.length) - parseInt(a.dataset.length));
+                
+                let matchFound = false;
+                let bestMatchRow = null;
+                
+                // Check each entry in the forwarding table
+                for (const row of rows) {
+                    const prefix = row.dataset.prefix;
+                    const length = parseInt(row.dataset.length);
+                    
+                    // Highlight the current row being checked
+                    row.classList.add('checking');
+                    await sleep(1000);
+                    
+                    addStep(`<strong>Checking entry: ${prefix}/${length}</strong>`);
+                    
+                    if (length === 0) {
+                        // Special case for default route
+                        addStep(`This is the default route (0.0.0.0/0) which matches everything.`);
+                    } else {
+                        // Add binary comparison
+                        const binaryComparison = createBinaryComparison(destinationIP, prefix, length);
+                        addStep(`<strong>Binary comparison:</strong>${binaryComparison}`);
+                    }
+                    
+                    await sleep(1500);
+                    
+                    const matches = matchesPrefix(destinationIP, prefix, length);
+                    
+                    if (matches) {
+                        addStep(`<strong>Match found!</strong> ${destinationIP} matches prefix ${prefix}/${length}`);
+                        if (length > 0) {
+                            addStep(`The first ${length} bits of the destination IP match the prefix.`);
+                        }
+                        row.classList.remove('checking');
+                        row.classList.add('selected');
+                        bestMatchRow = row;
+                        matchFound = true;
+                        await sleep(1000);
+                        break;
+                    } else {
+                        addStep(`<strong>No match.</strong> ${destinationIP} does not match prefix ${prefix}/${length}`);
+                        row.classList.remove('checking');
+                        await sleep(1000);
+                    }
+                }
+                
+                if (!matchFound) {
+                    // Default route (0.0.0.0/0)
+                    const defaultRow = Array.from(forwardingTable.querySelectorAll('tbody tr'))
+                        .find(row => row.dataset.prefix === '0.0.0.0' && row.dataset.length === '0');
+                    
+                    if (defaultRow) {
+                        defaultRow.classList.add('checking');
+                        await sleep(1000);
+                        
+                        addStep(`<strong>No specific match found.</strong> Using default route 0.0.0.0/0`);
+                        addStep(`The default route matches any destination IP address.`);
+                        defaultRow.classList.remove('checking');
+                        defaultRow.classList.add('selected');
+                        bestMatchRow = defaultRow;
+                        await sleep(1000);
+                    }
+                }
+                
+                if (bestMatchRow) {
+                    const nextHop = bestMatchRow.cells[2].textContent;
+                    const interface = bestMatchRow.cells[3].textContent;
+                    
+                    addStep(`<strong>Forwarding packet to ${nextHop} via ${interface}</strong>`);
+                    addStep(`The Longest Prefix Match algorithm selected the entry with the longest matching prefix.`);
+                    
+                    // Animate packet movement
+                    const targetRouter = nextHop.includes('Router') ? 
+                        document.getElementById('router' + nextHop.split(' ')[1]) : 
+                        document.getElementById('routerA'); // Default
+                    
+                    if (targetRouter) {
+                        const targetX = parseInt(targetRouter.style.left) + 20;
+                        const targetY = parseInt(targetRouter.style.top) + 20;
+                        
+                        packet.style.transition = 'all 1.5s ease';
+                        packet.style.left = targetX + 'px';
+                        packet.style.top = targetY + 'px';
+                        
+                        await sleep(1500);
+                    }
+                }
+                
+                addStep(`<strong>Longest prefix match algorithm completed.</strong>`);
+                resetBtn.disabled = false;
+                startBtn.disabled = false;
+            });
+            
+            // Reset visualization
+            resetBtn.addEventListener('click', function() {
+                // Remove packet
+                const existingPacket = topology.querySelector('.packet');
+                if (existingPacket) {
+                    existingPacket.remove();
+                }
+                
+                // Reset table styling
+                Array.from(forwardingTable.querySelectorAll('tbody tr')).forEach(row => {
+                    row.classList.remove('selected', 'checking');
+                });
+                
+                // Clear steps
+                stepsContainer.innerHTML = '';
+            });
+            
+            // Helper functions
+            function addStep(text) {
+                const step = document.createElement('div');
+                step.className = 'step active';
+                step.innerHTML = text;
+                stepsContainer.appendChild(step);
+                step.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        });
+    </script>
+</body>
+</html>
