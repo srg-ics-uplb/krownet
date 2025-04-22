@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPLS Label Forwarding Visualization</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        
+        .network-topology {
+            position: relative;
+            height: 400px;
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .router {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-color: #fff;
+            border: 2px solid #3498db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #3498db;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+        
+        .router:hover {
+            background-color: #e3f2fd;
+            transform: scale(1.05);
+        }
+        
+        .link {
+            position: absolute;
+            height: 3px;
+            background-color: #7f8c8d;
+            transform-origin: 0 0;
+            z-index: 5;
+        }
+        
+        .label {
+            position: absolute;
+            background-color: #f39c12;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            z-index: 20;
+            user-select: none;
+        }
+        
+        .packet {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #e74c3c;
+            border-radius: 50%;
+            z-index: 15;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            transform: translate(-50%, -50%);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .tables-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .table-wrapper {
+            flex: 1;
+            min-width: 280px;
+            max-width: 400px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+        }
+        
+        tr.highlight {
+            background-color: #ffe082;
+        }
+        
+        .info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #e3f2fd;
+            border-left: 5px solid #3498db;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        
+        .blinking {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
+        .explanation {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 5px solid #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MPLS Label Forwarding Visualization</h1>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3498db;"></div>
+                <span>Router</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f39c12;"></div>
+                <span>MPLS Label</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e74c3c;"></div>
+                <span>Packet</span>
+            </div>
+        </div>
+        
+        <div class="network-topology" id="topology"></div>
+        
+        <div class="controls">
+            <button id="startBtn">Send Packet</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+        
+        <div class="info-panel" id="infoPanel">
+            <strong>Current Status:</strong> <span id="statusText">Ready to send a packet. Click "Send Packet" to start.</span>
+        </div>
+        
+        <div class="tables-container" id="tablesContainer">
+            <!-- Tables will be generated dynamically here -->
+        </div>
+        
+        <div class="explanation">
+            <h3>How MPLS Label Forwarding Works</h3>
+            <p>Multi-Protocol Label Switching (MPLS) is a routing technique in telecommunications networks that directs data from one network node to the next based on short path labels rather than longer network addresses.</p>
+            <p><strong>Key Components:</strong></p>
+            <ul>
+                <li><strong>Label Edge Router (LER):</strong> The entry and exit points to the MPLS network.</li>
+                <li><strong>Label Switch Router (LSR):</strong> Core routers in the MPLS network that perform label swapping.</li>
+                <li><strong>Label:</strong> A short, fixed-length identifier that's attached to packets.</li>
+                <li><strong>Label Switched Path (LSP):</strong> The path through the MPLS network followed by a packet.</li>
+            </ul>
+            <p><strong>Label Forwarding Process:</strong></p>
+            <ol>
+                <li>Ingress LER receives a packet and adds an MPLS label.</li>
+                <li>Each LSR performs a table lookup based on the incoming label.</li>
+                <li>The LSR swaps the label with a new one and forwards the packet.</li>
+                <li>The Egress LER removes the label and forwards the packet to its final destination.</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Network topology setup
+            const topology = document.getElementById('topology');
+            const tablesContainer = document.getElementById('tablesContainer');
+            const infoPanel = document.getElementById('infoPanel');
+            const statusText = document.getElementById('statusText');
+            const startBtn = document.getElementById('startBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            
+            // Define routers (name, x, y, type)
+            const routers = [
+                { id: 'R1', name: 'LER 1', x: 100, y: 200, type: 'ingress' },
+                { id: 'R2', name: 'LSR 2', x: 250, y: 120, type: 'transit' },
+                { id: 'R3', name: 'LSR 3', x: 400, y: 200, type: 'transit' },
+                { id: 'R4', name: 'LSR 4', x: 550, y: 120, type: 'transit' },
+                { id: 'R5', name: 'LSR 5', x: 250, y: 280, type: 'transit' },
+                { id: 'R6', name: 'LSR 6', x: 400, y: 280, type: 'transit' },
+                { id: 'R7', name: 'LSR 7', x: 550, y: 280, type: 'transit' },
+                { id: 'R8', name: 'LER 8', x: 700, y: 200, type: 'egress' }
+            ];
+            
+            // Define links between routers
+            const links = [
+                { from: 'R1', to: 'R2', label: '100' },
+                { from: 'R1', to: 'R5', label: '200' },
+                { from: 'R2', to: 'R3', label: '110' },
+                { from: 'R2', to: 'R4', label: '120' },
+                { from: 'R3', to: 'R4', label: '130' },
+                { from: 'R3', to: 'R6', label: '140' },
+                { from: 'R4', to: 'R8', label: '150' },
+                { from: 'R5', to: 'R6', label: '210' },
+                { from: 'R6', to: 'R7', label: '220' },
+                { from: 'R7', to: 'R8', label: '230' }
+            ];
+
+            // Define forwarding tables for each router
+            const forwardingTables = {
+                'R1': [
+                    { incomingInterface: 'External', inLabel: '-', outLabel: '100', outInterface: 'To R2', nextHop: 'R2' },
+                    { incomingInterface: 'External', inLabel: '-', outLabel: '200', outInterface: 'To R5', nextHop: 'R5' }
+                ],
+                'R2': [
+                    { incomingInterface: 'From R1', inLabel: '100', outLabel: '110', outInterface: 'To R3', nextHop: 'R3' }
+                ],
+                'R3': [
+                    { incomingInterface: 'From R2', inLabel: '110', outLabel: '130', outInterface: 'To R4', nextHop: 'R4' }
+                ],
+                'R4': [
+                    { incomingInterface: 'From R3', inLabel: '130', outLabel: '150', outInterface: 'To R8', nextHop: 'R8' }
+                ],
+                'R5': [
+                    { incomingInterface: 'From R1', inLabel: '200', outLabel: '210', outInterface: 'To R6', nextHop: 'R6' }
+                ],
+                'R6': [
+                    { incomingInterface: 'From R5', inLabel: '210', outLabel: '220', outInterface: 'To R7', nextHop: 'R7' }
+                ],
+                'R7': [
+                    { incomingInterface: 'From R6', inLabel: '220', outLabel: '230', outInterface: 'To R8', nextHop: 'R8' }
+                ],
+                'R8': [
+                    { incomingInterface: 'From R4', inLabel: '150', outLabel: '-', outInterface: 'External', nextHop: 'Destination' },
+                    { incomingInterface: 'From R7', inLabel: '230', outLabel: '-', outInterface: 'External', nextHop: 'Destination' }
+                ]
+            };
+
+            // Path definitions for animation (two possible paths)
+            const paths = {
+                'top': ['R1', 'R2', 'R3', 'R4', 'R8'],
+                'bottom': ['R1', 'R5', 'R6', 'R7', 'R8']
+            };
+            
+            let currentPath = null;
+            let currentStep = 0;
+            let animationInterval = null;
+            let packetElement = null;
+            
+            // Render topology
+            function renderTopology() {
+                // Create routers
+                routers.forEach(router => {
+                    const routerElement = document.createElement('div');
+                    routerElement.className = 'router';
+                    routerElement.id = router.id;
+                    routerElement.style.left = `${router.x}px`;
+                    routerElement.style.top = `${router.y}px`;
+                    routerElement.textContent = router.name;
+                    routerElement.setAttribute('data-type', router.type);
+                    
+                    routerElement.addEventListener('click', () => {
+                        highlightRouterTable(router.id);
+                    });
+                    
+                    topology.appendChild(routerElement);
+                });
+                
+                // Create links
+                links.forEach(link => {
+                    const fromRouter = routers.find(r => r.id === link.from);
+                    const toRouter = routers.find(r => r.id === link.to);
+                    
+                    const linkElement = document.createElement('div');
+                    linkElement.className = 'link';
+                    linkElement.id = `link-${link.from}-${link.to}`;
+                    
+                    const x1 = fromRouter.x + 40;
+                    const y1 = fromRouter.y + 40;
+                    const x2 = toRouter.x + 40;
+                    const y2 = toRouter.y + 40;
+                    
+                    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                    
+                    linkElement.style.width = `${length}px`;
+                    linkElement.style.left = `${x1}px`;
+                    linkElement.style.top = `${y1}px`;
+                    linkElement.style.transform = `rotate(${angle}deg)`;
+                    
+                    topology.appendChild(linkElement);
+                    
+                    // Add label to link
+                    const labelElement = document.createElement('div');
+                    labelElement.className = 'label';
+                    labelElement.textContent = link.label;
+                    
+                    const labelX = (x1 + x2) / 2;
+                    const labelY = (y1 + y2) / 2;
+                    
+                    labelElement.style.left = `${labelX}px`;
+                    labelElement.style.top = `${labelY}px`;
+                    
+                    topology.appendChild(labelElement);
+                });
+            }
+            
+            // Render forwarding tables
+            function renderTables() {
+                tablesContainer.innerHTML = '';
+                
+                Object.keys(forwardingTables).forEach(routerId => {
+                    const router = routers.find(r => r.id === routerId);
+                    const tableWrapper = document.createElement('div');
+                    tableWrapper.className = 'table-wrapper';
+                    tableWrapper.id = `table-${routerId}`;
+                    
+                    const tableTitle = document.createElement('h3');
+                    tableTitle.textContent = `${router.name} Forwarding Table`;
+                    tableWrapper.appendChild(tableTitle);
+                    
+                    const table = document.createElement('table');
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>In Interface</th>
+                                <th>In Label</th>
+                                <th>Out Label</th>
+                                <th>Out Interface</th>
+                                <th>Next Hop</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${forwardingTables[routerId].map((entry, index) => `
+                                <tr id="entry-${routerId}-${index}">
+                                    <td>${entry.incomingInterface}</td>
+                                    <td>${entry.inLabel}</td>
+                                    <td>${entry.outLabel}</td>
+                                    <td>${entry.outInterface}</td>
+                                    <td>${entry.nextHop}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    `;
+                    
+                    tableWrapper.appendChild(table);
+                    tablesContainer.appendChild(tableWrapper);
+                });
+            }
+            
+            // Highlight router's forwarding table
+            function highlightRouterTable(routerId) {
+                // Remove previous highlights
+                document.querySelectorAll('.table-wrapper').forEach(table => {
+                    table.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+                });
+                
+                const tableElement = document.getElementById(`table-${routerId}`);
+                if (tableElement) {
+                    tableElement.style.boxShadow = '0 0 10px rgba(52, 152, 219, 0.7)';
+                    tableElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+            
+            // Highlight a specific entry in a router's forwarding table
+            function highlightTableEntry(routerId, entryIndex) {
+                // Remove previous highlights
+                document.querySelectorAll('tr.highlight').forEach(row => {
+                    row.classList.remove('highlight');
+                });
+                
+                const entryElement = document.getElementById(`entry-${routerId}-${entryIndex}`);
+                if (entryElement) {
+                    entryElement.classList.add('highlight');
+                    entryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+            
+            // Create a packet element
+            function createPacket(label) {
+                if (packetElement) {
+                    packetElement.remove();
+                }
+                
+                packetElement = document.createElement('div');
+                packetElement.className = 'packet';
+                packetElement.textContent = label;
+                topology.appendChild(packetElement);
+                
+                return packetElement;
+            }
+            
+            // Animate packet movement between two routers
+            function animatePacketMovement(fromRouterId, toRouterId, label, callback) {
+                const fromRouter = routers.find(r => r.id === fromRouterId);
+                const toRouter = routers.find(r => r.id === toRouterId);
+                
+                const packet = createPacket(label);
+                
+                const fromX = fromRouter.x + 40;
+                const fromY = fromRouter.y + 40;
+                const toX = toRouter.x + 40;
+                const toY = toRouter.y + 40;
+                
+                // Highlight the link
+                const linkElement = document.getElementById(`link-${fromRouterId}-${toRouterId}`);
+                if (linkElement) {
+                    linkElement.style.backgroundColor = '#e74c3c';
+                    linkElement.style.height = '5px';
+                }
+                
+                // Position packet at start
+                packet.style.left = `${fromX}px`;
+                packet.style.top = `${fromY}px`;
+                
+                // Animate packet
+                const duration = 1000; // 1 second
+                const startTime = performance.now();
+                
+                function step(timestamp) {
+                    const elapsed = timestamp - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    const currentX = fromX + (toX - fromX) * progress;
+                    const currentY = fromY + (toY - fromY) * progress;
+                    
+                    packet.style.left = `${currentX}px`;
+                    packet.style.top = `${currentY}px`;
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        // Reset link style
+                        if (linkElement) {
+                            linkElement.style.backgroundColor = '#7f8c8d';
+                            linkElement.style.height = '3px';
+                        }
+                        
+                        if (callback) {
+                            setTimeout(callback, 500);
+                        }
+                    }
+                }
+                
+                requestAnimationFrame(step);
+            }
+            
+            // Start animation along a path
+            function startAnimation(pathName) {
+                resetAnimation();
+                
+                currentPath = paths[pathName];
+                currentStep = 0;
+                
+                // Highlight the first router
+                document.getElementById(currentPath[0]).classList.add('blinking');
+                highlightRouterTable(currentPath[0]);
+                
+                startBtn.disabled = true;
+                resetBtn.disabled = false;
+                
+                // For ingress router, find the appropriate entry
+                const nextHop = currentPath[1];
+                const tableEntries = forwardingTables[currentPath[0]];
+                const entryIndex = tableEntries.findIndex(entry => entry.nextHop === nextHop);
+                
+                highlightTableEntry(currentPath[0], entryIndex);
+                
+                const outLabel = tableEntries[entryIndex].outLabel;
+                statusText.innerHTML = `<strong>Step ${currentStep + 1}:</strong> Packet arrives at ${routers.find(r => r.id === currentPath[0]).name}. Looking up route to next hop. Adding label ${outLabel}.`;
+                
+                setTimeout(() => {
+                    processNextStep(outLabel);
+                }, 2000);
+            }
+            
+            // Process the next step in the animation
+            function processNextStep(currentLabel) {
+                if (currentStep >= currentPath.length - 1) {
+                    statusText.innerHTML = `<strong>Complete:</strong> Packet has reached its destination at ${routers.find(r => r.id === currentPath[currentPath.length - 1]).name}.`;
+                    document.getElementById(currentPath[currentPath.length - 1]).classList.remove('blinking');
+                    return;
+                }
+                
+                const currentRouter = currentPath[currentStep];
+                const nextRouter = currentPath[currentStep + 1];
+                
+                // Remove blinking from current router
+                document.getElementById(currentRouter).classList.remove('blinking');
+                
+                // Move packet to next router
+                animatePacketMovement(currentRouter, nextRouter, currentLabel, () => {
+                    currentStep++;
+                    
+                    // Add blinking to new current router
+                    document.getElementById(nextRouter).classList.add('blinking');
+                    highlightRouterTable(nextRouter);
+                    
+                    // Look up in forwarding table
+                    const tableEntries = forwardingTables[nextRouter];
+                    const entryIndex = tableEntries.findIndex(entry => entry.inLabel === currentLabel);
+                    
+                    highlightTableEntry(nextRouter, entryIndex);
+                    
+                    const outLabel = tableEntries[entryIndex].outLabel;
+                    
+                    if (nextRouter === currentPath[currentPath.length - 1]) {
+                        // At egress router
+                        statusText.innerHTML = `<strong>Step ${currentStep + 1}:</strong> Packet arrives at ${routers.find(r => r.id === nextRouter).name} with label ${currentLabel}. Removing MPLS label and forwarding to destination.`;
+                        
+                        setTimeout(() => {
+                            if (packetElement) {
+                                packetElement.remove();
+                                packetElement = null;
+                            }
+                            document.getElementById(nextRouter).classList.remove('blinking');
+                            statusText.innerHTML = `<strong>Complete:</strong> Packet has reached its destination at ${routers.find(r => r.id === nextRouter).name}.`;
+                            startBtn.disabled = false;
+                        }, 2000);
+                    } else {
+                        // At transit router
+                        statusText.innerHTML = `<strong>Step ${currentStep + 1}:</strong> Packet arrives at ${routers.find(r => r.id === nextRouter).name} with label ${currentLabel}. Swapping to label ${outLabel} and forwarding.`;
+                        
+                        setTimeout(() => {
+                            processNextStep(outLabel);
+                        }, 2000);
+                    }
+                });
+            }
+            
+            // Reset animation
+            function resetAnimation() {
+                if (packetElement) {
+                    packetElement.remove();
+                    packetElement = null;
+                }
+                
+                document.querySelectorAll('.router').forEach(router => {
+                    router.classList.remove('blinking');
+                });
+                
+                document.querySelectorAll('.link').forEach(link => {
+                    link.style.backgroundColor = '#7f8c8d';
+                    link.style.height = '3px';
+                });
+                
+                document.querySelectorAll('tr.highlight').forEach(row => {
+                    row.classList.remove('highlight');
+                });
+                
+                currentPath = null;
+                currentStep = 0;
+                
+                startBtn.disabled = false;
+                resetBtn.disabled = true;
+                
+                statusText.textContent = 'Ready to send a packet. Click "Send Packet" to start.';
+            }
+            
+            // Event listeners
+            startBtn.addEventListener('click', () => {
+                // Randomly choose top or bottom path
+                const pathChoice = Math.random() < 0.5 ? 'top' : 'bottom';
+                startAnimation(pathChoice);
+            });
+            
+            resetBtn.addEventListener('click', resetAnimation);
+            
+            // Initialize
+            renderTopology();
+            renderTables();
+            resetBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>
