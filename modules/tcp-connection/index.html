@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCP Connection Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .visualization {
+            display: flex;
+            justify-content: space-between;
+            height: 500px;
+            position: relative;
+            margin-top: 20px;
+        }
+        
+        .endpoint {
+            width: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        
+        .server, .client {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .client {
+            background-color: #3498db;
+        }
+        
+        .server {
+            background-color: #e74c3c;
+        }
+        
+        .timeline {
+            height: 100%;
+            width: 10px;
+            background-color: #ddd;
+            margin-top: 10px;
+        }
+        
+        .packet-area {
+            flex-grow: 1;
+            position: relative;
+        }
+        
+        .packet {
+            position: absolute;
+            background-color: #95d0ff;
+            border: 2px solid #0078d7;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 12px;
+            width: 160px;
+            height: 38px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            transition-property: left, opacity;
+            opacity: 0;
+        }
+        
+        .flags {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 3px;
+        }
+        
+        .flag {
+            width: 24px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .syn {
+            background-color: #ffcccb;
+            color: #d63031;
+        }
+        
+        .ack {
+            background-color: #c7ecee;
+            color: #0984e3;
+        }
+        
+        .fin {
+            background-color: #ffeaa7;
+            color: #fdcb6e;
+        }
+
+        .rst {
+            background-color: #fab1a0;
+            color: #e17055;
+        }
+
+        .data {
+            background-color: #a3e4d7;
+            color: #27ae60;
+        }
+        
+        .packet-arrow {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            transition-property: left, opacity;
+            opacity: 0;
+        }
+        
+        .right-arrow {
+            border-left: 15px solid #0078d7;
+        }
+        
+        .left-arrow {
+            border-right: 15px solid #0078d7;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: white;
+            margin-top: 8px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .closed {
+            background-color: #e74c3c;
+        }
+
+        .listening {
+            background-color: #3498db;
+        }
+
+        .established {
+            background-color: #2ecc71;
+        }
+
+        .closing {
+            background-color: #f39c12;
+        }
+
+        .info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #eee;
+            margin-top: 20px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            width: 0;
+            background-color: #3498db;
+            transition: width 0.3s;
+        }
+
+        .stage-info {
+            font-size: 16px;
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .speed-slider {
+            width: 200px;
+        }
+        
+        .speed-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .current-speed {
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TCP Connection Visualization</h1>
+        
+        <div class="controls">
+            <button id="start-btn">Start Visualization</button>
+            <button id="connection-btn" disabled>Establish Connection</button>
+            <button id="data-btn" disabled>Transfer Data</button>
+            <button id="close-btn" disabled>Close Connection</button>
+            <button id="reset-btn" disabled>Reset</button>
+        </div>
+        
+        <div class="speed-control">
+            <span class="speed-label">Animation Speed:</span>
+            <input type="range" min="10" max="200" value="100" class="speed-slider" id="speed-slider">
+            <span class="current-speed" id="speed-value">1x</span>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+        <div class="stage-info" id="stage-info">Ready to start</div>
+        
+        <div class="visualization">
+            <div class="endpoint">
+                <div class="client">Client</div>
+                <div class="status closed" id="client-status">CLOSED</div>
+                <div class="timeline"></div>
+            </div>
+            
+            <div class="packet-area" id="packet-area">
+                <!-- Packets will be added here by JavaScript -->
+            </div>
+            
+            <div class="endpoint">
+                <div class="server">Server</div>
+                <div class="status listening" id="server-status" style="opacity: 1;">LISTENING</div>
+                <div class="timeline"></div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>TCP Connection Phases</h3>
+            <p><strong>1. Connection Establishment (3-way Handshake):</strong> Client initiates with SYN, server responds with SYN-ACK, client confirms with ACK.</p>
+            <p><strong>2. Data Transfer:</strong> Both parties exchange data packets with sequence and acknowledgment numbers.</p>
+            <p><strong>3. Connection Termination (4-way Handshake):</strong> Either side initiates closure with FIN, other acknowledges, then sends its own FIN, which gets acknowledged.</p>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffcccb;"></div>
+                    <span>SYN Flag</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #c7ecee;"></div>
+                    <span>ACK Flag</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffeaa7;"></div>
+                    <span>FIN Flag</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #a3e4d7;"></div>
+                    <span>Data Packet</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #fab1a0;"></div>
+                    <span>RST Flag</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const startBtn = document.getElementById('start-btn');
+            const connectionBtn = document.getElementById('connection-btn');
+            const dataBtn = document.getElementById('data-btn');
+            const closeBtn = document.getElementById('close-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const packetArea = document.getElementById('packet-area');
+            const clientStatus = document.getElementById('client-status');
+            const serverStatus = document.getElementById('server-status');
+            const progressBar = document.getElementById('progress');
+            const stageInfo = document.getElementById('stage-info');
+            const speedSlider = document.getElementById('speed-slider');
+            const speedValue = document.getElementById('speed-value');
+            
+            let animationInProgress = false;
+            let currentStage = 0;
+            const totalStages = 3;
+            let animationSpeed = 1; // Default animation speed multiplier
+            
+            // Initial sequence numbers
+            let clientSeqNum = 100;
+            let serverSeqNum = 300;
+            
+            // Speed slider functionality
+            speedSlider.addEventListener('input', function() {
+                // Map 10-200 range to 0.1-2.0 for animation speed
+                animationSpeed = parseFloat(this.value) / 100;
+                speedValue.textContent = animationSpeed.toFixed(1) + 'x';
+                
+                // Update all current animations with new duration
+                const allPackets = document.querySelectorAll('.packet, .packet-arrow');
+                allPackets.forEach(packet => {
+                    packet.style.transitionDuration = `${1 / animationSpeed}s`;
+                });
+            });
+            
+            // Update progress based on current stage
+            function updateProgress() {
+                const progressPercentage = (currentStage / totalStages) * 100;
+                progressBar.style.width = `${progressPercentage}%`;
+                
+                switch (currentStage) {
+                    case 0:
+                        stageInfo.textContent = 'Ready to establish connection';
+                        break;
+                    case 1:
+                        stageInfo.textContent = 'Connection Established - Ready for Data Transfer';
+                        break;
+                    case 2:
+                        stageInfo.textContent = 'Data Transferred - Ready for Connection Termination';
+                        break;
+                    case 3:
+                        stageInfo.textContent = 'Connection Terminated';
+                        break;
+                }
+            }
+            
+            // Create and animate a packet
+            function createPacket(fromClient, flags, seqNum, ackNum, callback, dataContent = null) {
+                const packet = document.createElement('div');
+                packet.className = 'packet';
+                
+                const startX = fromClient ? '5%' : '75%';
+                const endX = fromClient ? '75%' : '5%';
+                const startY = fromClient ? `${Math.floor(Math.random() * 30) + 10}%` : `${Math.floor(Math.random() * 30) + 50}%`;
+                
+                packet.style.left = startX;
+                packet.style.top = startY;
+                
+                // Set animation duration based on speed
+                packet.style.transitionDuration = `${1 / animationSpeed}s`;
+                
+                // Create packet content with sequence and ack numbers
+                let content = '';
+                if (dataContent) {
+                    content = `<div>DATA: "${dataContent}"</div>`;
+                } else {
+                    content = `<div>SEQ: ${seqNum} | ACK: ${ackNum}</div>`;
+                }
+                
+                // Add flags
+                const flagsDiv = document.createElement('div');
+                flagsDiv.className = 'flags';
+                
+                flags.forEach(flag => {
+                    const flagElem = document.createElement('div');
+                    flagElem.className = `flag ${flag.toLowerCase()}`;
+                    flagElem.textContent = flag;
+                    flagsDiv.appendChild(flagElem);
+                });
+                
+                packet.innerHTML = content;
+                packet.appendChild(flagsDiv);
+                
+                // Create arrow
+                const arrow = document.createElement('div');
+                arrow.className = `packet-arrow ${fromClient ? 'right-arrow' : 'left-arrow'}`;
+                arrow.style.top = `calc(${startY} + 20px)`;
+                arrow.style.left = fromClient ? '65%' : '35%';
+                arrow.style.opacity = '0';
+                arrow.style.transitionDuration = `${1 / animationSpeed}s`;
+                
+                packetArea.appendChild(packet);
+                packetArea.appendChild(arrow);
+                
+                // Calculate animation times based on speed
+                const baseAnimTime = 1000 / animationSpeed;
+                const baseAnimDelay = 100 / animationSpeed;
+                
+                // Animate packet
+                setTimeout(() => {
+                    packet.style.opacity = '1';
+                    packet.style.left = endX;
+                    
+                    arrow.style.opacity = '1';
+                    arrow.style.left = fromClient ? '75%' : '5%';
+                    
+                    // Wait for animation to complete
+                    setTimeout(() => {
+                        // Remove the packet and arrow after animation
+                        setTimeout(() => {
+                            packet.remove();
+                            arrow.remove();
+                        }, 500 / animationSpeed);
+                        
+                        if (callback) callback();
+                    }, baseAnimTime);
+                }, baseAnimDelay);
+            }
+            
+            // Update connection status
+            function updateStatus(client, server) {
+                if (client) {
+                    clientStatus.textContent = client;
+                    clientStatus.className = `status ${client.toLowerCase()}`;
+                    clientStatus.style.opacity = '1';
+                }
+                
+                if (server) {
+                    serverStatus.textContent = server;
+                    serverStatus.className = `status ${server.toLowerCase()}`;
+                    serverStatus.style.opacity = '1';
+                }
+            }
+            
+            // Step 1: Connection Establishment (3-way handshake)
+            function establishConnection() {
+                if (animationInProgress) return;
+                animationInProgress = true;
+                connectionBtn.disabled = true;
+                
+                // Initial client status
+                updateStatus('SYN_SENT', null);
+                
+                // Step 1: Client sends SYN
+                createPacket(true, ['SYN'], clientSeqNum, 0, () => {
+                    // Step 2: Server sends SYN-ACK
+                    updateStatus(null, 'SYN_RECEIVED');
+                    
+                    createPacket(false, ['SYN', 'ACK'], serverSeqNum, clientSeqNum + 1, () => {
+                        // Step 3: Client sends ACK
+                        updateStatus('ESTABLISHED', null);
+                        
+                        createPacket(true, ['ACK'], clientSeqNum + 1, serverSeqNum + 1, () => {
+                            // Connection established
+                            updateStatus('ESTABLISHED', 'ESTABLISHED');
+                            animationInProgress = false;
+                            dataBtn.disabled = false;
+                            currentStage = 1;
+                            updateProgress();
+                        });
+                    });
+                });
+            }
+            
+            // Step 2: Data Transfer
+            function transferData() {
+                if (animationInProgress) return;
+                animationInProgress = true;
+                dataBtn.disabled = true;
+                
+                // Update sequence numbers after the handshake
+                clientSeqNum += 1;
+                serverSeqNum += 1;
+                
+                // Client sends data to server
+                createPacket(true, ['ACK'], clientSeqNum, serverSeqNum, () => {
+                    clientSeqNum += 100; // Increment by data size
+                    
+                    // Server acknowledges data
+                    createPacket(false, ['ACK'], serverSeqNum, clientSeqNum, () => {
+                        // Server sends data to client
+                        createPacket(false, ['ACK'], serverSeqNum, clientSeqNum, () => {
+                            serverSeqNum += 200; // Increment by data size
+                            
+                            // Client acknowledges server data
+                            createPacket(true, ['ACK'], clientSeqNum, serverSeqNum, () => {
+                                animationInProgress = false;
+                                closeBtn.disabled = false;
+                                currentStage = 2;
+                                updateProgress();
+                            });
+                        }, "Server response data");
+                    });
+                }, "Client request data");
+            }
+            
+            // Step 3: Connection Termination (4-way handshake)
+            function closeConnection() {
+                if (animationInProgress) return;
+                animationInProgress = true;
+                closeBtn.disabled = true;
+                
+                // Step 1: Client sends FIN
+                updateStatus('FIN_WAIT_1', null);
+                createPacket(true, ['FIN', 'ACK'], clientSeqNum, serverSeqNum, () => {
+                    clientSeqNum += 1;
+                    
+                    // Step 2: Server sends ACK
+                    updateStatus(null, 'CLOSE_WAIT');
+                    createPacket(false, ['ACK'], serverSeqNum, clientSeqNum, () => {
+                        updateStatus('FIN_WAIT_2', null);
+                        
+                        // Step 3: Server sends FIN
+                        setTimeout(() => {
+                            updateStatus(null, 'LAST_ACK');
+                            createPacket(false, ['FIN', 'ACK'], serverSeqNum, clientSeqNum, () => {
+                                serverSeqNum += 1;
+                                
+                                // Step 4: Client sends ACK
+                                updateStatus('TIME_WAIT', null);
+                                createPacket(true, ['ACK'], clientSeqNum, serverSeqNum, () => {
+                                    // Connection closed
+                                    setTimeout(() => {
+                                        updateStatus('CLOSED', 'CLOSED');
+                                        animationInProgress = false;
+                                        resetBtn.disabled = false;
+                                        currentStage = 3;
+                                        updateProgress();
+                                    }, 1000 / animationSpeed);
+                                });
+                            });
+                        }, 1000 / animationSpeed);
+                    });
+                });
+            }
+            
+            // Reset visualization
+            function resetVisualization() {
+                // Clear any remaining packets
+                packetArea.innerHTML = '';
+                
+                // Reset status
+                updateStatus('CLOSED', 'LISTENING');
+                
+                // Reset buttons
+                startBtn.disabled = false;
+                connectionBtn.disabled = true;
+                dataBtn.disabled = true;
+                closeBtn.disabled = true;
+                resetBtn.disabled = true;
+                
+                // Reset sequence numbers
+                clientSeqNum = 100;
+                serverSeqNum = 300;
+                
+                // Reset stage
+                currentStage = 0;
+                updateProgress();
+            }
+            
+            // Event listeners
+            startBtn.addEventListener('click', function() {
+                startBtn.disabled = true;
+                connectionBtn.disabled = false;
+            });
+            
+            connectionBtn.addEventListener('click', establishConnection);
+            dataBtn.addEventListener('click', transferData);
+            closeBtn.addEventListener('click', closeConnection);
+            resetBtn.addEventListener('click', resetVisualization);
+        });
+    </script>
+</body>
+</html>
