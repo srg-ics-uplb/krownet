@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCP State Transition Diagram</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .diagram-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .diagram {
+            position: relative;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        .client, .server {
+            width: 180px;
+            height: 100%;
+            background-color: #e1f5fe;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+        .client {
+            position: absolute;
+            left: 0;
+        }
+        .server {
+            position: absolute;
+            right: 0;
+        }
+        .connection-area {
+            position: absolute;
+            left: 180px;
+            right: 180px;
+            top: 0;
+            bottom: 0;
+            background-color: #f9f9f9;
+        }
+        .state {
+            width: 160px;
+            height: 40px;
+            margin: 5px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .state.active {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .packet {
+            position: absolute;
+            width: 80px;
+            height: 30px;
+            background-color: #fff;
+            border: 2px solid;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.5s linear;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0b7dda;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .legend {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .description {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+        .info-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TCP State Transition Diagram</h1>
+        
+        <div class="description">
+            <p>This interactive visualization demonstrates the TCP connection establishment (3-way handshake), data transfer, and connection termination (4-way handshake) between a client and server.</p>
+            <p>Click the buttons below to step through the TCP state transitions or run the full animation.</p>
+        </div>
+        
+        <div class="info-panel" id="infoPanel">
+            <h3 id="infoPanelTitle">State Information</h3>
+            <p id="infoPanelContent"></p>
+        </div>
+        
+        <div class="controls">
+            <button id="resetBtn">Reset</button>
+            <button id="nextBtn">Next Step</button>
+            <button id="playBtn">Run Animation</button>
+        </div>
+        
+        <div class="diagram-container">
+            <div class="diagram">
+                <div class="timeline">
+                    <span>Client</span>
+                    <span>TCP Connection</span>
+                    <span>Server</span>
+                </div>
+                <div class="client" id="client"></div>
+                <div class="connection-area" id="connectionArea"></div>
+                <div class="server" id="server"></div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #bbdefb;"></div>
+                <span>CLOSED</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #c8e6c9;"></div>
+                <span>LISTEN</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fff9c4;"></div>
+                <span>SYN_SENT/SYN_RCVD</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffccbc;"></div>
+                <span>FIN_WAIT</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #b39ddb;"></div>
+                <span>ESTABLISHED</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ffecb3;"></div>
+                <span>CLOSE_WAIT/LAST_ACK</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #d1c4e9;"></div>
+                <span>TIME_WAIT</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Define the TCP states for client and server
+        const clientStates = [
+            { id: 'CLOSED', name: 'CLOSED', color: '#bbdefb', top: 20 },
+            { id: 'SYN_SENT', name: 'SYN_SENT', color: '#fff9c4', top: 80 },
+            { id: 'ESTABLISHED', name: 'ESTABLISHED', color: '#b39ddb', top: 140 },
+            { id: 'FIN_WAIT_1', name: 'FIN_WAIT_1', color: '#ffccbc', top: 200 },
+            { id: 'FIN_WAIT_2', name: 'FIN_WAIT_2', color: '#ffccbc', top: 260 },
+            { id: 'TIME_WAIT', name: 'TIME_WAIT', color: '#d1c4e9', top: 320 },
+            { id: 'CLOSED_FINAL', name: 'CLOSED', color: '#bbdefb', top: 380 }
+        ];
+
+        const serverStates = [
+            { id: 'CLOSED', name: 'CLOSED', color: '#bbdefb', top: 20 },
+            { id: 'LISTEN', name: 'LISTEN', color: '#c8e6c9', top: 80 },
+            { id: 'SYN_RCVD', name: 'SYN_RCVD', color: '#fff9c4', top: 140 },
+            { id: 'ESTABLISHED', name: 'ESTABLISHED', color: '#b39ddb', top: 200 },
+            { id: 'CLOSE_WAIT', name: 'CLOSE_WAIT', color: '#ffecb3', top: 260 },
+            { id: 'LAST_ACK', name: 'LAST_ACK', color: '#ffecb3', top: 320 },
+            { id: 'CLOSED_FINAL', name: 'CLOSED', color: '#bbdefb', top: 380 }
+        ];
+
+        // Define packet exchanges
+        const packetExchanges = [
+            { from: 'client', to: 'server', label: 'SYN', color: '#2196F3', fromState: 'SYN_SENT', toState: 'SYN_RCVD', 
+              info: "Client initiates connection by sending SYN packet and transitions from CLOSED to SYN_SENT. Server receives SYN and transitions from LISTEN to SYN_RCVD." },
+            { from: 'server', to: 'client', label: 'SYN+ACK', color: '#4CAF50', fromState: 'SYN_RCVD', toState: 'ESTABLISHED', 
+              info: "Server acknowledges the connection request by sending SYN+ACK. Server stays in SYN_RCVD. Client receives SYN+ACK and transitions from SYN_SENT to ESTABLISHED." },
+            { from: 'client', to: 'server', label: 'ACK', color: '#FF9800', fromState: 'ESTABLISHED', toState: 'ESTABLISHED', 
+              info: "Client acknowledges server's SYN+ACK by sending ACK. Client stays in ESTABLISHED. Server receives ACK and transitions from SYN_RCVD to ESTABLISHED. The 3-way handshake is now complete." },
+            { from: 'client', to: 'server', label: 'DATA', color: '#9C27B0', fromState: 'ESTABLISHED', toState: 'ESTABLISHED', 
+              info: "Data transfer phase: Client sends data packets to server. Both sides remain in ESTABLISHED state during data transfer." },
+            { from: 'server', to: 'client', label: 'DATA', color: '#9C27B0', fromState: 'ESTABLISHED', toState: 'ESTABLISHED', 
+              info: "Data transfer phase: Server sends data packets to client. Both sides remain in ESTABLISHED state during data transfer." },
+            { from: 'client', to: 'server', label: 'FIN', color: '#F44336', fromState: 'FIN_WAIT_1', toState: 'CLOSE_WAIT', 
+              info: "Client initiates connection termination by sending FIN packet. Client transitions from ESTABLISHED to FIN_WAIT_1. Server receives FIN and transitions from ESTABLISHED to CLOSE_WAIT." },
+            { from: 'server', to: 'client', label: 'ACK', color: '#607D8B', fromState: 'CLOSE_WAIT', toState: 'FIN_WAIT_2', 
+              info: "Server acknowledges client's FIN. Server stays in CLOSE_WAIT. Client receives ACK and transitions from FIN_WAIT_1 to FIN_WAIT_2." },
+            { from: 'server', to: 'client', label: 'FIN', color: '#F44336', fromState: 'LAST_ACK', toState: 'TIME_WAIT', 
+              info: "Server sends its own FIN to terminate from its side. Server transitions from CLOSE_WAIT to LAST_ACK. Client receives FIN and transitions from FIN_WAIT_2 to TIME_WAIT." },
+            { from: 'client', to: 'server', label: 'ACK', color: '#607D8B', fromState: 'TIME_WAIT', toState: 'CLOSED_FINAL', 
+              info: "Client acknowledges server's FIN. Client stays in TIME_WAIT (typically for 2MSL). Server receives ACK and transitions from LAST_ACK to CLOSED." },
+            { from: 'client', to: 'client', label: '2MSL timeout', color: '#795548', fromState: 'TIME_WAIT', toState: 'CLOSED_FINAL', 
+              info: "After waiting for twice the Maximum Segment Lifetime (2MSL), the client transitions from TIME_WAIT to CLOSED. This ensures any delayed packets expire before a new connection with the same port numbers." }
+        ];
+
+        // Variables to track current state
+        let currentStep = -1;
+        let animationInProgress = false;
+        let timer = null;
+
+        // Initialize the diagram
+        const clientEl = document.getElementById('client');
+        const serverEl = document.getElementById('server');
+        const connectionArea = document.getElementById('connectionArea');
+        const infoPanel = document.getElementById('infoPanel');
+        const infoPanelTitle = document.getElementById('infoPanelTitle');
+        const infoPanelContent = document.getElementById('infoPanelContent');
+        const nextBtn = document.getElementById('nextBtn');
+        const playBtn = document.getElementById('playBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // Create state elements
+        function createStateElements() {
+            clientStates.forEach(state => {
+                const stateEl = document.createElement('div');
+                stateEl.className = 'state';
+                stateEl.id = 'client-' + state.id;
+                stateEl.style.backgroundColor = state.color;
+                stateEl.style.top = state.top + 'px';
+                stateEl.textContent = state.name;
+                stateEl.addEventListener('click', () => showStateInfo(state, 'Client'));
+                clientEl.appendChild(stateEl);
+            });
+
+            serverStates.forEach(state => {
+                const stateEl = document.createElement('div');
+                stateEl.className = 'state';
+                stateEl.id = 'server-' + state.id;
+                stateEl.style.backgroundColor = state.color;
+                stateEl.style.top = state.top + 'px';
+                stateEl.textContent = state.name;
+                stateEl.addEventListener('click', () => showStateInfo(state, 'Server'));
+                serverEl.appendChild(stateEl);
+            });
+        }
+
+        function showStateInfo(state, side) {
+            infoPanelTitle.textContent = `${side} State: ${state.name}`;
+            
+            // Get state-specific information
+            let content = "";
+            switch(state.id) {
+                case 'CLOSED':
+                    content = "Initial state before a connection is established or after a connection is completely closed.";
+                    break;
+                case 'LISTEN':
+                    content = "Server is waiting for connection requests from any remote client.";
+                    break;
+                case 'SYN_SENT':
+                    content = "Client has sent a SYN packet and is waiting for a matching SYN-ACK from the server.";
+                    break;
+                case 'SYN_RCVD':
+                    content = "Server has received a SYN packet and sent a SYN-ACK. It's waiting for an ACK to complete the handshake.";
+                    break;
+                case 'ESTABLISHED':
+                    content = "Connection is established and data can be exchanged between client and server.";
+                    break;
+                case 'FIN_WAIT_1':
+                    content = "Client has sent a FIN packet and is waiting for an ACK from the server.";
+                    break;
+                case 'FIN_WAIT_2':
+                    content = "Client has received an ACK for its FIN and is waiting for a FIN from the server.";
+                    break;
+                case 'CLOSE_WAIT':
+                    content = "Server has received a FIN from the client and sent an ACK. It's waiting for the application to close.";
+                    break;
+                case 'LAST_ACK':
+                    content = "Server has sent its FIN and is waiting for an ACK from the client.";
+                    break;
+                case 'TIME_WAIT':
+                    content = "Client has received the server's FIN and sent an ACK. It waits for 2MSL to ensure the ACK was received.";
+                    break;
+                case 'CLOSED_FINAL':
+                    content = "Connection is fully closed. Ready for a new connection.";
+                    break;
+            }
+            
+            infoPanelContent.textContent = content;
+            infoPanel.style.display = 'block';
+        }
+
+        // Initialize state diagram
+        function initStateDiagram() {
+            // Clear existing elements
+            clientEl.innerHTML = '';
+            serverEl.innerHTML = '';
+            connectionArea.innerHTML = '';
+            
+            // Create state elements
+            createStateElements();
+            
+            // Reset control variables
+            currentStep = -1;
+            animationInProgress = false;
+            clearTimeout(timer);
+            
+            // Set initial active states
+            highlightState('client-CLOSED', true);
+            highlightState('server-CLOSED', true);
+            
+            // Special case for server going to LISTEN
+            setTimeout(() => {
+                highlightState('server-CLOSED', false);
+                highlightState('server-LISTEN', true);
+            }, 500);
+            
+            // Enable/disable buttons
+            nextBtn.disabled = false;
+            playBtn.disabled = false;
+            
+            // Hide info panel
+            infoPanel.style.display = 'none';
+        }
+
+        function highlightState(stateId, active) {
+            const stateEl = document.getElementById(stateId);
+            if (stateEl) {
+                if (active) {
+                    stateEl.classList.add('active');
+                } else {
+                    stateEl.classList.remove('active');
+                }
+            }
+        }
+
+        function createPacket(exchange) {
+            const packet = document.createElement('div');
+            packet.className = 'packet';
+            packet.textContent = exchange.label;
+            packet.style.borderColor = exchange.color;
+            
+            let startX, startY, endX, endY;
+            
+            if (exchange.from === 'client' && exchange.to === 'server') {
+                startX = 180;
+                endX = connectionArea.offsetWidth;
+                startY = getStatePosition(clientStates, exchange.fromState);
+                endY = getStatePosition(serverStates, exchange.toState);
+            } else if (exchange.from === 'server' && exchange.to === 'client') {
+                startX = connectionArea.offsetWidth;
+                endX = 0;
+                startY = getStatePosition(serverStates, exchange.fromState);
+                endY = getStatePosition(clientStates, exchange.toState);
+            } else if (exchange.from === 'client' && exchange.to === 'client') {
+                // Special case for TIME_WAIT to CLOSED transition
+                startX = 90;
+                endX = 90;
+                startY = getStatePosition(clientStates, exchange.fromState);
+                endY = getStatePosition(clientStates, exchange.toState);
+            }
+            
+            packet.style.left = startX + 'px';
+            packet.style.top = startY + 'px';
+            connectionArea.appendChild(packet);
+            
+            // Animate packet
+            setTimeout(() => {
+                packet.style.left = endX + 'px';
+                packet.style.top = endY + 'px';
+            }, 50);
+            
+            // Remove packet after animation
+            setTimeout(() => {
+                packet.remove();
+            }, 1000);
+            
+            // Update state highlights based on the exchange
+            updateStates(exchange);
+            
+            // Show information about the exchange
+            infoPanelTitle.textContent = `${exchange.label} Packet`;
+            infoPanelContent.textContent = exchange.info;
+            infoPanel.style.display = 'block';
+        }
+
+        function getStatePosition(states, stateId) {
+            const state = states.find(s => s.id === stateId);
+            return state ? state.top + 20 : 0;
+        }
+
+        function updateStates(exchange) {
+            // Special case for initial connection setup
+            if (currentStep === 0) {
+                highlightState('client-CLOSED', false);
+                highlightState('client-SYN_SENT', true);
+            } else if (currentStep === 1) {
+                highlightState('server-LISTEN', false);
+                highlightState('server-SYN_RCVD', true);
+            } else if (currentStep === 2) {
+                highlightState('client-SYN_SENT', false);
+                highlightState('client-ESTABLISHED', true);
+            } else if (currentStep === 3) {
+                highlightState('server-SYN_RCVD', false);
+                highlightState('server-ESTABLISHED', true);
+            } else if (currentStep === 5) {
+                highlightState('client-ESTABLISHED', false);
+                highlightState('client-FIN_WAIT_1', true);
+            } else if (currentStep === 6) {
+                highlightState('server-ESTABLISHED', false);
+                highlightState('server-CLOSE_WAIT', true);
+                highlightState('client-FIN_WAIT_1', false);
+                highlightState('client-FIN_WAIT_2', true);
+            } else if (currentStep === 7) {
+                highlightState('server-CLOSE_WAIT', false);
+                highlightState('server-LAST_ACK', true);
+                highlightState('client-FIN_WAIT_2', false);
+                highlightState('client-TIME_WAIT', true);
+            } else if (currentStep === 8) {
+                highlightState('server-LAST_ACK', false);
+                highlightState('server-CLOSED_FINAL', true);
+            } else if (currentStep === 9) {
+                highlightState('client-TIME_WAIT', false);
+                highlightState('client-CLOSED_FINAL', true);
+            }
+        }
+
+        function nextStep() {
+            if (animationInProgress) return;
+            
+            if (currentStep < packetExchanges.length - 1) {
+                currentStep++;
+                createPacket(packetExchanges[currentStep]);
+                
+                if (currentStep === packetExchanges.length - 1) {
+                    nextBtn.disabled = true;
+                }
+            }
+        }
+
+        function runAnimation() {
+            if (animationInProgress) return;
+            
+            // Reset if we're at the end
+            if (currentStep >= packetExchanges.length - 1) {
+                resetDiagram();
+                setTimeout(runAnimation, 500);
+                return;
+            }
+            
+            animationInProgress = true;
+            playBtn.disabled = true;
+            nextBtn.disabled = true;
+            
+            function animateStep(step) {
+                if (step < packetExchanges.length) {
+                    currentStep = step;
+                    createPacket(packetExchanges[step]);
+                    timer = setTimeout(() => animateStep(step + 1), 1500);
+                } else {
+                    animationInProgress = false;
+                    playBtn.disabled = false;
+                }
+            }
+            
+            animateStep(currentStep + 1);
+        }
+
+        function resetDiagram() {
+            clearTimeout(timer);
+            initStateDiagram();
+        }
+
+        // Initialize the diagram
+        initStateDiagram();
+
+        // Event listeners
+        nextBtn.addEventListener('click', nextStep);
+        playBtn.addEventListener('click', runAnimation);
+        resetBtn.addEventListener('click', resetDiagram);
+    </script>
+</body>
+</html>
