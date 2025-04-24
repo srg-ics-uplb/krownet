@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCP Sequence Number Visualization</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 70px;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .visualization {
+            margin-top: 20px;
+            position: relative;
+        }
+        .byte-stream {
+            display: flex;
+            overflow-x: auto;
+            margin-bottom: 20px;
+            padding: 10px 0;
+            border-radius: 4px;
+            margin-top: 30px; /* Added margin to make room for sequence numbers */
+        }
+        .byte {
+            min-width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ddd;
+            position: relative;
+            background-color: #fff;
+            transition: background-color 0.3s;
+            margin-top: 20px; /* Added margin to make room for byte numbers */
+        }
+        .byte-number {
+            position: absolute;
+            top: -25px;
+            font-size: 12px;
+            color: #333;
+            font-weight: bold;
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+            min-width: 24px;
+            text-align: center;
+        }
+        .segment {
+            height: 40px;
+            position: relative;
+            margin-bottom: 35px;
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            border-radius: 4px;
+            background-color: rgba(52, 152, 219, 0.1);
+            overflow: hidden;
+        }
+        .segment-label {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .segment-info {
+            position: absolute;
+            bottom: -25px;
+            left: 0;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        .segment-bytes {
+            display: flex;
+            height: 100%;
+        }
+        .segment-byte {
+            min-width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #3498db;
+            background-color: rgba(52, 152, 219, 0.2);
+            margin-right: -1px;
+        }
+        .legend {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .legend h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .network-events {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .event {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #3498db;
+            background-color: white;
+        }
+        .current-highlight {
+            background-color: #f39c12 !important;
+            border-color: #e67e22 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TCP Sequence Number and Segmentation Visualization</h1>
+        
+        <div class="controls">
+            <button id="reset">Reset</button>
+            <button id="generateBytes">Generate Random Bytes</button>
+            <label>
+                Start Seq#:
+                <input type="number" id="startSeq" value="1000" min="0">
+            </label>
+            <label>
+                MSS:
+                <input type="number" id="mss" value="4" min="1" max="20">
+            </label>
+            <button id="segment">Segment Data</button>
+            <button id="animate">Animate Transmission</button>
+        </div>
+        
+        <div class="visualization">
+            <h2>Byte Stream</h2>
+            <div class="byte-stream" id="byteStream"></div>
+            
+            <h2>Segmentation</h2>
+            <div id="segments"></div>
+        </div>
+        
+        <div class="network-events">
+            <h3>Network Events</h3>
+            <div id="events"></div>
+        </div>
+        
+        <div class="legend">
+            <h3>How TCP Sequencing Works</h3>
+            <p>TCP assigns a sequence number to each byte in the data stream. The sequence number field in the TCP header contains the sequence number of the first byte in the segment. This helps the receiver:</p>
+            <ul>
+                <li>Reassemble segments that arrive out of order</li>
+                <li>Identify and eliminate duplicate data</li>
+                <li>Request retransmission of missing segments</li>
+            </ul>
+            <p>The Maximum Segment Size (MSS) determines how many bytes can be sent in a single TCP segment. The acknowledgment (ACK) number in the response indicates the next byte expected by the receiver.</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const byteStreamEl = document.getElementById('byteStream');
+        const segmentsEl = document.getElementById('segments');
+        const eventsEl = document.getElementById('events');
+        const resetBtn = document.getElementById('reset');
+        const generateBtn = document.getElementById('generateBytes');
+        const segmentBtn = document.getElementById('segment');
+        const animateBtn = document.getElementById('animate');
+        const startSeqInput = document.getElementById('startSeq');
+        const mssInput = document.getElementById('mss');
+        
+        // State
+        let bytes = [];
+        let segments = [];
+        let isAnimating = false;
+        let animationTimeouts = [];
+        
+        // Initialize
+        function init() {
+            bytes = [];
+            segments = [];
+            byteStreamEl.innerHTML = '';
+            segmentsEl.innerHTML = '';
+            clearEvents();
+            
+            animationTimeouts.forEach(timeout => clearTimeout(timeout));
+            animationTimeouts = [];
+            isAnimating = false;
+        }
+        
+        // Generate random bytes
+        function generateRandomBytes() {
+            init();
+            const numBytes = 10 + Math.floor(Math.random() * 15); // 10-24 bytes
+            
+            for (let i = 0; i < numBytes; i++) {
+                const value = String.fromCharCode(65 + Math.floor(Math.random() * 26)); // A-Z
+                bytes.push(value);
+            }
+            
+            renderByteStream();
+            addEvent("Generated " + numBytes + " bytes of data");
+        }
+        
+        // Render byte stream
+        function renderByteStream() {
+            byteStreamEl.innerHTML = '';
+            const startSeq = parseInt(startSeqInput.value) || 1000;
+            
+            bytes.forEach((byte, index) => {
+                const byteEl = document.createElement('div');
+                byteEl.className = 'byte';
+                byteEl.id = `byte-${index}`;
+                byteEl.textContent = byte;
+                
+                const byteNumEl = document.createElement('div');
+                byteNumEl.className = 'byte-number';
+                byteNumEl.textContent = startSeq + index;
+                
+                byteEl.appendChild(byteNumEl);
+                byteStreamEl.appendChild(byteEl);
+            });
+        }
+        
+        // Segment data
+        function segmentData() {
+            segmentsEl.innerHTML = '';
+            segments = [];
+            
+            if (bytes.length === 0) {
+                addEvent("No data to segment");
+                return;
+            }
+            
+            const mss = parseInt(mssInput.value) || 4;
+            const startSeq = parseInt(startSeqInput.value) || 1000;
+            
+            // Create segments
+            for (let i = 0; i < bytes.length; i += mss) {
+                const segmentBytes = bytes.slice(i, i + mss);
+                const seqStart = startSeq + i;
+                const seqEnd = seqStart + segmentBytes.length - 1;
+                
+                segments.push({
+                    startIndex: i,
+                    endIndex: i + segmentBytes.length - 1,
+                    seqStart,
+                    seqEnd,
+                    bytes: segmentBytes
+                });
+            }
+            
+            // Render segments
+            segments.forEach((segment, idx) => {
+                const segmentEl = document.createElement('div');
+                segmentEl.className = 'segment';
+                segmentEl.id = `segment-${idx}`;
+                
+                const labelEl = document.createElement('div');
+                labelEl.className = 'segment-label';
+                labelEl.textContent = `Segment ${idx + 1}`;
+                
+                const infoEl = document.createElement('div');
+                infoEl.className = 'segment-info';
+                infoEl.textContent = `SEQ ${segment.seqStart} - ${segment.seqEnd} (${segment.bytes.length} bytes)`;
+                
+                const bytesEl = document.createElement('div');
+                bytesEl.className = 'segment-bytes';
+                
+                segment.bytes.forEach((byte, byteIdx) => {
+                    const byteEl = document.createElement('div');
+                    byteEl.className = 'segment-byte';
+                    byteEl.textContent = byte;
+                    bytesEl.appendChild(byteEl);
+                });
+                
+                segmentEl.appendChild(labelEl);
+                segmentEl.appendChild(infoEl);
+                segmentEl.appendChild(bytesEl);
+                segmentsEl.appendChild(segmentEl);
+            });
+            
+            addEvent(`Segmented data into ${segments.length} segments with MSS=${mss}`);
+        }
+        
+        // Animation
+        function animateTransmission() {
+            if (isAnimating || segments.length === 0) return;
+            
+            isAnimating = true;
+            animationTimeouts = [];
+            clearHighlights();
+            
+            segments.forEach((segment, idx) => {
+                // Highlight segment being sent
+                const sendTimeout = setTimeout(() => {
+                    clearHighlights();
+                    highlightSegment(idx);
+                    addEvent(`Sending segment ${idx + 1} (SEQ ${segment.seqStart}-${segment.seqEnd})`);
+                }, idx * 1500);
+                
+                // Show ACK for segment
+                const ackTimeout = setTimeout(() => {
+                    addEvent(`Received ACK for segment ${idx + 1} (ACK ${segment.seqEnd + 1})`);
+                    
+                    // If last segment, end animation
+                    if (idx === segments.length - 1) {
+                        setTimeout(() => {
+                            clearHighlights();
+                            isAnimating = false;
+                        }, 800);
+                    }
+                }, idx * 1500 + 800);
+                
+                animationTimeouts.push(sendTimeout, ackTimeout);
+            });
+        }
+        
+        // Helper functions
+        function clearHighlights() {
+            document.querySelectorAll('.current-highlight').forEach(el => {
+                el.classList.remove('current-highlight');
+            });
+        }
+        
+        function highlightSegment(idx) {
+            const segment = segments[idx];
+            
+            // Highlight segment
+            document.getElementById(`segment-${idx}`).classList.add('current-highlight');
+            
+            // Highlight bytes in the stream
+            for (let i = segment.startIndex; i <= segment.endIndex; i++) {
+                document.getElementById(`byte-${i}`).classList.add('current-highlight');
+            }
+        }
+        
+        function addEvent(message) {
+            const eventEl = document.createElement('div');
+            eventEl.className = 'event';
+            eventEl.textContent = message;
+            eventsEl.prepend(eventEl);
+        }
+        
+        function clearEvents() {
+            eventsEl.innerHTML = '';
+        }
+        
+        // Event listeners
+        resetBtn.addEventListener('click', init);
+        generateBtn.addEventListener('click', generateRandomBytes);
+        segmentBtn.addEventListener('click', segmentData);
+        animateBtn.addEventListener('click', animateTransmission);
+        
+        // Initialize
+        init();
+        generateRandomBytes();
+    </script>
+</body>
+</html>
