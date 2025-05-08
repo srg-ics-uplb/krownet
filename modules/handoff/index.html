@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cellular Communication Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 70vh;
+            background-color: #e6e6e6;
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        .controls {
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        button {
+            padding: 8px 12px;
+            margin: 0 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .info-panel {
+            padding: 15px;
+            background-color: white;
+            border-top: 2px solid #ccc;
+            height: 20vh;
+            overflow-y: auto;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+        
+        #status-display {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .handoff-highlight {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div>
+            <button id="start-btn">Start Simulation</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+        <div>
+            <button id="toggle-path-btn">Show/Hide Path</button>
+            <button id="toggle-coverage-btn">Show/Hide Coverage</button>
+        </div>
+    </div>
+    
+    <div id="canvas-container">
+        <canvas id="simulation"></canvas>
+    </div>
+    
+    <div class="info-panel">
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3498db;"></div>
+                <span>Base Station</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e74c3c;"></div>
+                <span>Mobile Station</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #9b59b6;"></div>
+                <span>Mobile Switching Center</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(52, 152, 219, 0.2);"></div>
+                <span>Coverage Area</span>
+            </div>
+        </div>
+        
+        <div id="status-display">Press "Start Simulation" to begin</div>
+        <div id="info-log"></div>
+    </div>
+
+    <script>
+        // Main variables
+        const canvas = document.getElementById('simulation');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('start-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const togglePathBtn = document.getElementById('toggle-path-btn');
+        const toggleCoverageBtn = document.getElementById('toggle-coverage-btn');
+        const statusDisplay = document.getElementById('status-display');
+        const infoLog = document.getElementById('info-log');
+        
+        // Simulation state
+        let animationId = null;
+        let simRunning = false;
+        let showPath = true;
+        let showCoverage = true;
+        let handoffInProgress = false;
+        let currentBaseStation = null;
+        let lastLogTime = 0;
+        const logInterval = 2000; // ms between logs
+        
+        // Objects for our cellular network
+        const msc = {
+            x: 400,
+            y: 100,
+            radius: 25,
+            color: '#9b59b6',
+            name: 'MSC'
+        };
+        
+        const baseStations = [
+            { x: 150, y: 200, radius: 20, coverage: 150, color: '#3498db', name: 'BS-1', connected: false },
+            { x: 400, y: 300, radius: 20, coverage: 150, color: '#3498db', name: 'BS-2', connected: false },
+            { x: 650, y: 200, radius: 20, coverage: 150, color: '#3498db', name: 'BS-3', connected: false }
+        ];
+        
+        const mobileStation = {
+            x: 50,
+            y: 250,
+            radius: 15,
+            speed: 2,
+            color: '#e74c3c',
+            name: 'MS',
+            path: [
+                { x: 50, y: 250 },
+                { x: 250, y: 300 },
+                { x: 450, y: 200 },
+                { x: 750, y: 250 }
+            ],
+            currentPathIndex: 0,
+            progress: 0,
+            history: []
+        };
+        
+        // Resize canvas to fit container
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        
+        // Initialize simulation
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Event listeners
+            startBtn.addEventListener('click', toggleSimulation);
+            resetBtn.addEventListener('click', resetSimulation);
+            togglePathBtn.addEventListener('click', () => {
+                showPath = !showPath;
+                draw();
+            });
+            toggleCoverageBtn.addEventListener('click', () => {
+                showCoverage = !showCoverage;
+                draw();
+            });
+            
+            // Initial draw
+            draw();
+        }
+        
+        // Toggle simulation (start/pause)
+        function toggleSimulation() {
+            if (simRunning) {
+                pauseSimulation();
+                startBtn.textContent = 'Resume Simulation';
+            } else {
+                startSimulation();
+                startBtn.textContent = 'Pause Simulation';
+            }
+        }
+        
+        // Start simulation
+        function startSimulation() {
+            if (!simRunning) {
+                simRunning = true;
+                animate();
+                addLog('Simulation started');
+            }
+        }
+        
+        // Pause simulation
+        function pauseSimulation() {
+            simRunning = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            addLog('Simulation paused');
+        }
+        
+        // Reset simulation
+        function resetSimulation() {
+            pauseSimulation();
+            
+            // Reset mobile station
+            mobileStation.x = mobileStation.path[0].x;
+            mobileStation.y = mobileStation.path[0].y;
+            mobileStation.currentPathIndex = 0;
+            mobileStation.progress = 0;
+            mobileStation.history = [];
+            
+            // Reset base stations
+            baseStations.forEach(bs => {
+                bs.connected = false;
+            });
+            
+            currentBaseStation = null;
+            handoffInProgress = false;
+            
+            // Reset UI
+            infoLog.innerHTML = '';
+            statusDisplay.textContent = 'Press "Start Simulation" to begin';
+            statusDisplay.classList.remove('handoff-highlight');
+            startBtn.textContent = 'Start Simulation';
+            
+            // Redraw
+            draw();
+            addLog('Simulation reset');
+        }
+        
+        // Main animation loop
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            // Update mobile station position
+            if (mobileStation.currentPathIndex < mobileStation.path.length - 1) {
+                const currentPoint = mobileStation.path[mobileStation.currentPathIndex];
+                const nextPoint = mobileStation.path[mobileStation.currentPathIndex + 1];
+                
+                mobileStation.progress += mobileStation.speed / 100;
+                
+                if (mobileStation.progress >= 1) {
+                    mobileStation.currentPathIndex++;
+                    mobileStation.progress = 0;
+                    
+                    if (mobileStation.currentPathIndex >= mobileStation.path.length - 1) {
+                        addLog('Mobile station reached destination');
+                        pauseSimulation();
+                    }
+                }
+                
+                if (mobileStation.currentPathIndex < mobileStation.path.length - 1) {
+                    const startPoint = mobileStation.path[mobileStation.currentPathIndex];
+                    const endPoint = mobileStation.path[mobileStation.currentPathIndex + 1];
+                    
+                    mobileStation.x = startPoint.x + (endPoint.x - startPoint.x) * mobileStation.progress;
+                    mobileStation.y = startPoint.y + (endPoint.y - startPoint.y) * mobileStation.progress;
+                }
+            }
+            
+            // Record history for path trailing
+            mobileStation.history.push({x: mobileStation.x, y: mobileStation.y});
+            if (mobileStation.history.length > 100) {
+                mobileStation.history.shift();
+            }
+            
+            // Check for base station connections and handoffs
+            updateConnections();
+            
+            // Draw everything
+            draw();
+        }
+        
+        // Update base station connections and manage handoffs
+        function updateConnections() {
+            // Find closest base station
+            let closestBS = null;
+            let minDistance = Infinity;
+            
+            baseStations.forEach(bs => {
+                const distance = Math.sqrt((bs.x - mobileStation.x)**2 + (bs.y - mobileStation.y)**2);
+                if (distance < bs.coverage && distance < minDistance) {
+                    minDistance = distance;
+                    closestBS = bs;
+                }
+            });
+            
+            // Handle connection and handoff logic
+            if (closestBS) {
+                if (currentBaseStation === null) {
+                    // First connection
+                    currentBaseStation = closestBS;
+                    closestBS.connected = true;
+                    addLog(`Connected to ${closestBS.name}`);
+                    updateStatus(`Connected to ${closestBS.name}`);
+                } else if (currentBaseStation !== closestBS && !handoffInProgress) {
+                    // Initiate handoff
+                    handoffInProgress = true;
+                    addLog(`Handoff initiated: ${currentBaseStation.name} → ${closestBS.name}`);
+                    updateStatus(`Handoff: ${currentBaseStation.name} → ${closestBS.name}`, true);
+                    
+                    // Simulate handoff process with a delay
+                    setTimeout(() => {
+                        currentBaseStation.connected = false;
+                        closestBS.connected = true;
+                        currentBaseStation = closestBS;
+                        handoffInProgress = false;
+                        addLog(`Handoff complete, now connected to ${closestBS.name}`);
+                        updateStatus(`Connected to ${closestBS.name}`);
+                    }, 1500);
+                }
+            } else if (currentBaseStation !== null) {
+                // Lost connection
+                addLog(`Lost connection to ${currentBaseStation.name}`);
+                updateStatus('No connection');
+                currentBaseStation.connected = false;
+                currentBaseStation = null;
+            }
+        }
+        
+        // Draw everything on canvas
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw connections between MSC and base stations
+            drawConnections();
+            
+            // Draw base stations and their coverage areas
+            baseStations.forEach(bs => {
+                if (showCoverage) {
+                    drawCoverageArea(bs);
+                }
+                drawBaseStation(bs);
+            });
+            
+            // Draw MSC
+            drawMSC();
+            
+            // Draw mobile station and its path
+            if (showPath) {
+                drawMobilePath();
+            }
+            drawMobileStation();
+        }
+        
+        // Draw connections between components
+        function drawConnections() {
+            // Connect MSC to all base stations
+            ctx.beginPath();
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 2;
+            
+            baseStations.forEach(bs => {
+                ctx.moveTo(msc.x, msc.y);
+                ctx.lineTo(bs.x, bs.y);
+            });
+            
+            ctx.stroke();
+            
+            // Draw active connection between mobile station and connected base station
+            if (currentBaseStation) {
+                ctx.beginPath();
+                if (handoffInProgress) {
+                    // Dashed line during handoff
+                    ctx.setLineDash([5, 3]);
+                    ctx.strokeStyle = '#e67e22';
+                } else {
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle = '#2ecc71';
+                }
+                ctx.lineWidth = 3;
+                ctx.moveTo(mobileStation.x, mobileStation.y);
+                ctx.lineTo(currentBaseStation.x, currentBaseStation.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+        
+        // Draw the MSC (Mobile Switching Center)
+        function drawMSC() {
+            ctx.beginPath();
+            ctx.fillStyle = msc.color;
+            ctx.arc(msc.x, msc.y, msc.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add text
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(msc.name, msc.x, msc.y);
+        }
+        
+        // Draw a base station
+        function drawBaseStation(bs) {
+            // Base station tower
+            ctx.beginPath();
+            if (bs.connected) {
+                if (handoffInProgress && bs === currentBaseStation) {
+                    ctx.fillStyle = '#e67e22'; // Orange during handoff
+                } else {
+                    ctx.fillStyle = '#2ecc71'; // Green when connected
+                }
+            } else {
+                ctx.fillStyle = bs.color;
+            }
+            ctx.arc(bs.x, bs.y, bs.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Antenna on top
+            ctx.beginPath();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 3;
+            ctx.moveTo(bs.x, bs.y - bs.radius);
+            ctx.lineTo(bs.x, bs.y - bs.radius - 15);
+            ctx.stroke();
+            
+            // Base station name
+            ctx.fillStyle = 'black';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(bs.name, bs.x, bs.y + bs.radius + 15);
+        }
+        
+        // Draw coverage area for base station
+        function drawCoverageArea(bs) {
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
+            ctx.strokeStyle = 'rgba(52, 152, 219, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.arc(bs.x, bs.y, bs.coverage, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+        
+        // Draw mobile station
+        function drawMobileStation() {
+            // Main circle
+            ctx.beginPath();
+            ctx.fillStyle = mobileStation.color;
+            ctx.arc(mobileStation.x, mobileStation.y, mobileStation.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Antenna
+            ctx.beginPath();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.moveTo(mobileStation.x, mobileStation.y - mobileStation.radius);
+            ctx.lineTo(mobileStation.x, mobileStation.y - mobileStation.radius - 10);
+            ctx.stroke();
+            
+            // Text label
+            ctx.fillStyle = 'black';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(mobileStation.name, mobileStation.x, mobileStation.y + mobileStation.radius + 15);
+        }
+        
+        // Draw mobile station's path
+        function drawMobilePath() {
+            // Draw the predefined path
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(231, 76, 60, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 3]);
+            
+            ctx.moveTo(mobileStation.path[0].x, mobileStation.path[0].y);
+            for (let i = 1; i < mobileStation.path.length; i++) {
+                ctx.lineTo(mobileStation.path[i].x, mobileStation.path[i].y);
+            }
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw path history (trailing effect)
+            if (mobileStation.history.length > 1) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(231, 76, 60, 0.7)';
+                ctx.lineWidth = 3;
+                
+                ctx.moveTo(mobileStation.history[0].x, mobileStation.history[0].y);
+                for (let i = 1; i < mobileStation.history.length; i++) {
+                    ctx.lineTo(mobileStation.history[i].x, mobileStation.history[i].y);
+                }
+                
+                ctx.stroke();
+            }
+        }
+        
+        // Update status display
+        function updateStatus(message, isHandoff = false) {
+            statusDisplay.textContent = message;
+            
+            if (isHandoff) {
+                statusDisplay.classList.add('handoff-highlight');
+            } else {
+                statusDisplay.classList.remove('handoff-highlight');
+            }
+        }
+        
+        // Add log message with timestamp
+        function addLog(message) {
+            const now = Date.now();
+            if (now - lastLogTime > logInterval || message.includes('Handoff')) {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `${timestamp}: ${message}`;
+                
+                if (message.includes('Handoff')) {
+                    logEntry.style.color = '#e67e22';
+                    logEntry.style.fontWeight = 'bold';
+                }
+                
+                infoLog.prepend(logEntry);
+                
+                // Keep log size reasonable
+                if (infoLog.children.length > 15) {
+                    infoLog.removeChild(infoLog.lastChild);
+                }
+                
+                lastLogTime = now;
+            }
+        }
+        
+        // Start everything when page loads
+        window.onload = init;
+    </script>
+</body>
+</html>

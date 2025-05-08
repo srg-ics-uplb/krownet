@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cellular Communication Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        
+        .control-panel {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .visualization {
+            position: relative;
+            height: 500px;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .base-station {
+            position: absolute;
+            width: 60px;
+            height: 120px;
+            cursor: pointer;
+        }
+        
+        .base-station .tower {
+            width: 20px;
+            height: 80px;
+            background-color: #888;
+            margin: 0 auto;
+        }
+        
+        .base-station .antenna {
+            width: 60px;
+            height: 20px;
+            background-color: #666;
+            position: relative;
+            top: 0;
+        }
+        
+        .base-station .base {
+            width: 40px;
+            height: 20px;
+            background-color: #333;
+            margin: 0 auto;
+        }
+        
+        .base-station .signal {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 50%;
+            opacity: 0;
+        }
+        
+        .mobile-station {
+            position: absolute;
+            width: 30px;
+            height: 50px;
+            background-color: #2C3E50;
+            border-radius: 5px;
+            cursor: grab;
+            z-index: 10;
+        }
+        
+        .mobile-station .screen {
+            width: 24px;
+            height: 30px;
+            background-color: #3498DB;
+            margin: 3px auto 0;
+            border-radius: 2px;
+        }
+        
+        .mobile-station .button {
+            width: 8px;
+            height: 8px;
+            background-color: #ECF0F1;
+            margin: 5px auto 0;
+            border-radius: 50%;
+        }
+        
+        .mobile-station .signal-indicator {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #2ECC71;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .mobile-switching-center {
+            position: absolute;
+            width: 100px;
+            height: 80px;
+            background-color: #34495E;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background-color: #3498DB;
+            transform-origin: 0 0;
+            z-index: 5;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+        
+        .info-panel {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        button {
+            background-color: #3498DB;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #2980B9;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 15px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+        }
+        
+        .call-animation {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #E74C3C;
+            border-radius: 50%;
+            z-index: 20;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cellular Communication Visualization</h1>
+    
+    <div class="control-panel">
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #888;"></div>
+                <span>Base Station</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #2C3E50;"></div>
+                <span>Mobile Station</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #34495E;"></div>
+                <span>Mobile Switching Center</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3498DB;"></div>
+                <span>Connection</span>
+            </div>
+        </div>
+        
+        <button id="add-mobile">Add Mobile Station</button>
+        <button id="simulate-call">Simulate Call</button>
+        <button id="toggle-coverage">Toggle Coverage</button>
+        <button id="reset">Reset</button>
+    </div>
+    
+    <div class="visualization" id="network-visualization">
+        <!-- Elements will be added dynamically -->
+        <div class="tooltip" id="tooltip"></div>
+        <div class="call-animation" id="call-animation"></div>
+    </div>
+    
+    <div class="info-panel">
+        <h3>About Cellular Communication</h3>
+        <p>This visualization demonstrates the key components of a cellular network:</p>
+        <ul>
+            <li><strong>Base Stations (BS)</strong>: Also known as cell towers, they provide network coverage to mobile stations within their range.</li>
+            <li><strong>Mobile Stations (MS)</strong>: User devices like mobile phones that connect to the network. You can drag them around to see how connections change.</li>
+            <li><strong>Mobile Switching Center (MSC)</strong>: Central system that manages call routing, handovers between cells, and connects to external networks.</li>
+        </ul>
+        <p>Try moving the mobile stations around to see how they connect to different base stations based on proximity. The "Simulate Call" button shows how a call connects through the network infrastructure.</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const visualization = document.getElementById('network-visualization');
+            const tooltip = document.getElementById('tooltip');
+            const callAnimation = document.getElementById('call-animation');
+            
+            let baseStations = [];
+            let mobileStations = [];
+            let msc = null;
+            let connections = [];
+            let showCoverage = false;
+            let activeDragElement = null;
+            let dragOffsetX = 0;
+            let dragOffsetY = 0;
+            
+            // Initialize the network
+            function initializeNetwork() {
+                // Create MSC
+                createMSC(visualization.clientWidth / 2 - 50, 50);
+                
+                // Create base stations
+                createBaseStation(100, 200);
+                createBaseStation(300, 350);
+                createBaseStation(500, 150);
+                createBaseStation(700, 300);
+                
+                // Create initial mobile station
+                createMobileStation(200, 400);
+                
+                // Update all connections
+                updateAllConnections();
+            }
+            
+            function createBaseStation(x, y) {
+                const baseStation = document.createElement('div');
+                baseStation.className = 'base-station';
+                baseStation.style.left = `${x}px`;
+                baseStation.style.top = `${y}px`;
+                
+                const antenna = document.createElement('div');
+                antenna.className = 'antenna';
+                
+                const tower = document.createElement('div');
+                tower.className = 'tower';
+                
+                const base = document.createElement('div');
+                base.className = 'base';
+                
+                const signal = document.createElement('div');
+                signal.className = 'signal';
+                
+                baseStation.appendChild(antenna);
+                baseStation.appendChild(tower);
+                baseStation.appendChild(base);
+                baseStation.appendChild(signal);
+                
+                visualization.appendChild(baseStation);
+                
+                baseStation.addEventListener('mouseenter', function() {
+                    showTooltip(baseStation, `Base Station ${baseStations.length + 1}`);
+                });
+                
+                baseStation.addEventListener('mouseleave', function() {
+                    hideTooltip();
+                });
+                
+                const baseStationObj = {
+                    element: baseStation,
+                    x: x + 30,  // center point
+                    y: y + 40,  // center point at antenna level
+                    signal: signal,
+                    id: baseStations.length + 1
+                };
+                
+                baseStations.push(baseStationObj);
+                
+                // Create connection to MSC
+                if (msc) {
+                    createConnection(baseStationObj, msc);
+                }
+                
+                return baseStationObj;
+            }
+            
+            function createMobileStation(x, y) {
+                const mobileStation = document.createElement('div');
+                mobileStation.className = 'mobile-station';
+                mobileStation.style.left = `${x}px`;
+                mobileStation.style.top = `${y}px`;
+                
+                const screen = document.createElement('div');
+                screen.className = 'screen';
+                
+                const button = document.createElement('div');
+                button.className = 'button';
+                
+                const signalIndicator = document.createElement('div');
+                signalIndicator.className = 'signal-indicator';
+                signalIndicator.textContent = '3';
+                
+                mobileStation.appendChild(screen);
+                mobileStation.appendChild(button);
+                mobileStation.appendChild(signalIndicator);
+                
+                visualization.appendChild(mobileStation);
+                
+                mobileStation.addEventListener('mousedown', startDrag);
+                
+                mobileStation.addEventListener('mouseenter', function() {
+                    showTooltip(mobileStation, `Mobile Station ${mobileStations.length + 1}`);
+                });
+                
+                mobileStation.addEventListener('mouseleave', function() {
+                    hideTooltip();
+                });
+                
+                const mobileStationObj = {
+                    element: mobileStation,
+                    x: x + 15,  // center point
+                    y: y + 25,  // center point
+                    signalIndicator: signalIndicator,
+                    id: mobileStations.length + 1,
+                    connectedTo: null
+                };
+                
+                mobileStations.push(mobileStationObj);
+                
+                // Connect to nearest base station
+                updateMobileStationConnection(mobileStationObj);
+                
+                return mobileStationObj;
+            }
+            
+            function createMSC(x, y) {
+                const mscElement = document.createElement('div');
+                mscElement.className = 'mobile-switching-center';
+                mscElement.style.left = `${x}px`;
+                mscElement.style.top = `${y}px`;
+                mscElement.innerHTML = 'Mobile<br>Switching<br>Center';
+                
+                visualization.appendChild(mscElement);
+                
+                mscElement.addEventListener('mouseenter', function() {
+                    showTooltip(mscElement, 'Mobile Switching Center (MSC)');
+                });
+                
+                mscElement.addEventListener('mouseleave', function() {
+                    hideTooltip();
+                });
+                
+                msc = {
+                    element: mscElement,
+                    x: x + 50,  // center point
+                    y: y + 40   // center point
+                };
+                
+                return msc;
+            }
+            
+            function createConnection(from, to) {
+                const line = document.createElement('div');
+                line.className = 'connection-line';
+                
+                visualization.appendChild(line);
+                
+                const connection = {
+                    element: line,
+                    from: from,
+                    to: to
+                };
+                
+                connections.push(connection);
+                updateConnection(connection);
+                
+                return connection;
+            }
+            
+            function updateConnection(connection) {
+                const dx = connection.to.x - connection.from.x;
+                const dy = connection.to.y - connection.from.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                
+                connection.element.style.width = `${length}px`;
+                connection.element.style.left = `${connection.from.x}px`;
+                connection.element.style.top = `${connection.from.y}px`;
+                connection.element.style.transform = `rotate(${angle}deg)`;
+            }
+            
+            function updateAllConnections() {
+                // Update all connections
+                connections.forEach(updateConnection);
+                
+                // Update all mobile station connections
+                mobileStations.forEach(updateMobileStationConnection);
+            }
+            
+            function updateMobileStationConnection(mobileStation) {
+                // Find closest base station
+                let closestBS = null;
+                let minDistance = Infinity;
+                
+                baseStations.forEach(bs => {
+                    const dx = bs.x - mobileStation.x;
+                    const dy = bs.y - mobileStation.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestBS = bs;
+                    }
+                });
+                
+                // Update signal strength indicator (0-4)
+                let signalStrength = 0;
+                if (minDistance < 100) signalStrength = 4;
+                else if (minDistance < 150) signalStrength = 3;
+                else if (minDistance < 200) signalStrength = 2;
+                else if (minDistance < 250) signalStrength = 1;
+                
+                mobileStation.signalIndicator.textContent = signalStrength;
+                
+                // Remove old connection if exists
+                if (mobileStation.connection) {
+                    const index = connections.indexOf(mobileStation.connection);
+                    if (index > -1) {
+                        connections.splice(index, 1);
+                        mobileStation.connection.element.remove();
+                    }
+                }
+                
+                // Create new connection if in range
+                if (signalStrength > 0) {
+                    mobileStation.connection = createConnection(mobileStation, closestBS);
+                    mobileStation.connectedTo = closestBS;
+                } else {
+                    mobileStation.connection = null;
+                    mobileStation.connectedTo = null;
+                }
+            }
+            
+            function startDrag(event) {
+                if (event.target.classList.contains('mobile-station') || event.target.parentElement.classList.contains('mobile-station')) {
+                    let target = event.target;
+                    if (event.target.parentElement.classList.contains('mobile-station')) {
+                        target = event.target.parentElement;
+                    }
+                    
+                    activeDragElement = mobileStations.find(ms => ms.element === target);
+                    
+                    if (activeDragElement) {
+                        hideTooltip();
+                        
+                        // Calculate offset
+                        const rect = target.getBoundingClientRect();
+                        dragOffsetX = event.clientX - rect.left;
+                        dragOffsetY = event.clientY - rect.top;
+                        
+                        document.addEventListener('mousemove', dragMove);
+                        document.addEventListener('mouseup', dragEnd);
+                    }
+                }
+                
+                event.preventDefault();
+            }
+            
+            function dragMove(event) {
+                if (activeDragElement) {
+                    const visualizationRect = visualization.getBoundingClientRect();
+                    
+                    // Calculate new position with bounds checking
+                    let newX = event.clientX - visualizationRect.left - dragOffsetX;
+                    let newY = event.clientY - visualizationRect.top - dragOffsetY;
+                    
+                    // Ensure mobile station stays within visualization area
+                    newX = Math.max(0, Math.min(newX, visualizationRect.width - 30));
+                    newY = Math.max(0, Math.min(newY, visualizationRect.height - 50));
+                    
+                    // Update position
+                    activeDragElement.element.style.left = `${newX}px`;
+                    activeDragElement.element.style.top = `${newY}px`;
+                    
+                    // Update center point
+                    activeDragElement.x = newX + 15;
+                    activeDragElement.y = newY + 25;
+                    
+                    // Update connection
+                    updateMobileStationConnection(activeDragElement);
+                }
+            }
+            
+            function dragEnd() {
+                activeDragElement = null;
+                document.removeEventListener('mousemove', dragMove);
+                document.removeEventListener('mouseup', dragEnd);
+            }
+            
+            function showTooltip(element, text) {
+                const rect = element.getBoundingClientRect();
+                const visRect = visualization.getBoundingClientRect();
+                
+                tooltip.textContent = text;
+                tooltip.style.display = 'block';
+                tooltip.style.left = `${rect.left - visRect.left + rect.width / 2}px`;
+                tooltip.style.top = `${rect.top - visRect.top - 30}px`;
+            }
+            
+            function hideTooltip() {
+                tooltip.style.display = 'none';
+            }
+            
+            function toggleCoverage() {
+                showCoverage = !showCoverage;
+                
+                baseStations.forEach(bs => {
+                    if (showCoverage) {
+                        bs.signal.style.width = '300px';
+                        bs.signal.style.height = '300px';
+                        bs.signal.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
+                        bs.signal.style.border = '2px solid rgba(52, 152, 219, 0.2)';
+                        bs.signal.style.transform = 'translateX(-50%) translateY(-40%)';
+                        bs.signal.style.opacity = '1';
+                    } else {
+                        bs.signal.style.opacity = '0';
+                    }
+                });
+            }
+            
+            function simulateCall() {
+                if (mobileStations.length < 2) {
+                    alert("Add at least one more mobile station to simulate a call");
+                    return;
+                }
+                
+                // Find two connected mobile stations
+                const connectedMobiles = mobileStations.filter(ms => ms.connectedTo !== null);
+                
+                if (connectedMobiles.length < 2) {
+                    alert("At least two mobile stations need to be in coverage area");
+                    return;
+                }
+                
+                const caller = connectedMobiles[0];
+                const receiver = connectedMobiles[1];
+                
+                simulateCallAnimation(caller, receiver);
+            }
+            
+            function simulateCallAnimation(caller, receiver) {
+                // Highlight caller and receiver
+                caller.element.style.boxShadow = '0 0 10px #E74C3C';
+                receiver.element.style.boxShadow = '0 0 10px #E74C3C';
+                
+                // Show call animation
+                callAnimation.style.display = 'block';
+                callAnimation.style.left = `${caller.x - 7.5}px`;
+                callAnimation.style.top = `${caller.y - 7.5}px`;
+                
+                // Define animation path: caller → caller's BS → MSC → receiver's BS → receiver
+                const path = [
+                    { x: caller.x, y: caller.y },
+                    { x: caller.connectedTo.x, y: caller.connectedTo.y },
+                    { x: msc.x, y: msc.y },
+                    { x: receiver.connectedTo.x, y: receiver.connectedTo.y },
+                    { x: receiver.x, y: receiver.y }
+                ];
+                
+                // Animate through path
+                let currentSegment = 0;
+                let progress = 0;
+                
+                function animateSegment() {
+                    if (currentSegment >= path.length - 1) {
+                        // Animation complete
+                        setTimeout(() => {
+                            callAnimation.style.display = 'none';
+                            caller.element.style.boxShadow = '';
+                            receiver.element.style.boxShadow = '';
+                        }, 500);
+                        return;
+                    }
+                    
+                    const start = path[currentSegment];
+                    const end = path[currentSegment + 1];
+                    
+                    // Calculate position along segment
+                    const x = start.x + (end.x - start.x) * progress;
+                    const y = start.y + (end.y - start.y) * progress;
+                    
+                    // Update animation position
+                    callAnimation.style.left = `${x - 7.5}px`;
+                    callAnimation.style.top = `${y - 7.5}px`;
+                    
+                    // Update progress
+                    progress += 0.05;
+                    
+                    if (progress >= 1) {
+                        currentSegment++;
+                        progress = 0;
+                    }
+                    
+                    requestAnimationFrame(animateSegment);
+                }
+                
+                animateSegment();
+            }
+            
+            function addMobileStation() {
+                const x = 100 + Math.random() * (visualization.clientWidth - 200);
+                const y = 200 + Math.random() * (visualization.clientHeight - 300);
+                createMobileStation(x, y);
+            }
+            
+            function resetVisualization() {
+                // Remove all elements
+                while (visualization.firstChild) {
+                    if (visualization.firstChild === tooltip || visualization.firstChild === callAnimation) {
+                        visualization.appendChild(visualization.firstChild);
+                    } else {
+                        visualization.removeChild(visualization.firstChild);
+                    }
+                }
+                
+                // Reset arrays
+                baseStations = [];
+                mobileStations = [];
+                msc = null;
+                connections = [];
+                showCoverage = false;
+                
+                // Reinitialize
+                initializeNetwork();
+            }
+            
+            // Set up button event handlers
+            document.getElementById('add-mobile').addEventListener('click', addMobileStation);
+            document.getElementById('simulate-call').addEventListener('click', simulateCall);
+            document.getElementById('toggle-coverage').addEventListener('click', toggleCoverage);
+            document.getElementById('reset').addEventListener('click', resetVisualization);
+            
+            // Initialize the network
+            initializeNetwork();
+        });
+    </script>
+</body>
+</html>
