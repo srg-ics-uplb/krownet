@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traditional Network Architecture Visualization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .network-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .network-layer {
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .core-layer {
+            background-color: #e8f5e9;
+            border: 2px solid #4caf50;
+        }
+        .distribution-layer {
+            background-color: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+        .access-layer {
+            background-color: #fff8e1;
+            border: 2px solid #ffc107;
+        }
+        .layer-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .layer-content {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .router {
+            width: 120px;
+            height: 90px;
+            background-color: #c8e6c9;
+            border: 2px solid #4caf50;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .switch {
+            width: 120px;
+            height: 90px;
+            background-color: #bbdefb;
+            border: 2px solid #1976d2;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .host {
+            width: 60px;
+            height: 60px;
+            background-color: #ffecb3;
+            border: 2px solid #ffa000;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .control-panel {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+        .link {
+            position: absolute;
+            background-color: #e0e0e0;
+            z-index: -1;
+        }
+        .packet {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: #9c27b0;
+            z-index: 100;
+            opacity: 0;
+        }
+        .control-packet {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background-color: #f44336;
+            z-index: 100;
+            opacity: 0;
+        }
+        .logs {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+            height: 150px;
+            overflow-y: auto;
+        }
+        .logs-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .info-panel {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        .toggle-section {
+            cursor: pointer;
+            background-color: rgba(0,0,0,0.05);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .device-icon {
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Traditional Network Architecture</h1>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e8f5e9; border: 1px solid #4caf50;"></div>
+                <span>Core Layer</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #e3f2fd; border: 1px solid #2196f3;"></div>
+                <span>Distribution Layer</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fff8e1; border: 1px solid #ffc107;"></div>
+                <span>Access Layer</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f44336;"></div>
+                <span>Control Traffic (Routing)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #9c27b0;"></div>
+                <span>Data Traffic</span>
+            </div>
+        </div>
+        
+        <div class="network-container">
+            <!-- Core Layer -->
+            <div class="network-layer core-layer">
+                <div class="layer-title">
+                    <span>Core Layer</span>
+                    <span class="toggle-section" onclick="toggleDetails('core-info')">ⓘ</span>
+                </div>
+                <div id="core-info" class="info-panel" style="display: none;">
+                    <p>The <strong>Core Layer</strong> in traditional networks:</p>
+                    <ul>
+                        <li>Responsible for fast packet forwarding between distribution layer devices</li>
+                        <li>Contains high-speed routers designed for reliability and speed</li>
+                        <li>Has both control plane and data plane tightly coupled within each router</li>
+                        <li>Each router makes its own forwarding decisions based on local routing tables</li>
+                        <li>Exchanges routing information with other routers using protocols like OSPF or BGP</li>
+                    </ul>
+                </div>
+                <div class="layer-content" id="core-router-container">
+                    <!-- Core routers will be generated by JS -->
+                </div>
+            </div>
+            
+            <!-- Distribution Layer -->
+            <div class="network-layer distribution-layer">
+                <div class="layer-title">
+                    <span>Distribution Layer</span>
+                    <span class="toggle-section" onclick="toggleDetails('distribution-info')">ⓘ</span>
+                </div>
+                <div id="distribution-info" class="info-panel" style="display: none;">
+                    <p>The <strong>Distribution Layer</strong> in traditional networks:</p>
+                    <ul>
+                        <li>Acts as a boundary between access and core layers</li>
+                        <li>Implements policies for routing, filtering, QoS, etc.</li>
+                        <li>Each switch contains its own control plane and data plane functionality</li>
+                        <li>Routing and switching decisions are made locally within each device</li>
+                        <li>Communicates with other devices through various routing and spanning tree protocols</li>
+                    </ul>
+                </div>
+                <div class="layer-content" id="distribution-switch-container">
+                    <!-- Distribution switches will be generated by JS -->
+                </div>
+            </div>
+            
+            <!-- Access Layer -->
+            <div class="network-layer access-layer">
+                <div class="layer-title">
+                    <span>Access Layer</span>
+                    <span class="toggle-section" onclick="toggleDetails('access-info')">ⓘ</span>
+                </div>
+                <div id="access-info" class="info-panel" style="display: none;">
+                    <p>The <strong>Access Layer</strong> in traditional networks:</p>
+                    <ul>
+                        <li>Provides connectivity to end devices (computers, printers, etc.)</li>
+                        <li>Typically consists of Layer 2 switches</li>
+                        <li>Each switch has its own control plane for making local forwarding decisions</li>
+                        <li>Uses spanning tree protocol to prevent loops</li>
+                        <li>Limited intelligence - mostly follows instructions from distribution layer</li>
+                    </ul>
+                </div>
+                <div class="layer-content" id="access-switch-container">
+                    <!-- Access switches will be generated by JS -->
+                </div>
+            </div>
+            
+            <!-- End Hosts -->
+            <div id="hosts-container" style="display: flex; justify-content: space-around; margin-top: 15px;">
+                <!-- Hosts will be generated by JS -->
+            </div>
+            
+            <div class="control-panel">
+                <button id="exchange-routing-btn">Exchange Routing Info</button>
+                <button id="send-packet-btn">Send Data Packet</button>
+                <button id="reset-btn">Reset Network</button>
+            </div>
+            
+            <div class="logs">
+                <div class="logs-title">Network Activity Logs</div>
+                <div id="log-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let coreRouters = [];
+        let distributionSwitches = [];
+        let accessSwitches = [];
+        let hosts = [];
+        let routingExchanged = false;
+        let packetInProgress = false;
+        
+        // Initialize the network
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add initial devices
+            addCoreRouters(2);
+            addDistributionSwitches(2);
+            addAccessSwitches(4);
+            addHosts(4);
+            
+            // Setup event listeners
+            document.getElementById('exchange-routing-btn').addEventListener('click', exchangeRoutingInfo);
+            document.getElementById('send-packet-btn').addEventListener('click', sendDataPacket);
+            document.getElementById('reset-btn').addEventListener('click', resetNetwork);
+            
+            // Create links
+            createLinks();
+            
+            // Add initial log
+            addLog('Traditional network initialized with 3-tier architecture');
+        });
+        
+        function toggleDetails(id) {
+            const element = document.getElementById(id);
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+            } else {
+                element.style.display = 'none';
+            }
+        }
+        
+        function addCoreRouters(count) {
+            const container = document.getElementById('core-router-container');
+            container.innerHTML = '';
+            coreRouters = [];
+            
+            for (let i = 1; i <= count; i++) {
+                const router = document.createElement('div');
+                router.className = 'router';
+                router.id = `core-router-${i}`;
+                router.innerHTML = `
+                    <div class="device-icon">🌐</div>
+                    <div style="font-weight: bold;">Core Router ${i}</div>
+                `;
+                
+                container.appendChild(router);
+                coreRouters.push({
+                    id: i,
+                    element: router,
+                    routingTableUpdated: false
+                });
+            }
+        }
+        
+        function addDistributionSwitches(count) {
+            const container = document.getElementById('distribution-switch-container');
+            container.innerHTML = '';
+            distributionSwitches = [];
+            
+            for (let i = 1; i <= count; i++) {
+                const switch_ = document.createElement('div');
+                switch_.className = 'switch';
+                switch_.id = `dist-switch-${i}`;
+                switch_.innerHTML = `
+                    <div class="device-icon">🔄</div>
+                    <div style="font-weight: bold;">Distribution Switch ${i}</div>
+                `;
+                
+                container.appendChild(switch_);
+                distributionSwitches.push({
+                    id: i,
+                    element: switch_,
+                    routingTableUpdated: false
+                });
+            }
+        }
+        
+        function addAccessSwitches(count) {
+            const container = document.getElementById('access-switch-container');
+            container.innerHTML = '';
+            accessSwitches = [];
+            
+            for (let i = 1; i <= count; i++) {
+                const switch_ = document.createElement('div');
+                switch_.className = 'switch';
+                switch_.id = `access-switch-${i}`;
+                switch_.innerHTML = `
+                    <div class="device-icon">🔌</div>
+                    <div style="font-weight: bold;">Access Switch ${i}</div>
+                `;
+                
+                container.appendChild(switch_);
+                accessSwitches.push({
+                    id: i,
+                    element: switch_,
+                    routingTableUpdated: false
+                });
+            }
+        }
+        
+        function addHosts(count) {
+            const container = document.getElementById('hosts-container');
+            container.innerHTML = '';
+            hosts = [];
+            
+            for (let i = 1; i <= count; i++) {
+                const host = document.createElement('div');
+                host.className = 'host';
+                host.id = `host-${i}`;
+                host.innerHTML = `H${i}`;
+                
+                container.appendChild(host);
+                hosts.push({
+                    id: i,
+                    element: host
+                });
+            }
+        }
+        
+        function createLinks() {
+            // Remove existing links
+            const existingLinks = document.querySelectorAll('.link');
+            existingLinks.forEach(link => link.remove());
+            
+            // Create core to distribution links
+            coreRouters.forEach(router => {
+                distributionSwitches.forEach(switch_ => {
+                    createLink(`core-router-${router.id}`, `dist-switch-${switch_.id}`);
+                });
+            });
+            
+            // Create distribution to access links
+            for (let i = 0; i < distributionSwitches.length; i++) {
+                const distSwitch = distributionSwitches[i];
+                // Each distribution switch connects to half of the access switches
+                const startIndex = i * Math.ceil(accessSwitches.length / distributionSwitches.length);
+                const endIndex = Math.min((i + 1) * Math.ceil(accessSwitches.length / distributionSwitches.length), accessSwitches.length);
+                
+                for (let j = startIndex; j < endIndex; j++) {
+                    createLink(`dist-switch-${distSwitch.id}`, `access-switch-${accessSwitches[j].id}`);
+                }
+            }
+            
+            // Create access to host links
+            for (let i = 0; i < accessSwitches.length; i++) {
+                const accessSwitch = accessSwitches[i];
+                // Each access switch connects to one host (simplified)
+                if (i < hosts.length) {
+                    createLink(`access-switch-${accessSwitch.id}`, `host-${hosts[i].id}`);
+                }
+            }
+        }
+        
+        function createLink(fromId, toId) {
+            const fromElement = document.getElementById(fromId);
+            const toElement = document.getElementById(toId);
+            
+            if (!fromElement || !toElement) return;
+            
+            const fromRect = fromElement.getBoundingClientRect();
+            const toRect = toElement.getBoundingClientRect();
+            
+            const container = document.querySelector('.container');
+            const containerRect = container.getBoundingClientRect();
+            
+            const fromX = fromRect.left + fromRect.width / 2 - containerRect.left;
+            const fromY = fromRect.top + fromRect.height / 2 - containerRect.top;
+            const toX = toRect.left + toRect.width / 2 - containerRect.left;
+            const toY = toRect.top + toRect.height / 2 - containerRect.top;
+            
+            const angle = Math.atan2(toY - fromY, toX - fromX) * 180 / Math.PI;
+            const length = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
+            
+            const link = document.createElement('div');
+            link.className = 'link';
+            link.style.width = `${length}px`;
+            link.style.height = '3px';
+            link.style.left = `${fromX}px`;
+            link.style.top = `${fromY}px`;
+            link.style.transformOrigin = '0 0';
+            link.style.transform = `rotate(${angle}deg)`;
+            
+            container.appendChild(link);
+        }
+        
+        function exchangeRoutingInfo() {
+            if (routingExchanged) {
+                addLog('Routing information has already been exchanged');
+                return;
+            }
+            
+            routingExchanged = true;
+            addLog('Starting routing protocol exchanges...');
+            
+            // First, exchange routing info between core routers
+            for (let i = 0; i < coreRouters.length; i++) {
+                for (let j = 0; j < coreRouters.length; j++) {
+                    if (i !== j) {
+                        setTimeout(() => {
+                            sendRoutingInfo(`core-router-${coreRouters[i].id}`, `core-router-${coreRouters[j].id}`);
+                        }, (i * coreRouters.length + j) * 500);
+                    }
+                }
+            }
+            
+            // Then exchange between core and distribution
+            setTimeout(() => {
+                coreRouters.forEach((router, routerIndex) => {
+                    distributionSwitches.forEach((switch_, switchIndex) => {
+                        setTimeout(() => {
+                            sendRoutingInfo(`core-router-${router.id}`, `dist-switch-${switch_.id}`);
+                            
+                            // After a delay, send back from distribution to core
+                            setTimeout(() => {
+                                sendRoutingInfo(`dist-switch-${switch_.id}`, `core-router-${router.id}`);
+                            }, 300);
+                        }, (routerIndex * distributionSwitches.length + switchIndex) * 800);
+                    });
+                });
+            }, coreRouters.length * coreRouters.length * 500 + 500);
+            
+            // Finally, exchange between distribution and access
+            setTimeout(() => {
+                for (let i = 0; i < distributionSwitches.length; i++) {
+                    const distSwitch = distributionSwitches[i];
+                    // Each distribution switch connects to half of the access switches
+                    const startIndex = i * Math.ceil(accessSwitches.length / distributionSwitches.length);
+                    const endIndex = Math.min((i + 1) * Math.ceil(accessSwitches.length / distributionSwitches.length), accessSwitches.length);
+                    
+                    for (let j = startIndex; j < endIndex; j++) {
+                        const accessSwitch = accessSwitches[j];
+                        setTimeout(() => {
+                            sendRoutingInfo(`dist-switch-${distSwitch.id}`, `access-switch-${accessSwitch.id}`);
+                        }, (i * accessSwitches.length + j) * 800);
+                    }
+                }
+                
+                // After all exchanges, mark as complete
+                setTimeout(() => {
+                    addLog('All routing and forwarding tables have been updated across the network');
+                    document.getElementById('send-packet-btn').disabled = false;
+                }, distributionSwitches.length * accessSwitches.length * 800 + 1000);
+            }, coreRouters.length * coreRouters.length * 500 + distributionSwitches.length * coreRouters.length * 800 + 1000);
+        }
+        
+        function sendRoutingInfo(fromId, toId) {
+            const fromElement = document.getElementById(fromId);
+            const toElement = document.getElementById(toId);
+            
+            if (!fromElement || !toElement) return;
+            
+            const fromRect = fromElement.getBoundingClientRect();
+            const toRect = toElement.getBoundingClientRect();
+            
+            const container = document.querySelector('.container');
+            const containerRect = container.getBoundingClientRect();
+            
+            const fromX = fromRect.left + fromRect.width / 2 - containerRect.left;
+            const fromY = fromRect.top + fromRect.height / 2 - containerRect.top;
+            const toX = toRect.left + toRect.width / 2 - containerRect.left;
+            const toY = toRect.top + toRect.height / 2 - containerRect.top;
+            
+            const packet = document.createElement('div');
+            packet.className = 'control-packet';
+            packet.style.left = `${fromX - 7.5}px`;
+            packet.style.top = `${fromY - 7.5}px`;
+            
+            container.appendChild(packet);
+            packet.style.opacity = '1';
+            
+            // Extract device type and ID
+            const fromParts = fromId.split('-');
+            const toParts = toId.split('-');
+            const fromType = fromParts[0] === 'core' ? 'router' : 'switch';
+            const fromNum = fromParts[fromParts.length - 1];
+            const toType = toParts[0] === 'core' ? 'router' : 'switch';
+            const toNum = toParts[toParts.length - 1];
+            
+            // Determine layer names
+            const getLayerName = (type, firstPart) => {
+                if (firstPart === 'core') return 'Core';
+                if (firstPart === 'dist') return 'Distribution';
+                if (firstPart === 'access') return 'Access';
+                return '';
+            };
+            
+            const fromLayer = getLayerName(fromType, fromParts[0]);
+            const toLayer = getLayerName(toType, toParts[0]);
+            
+            addLog(`${fromLayer} ${fromType.charAt(0).toUpperCase() + fromType.slice(1)} ${fromNum}: Sending routing updates to ${toLayer} ${toType.charAt(0).toUpperCase() + toType.slice(1)} ${toNum}`);
+            
+            // Animate the packet
+            let progress = 0;
+            const duration = 800;  // 0.8 seconds
+            const start = performance.now();
+            
+            const animate = (timestamp) => {
+                const elapsed = timestamp - start;
+                progress = Math.min(elapsed / duration, 1);
+                
+                packet.style.left = `${fromX + (toX - fromX) * progress - 7.5}px`;
+                packet.style.top = `${fromY + (toY - fromY) * progress - 7.5}px`;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // Reached destination
+                    setTimeout(() => {
+                        packet.remove();
+                        addLog(`${toLayer} ${toType.charAt(0).toUpperCase() + toType.slice(1)} ${toNum}: Received and processed routing updates`);
+                        
+                        // Mark device as updated
+                        if (toId.startsWith('core-router')) {
+                            coreRouters.find(r => r.id == toNum).routingTableUpdated = true;
+                        } else if (toId.startsWith('dist-switch')) {
+                            distributionSwitches.find(s => s.id == toNum).routingTableUpdated = true;
+                        } else if (toId.startsWith('access-switch')) {
+                            accessSwitches.find(s => s.id == toNum).routingTableUpdated = true;
+                        }
+                    }, 200);
+                }
+            };
+            
+            requestAnimationFrame(animate);
+        }
+        
+        function sendDataPacket() {
+            if (!routingExchanged) {
+                addLog('Cannot send data packet: Routing tables not updated');
+                return;
+            }
+            
+            if (packetInProgress) {
+                addLog('Another packet is currently being processed');
+                return;
+            }
+            
+            packetInProgress = true;
+            
+            // Select source and destination hosts
+            const sourceHost = hosts[0];
+            const destHost = hosts[hosts.length - 1];
+            
+            // Create the packet
+            const container = document.querySelector('.container');
+            const containerRect = container.getBoundingClientRect();
+            
+            const sourceRect = sourceHost.element.getBoundingClientRect();
+            const sourceX = sourceRect.left + sourceRect.width / 2 - containerRect.left;
+            const sourceY = sourceRect.top + sourceRect.height / 2 - containerRect.top;
+            
+            const packet = document.createElement('div');
+            packet.className = 'packet';
+            packet.style.left = `${sourceX - 7.5}px`;
+            packet.style.top = `${sourceY - 7.5}px`;
+            
+            container.appendChild(packet);
+            packet.style.opacity = '1';
+            
+            addLog(`Host ${sourceHost.id}: Sending data packet to Host ${destHost.id}`);
+            
+            // Define the path
+            const path = [];
+            
+            // This is a simplified path that follows the hierarchy
+            // Add first access switch connected to source host
+            path.push({
+                element: accessSwitches[0].element,
+                type: 'access-switch',
+                id: accessSwitches[0].id
+            });
+            
+            // Add distribution switch
+            path.push({
+                element: distributionSwitches[0].element,
+                type: 'dist-switch',
+                id: distributionSwitches[0].id
+            });
+            
+            // Add core router
+            path.push({
+                element: coreRouters[0].element,
+                type: 'core-router',
+                id: coreRouters[0].id
+            });
+            
+            // Add second core router if available
+            if (coreRouters.length > 1) {
+                path.push({
+                    element: coreRouters[1].element,
+                    type: 'core-router',
+                    id: coreRouters[1].id
+                });
+            }
+            
+            // Add second distribution switch
+            if (distributionSwitches.length > 1) {
+                path.push({
+                    element: distributionSwitches[1].element,
+                    type: 'dist-switch',
+                    id: distributionSwitches[1].id
+                });
+            }
+            
+            // Add last access switch
+            path.push({
+                element: accessSwitches[accessSwitches.length - 1].element,
+                type: 'access-switch',
+                id: accessSwitches[accessSwitches.length - 1].id
+            });
+            
+            // Add destination host
+            path.push({
+                element: destHost.element,
+                type: 'host',
+                id: destHost.id
+            });
+            
+            // Animate through the path
+            animatePacketAlongPath(packet, sourceX, sourceY, path, 0);
+        }
+        
+        function animatePacketAlongPath(packet, startX, startY, path, pathIndex) {
+            if (pathIndex >= path.length) {
+                packet.remove();
+                packetInProgress = false;
+                addLog(`Host ${hosts[hosts.length - 1].id}: Received data packet from Host ${hosts[0].id}`);
+                return;
+            }
+            
+            const nextHop = path[pathIndex];
+            const nextRect = nextHop.element.getBoundingClientRect();
+            
+            const container = document.querySelector('.container');
+            const containerRect = container.getBoundingClientRect();
+            
+            const endX = nextRect.left + nextRect.width / 2 - containerRect.left;
+            const endY = nextRect.top + nextRect.height / 2 - containerRect.top;
+            
+            // Animate to the next hop
+            let progress = 0;
+            const duration = 800;  // 0.8 seconds
+            const start = performance.now();
+            
+            // Log appropriate message based on device type
+            if (nextHop.type === 'core-router') {
+                addLog(`Core Router ${nextHop.id}: Receiving packet and making routing decision based on local routing table`);
+            } else if (nextHop.type === 'dist-switch') { 
+                addLog(`Distribution Switch ${nextHop.id}: Forwarding packet according to local forwarding table`);
+            } else if (nextHop.type === 'access-switch') {
+                addLog(`Access Switch ${nextHop.id}: Forwarding packet to destination based on MAC address`);
+            }
+            
+            const animate = (timestamp) => {
+                const elapsed = timestamp - start;
+                progress = Math.min(elapsed / duration, 1);
+                
+                packet.style.left = `${startX + (endX - startX) * progress - 7.5}px`;
+                packet.style.top = `${startY + (endY - startY) * progress - 7.5}px`;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // Reached next hop
+                    setTimeout(() => {
+                        animatePacketAlongPath(packet, endX, endY, path, pathIndex + 1);
+                    }, 300);
+                }
+            };
+            
+            requestAnimationFrame(animate);
+        }
+       
+function resetNetwork() {
+    // Reset global states
+    routingExchanged = false;
+    packetInProgress = false;
+    
+    // Clear all devices
+    coreRouters.forEach(router => router.routingTableUpdated = false);
+    distributionSwitches.forEach(switch_ => switch_.routingTableUpdated = false);
+    accessSwitches.forEach(switch_ => switch_.routingTableUpdated = false);
+    
+    // Remove any active packets
+    const packets = document.querySelectorAll('.packet, .control-packet');
+    packets.forEach(packet => packet.remove());
+    
+    // Re-enable the send packet button
+    document.getElementById('send-packet-btn').disabled = false;
+    
+    // Clear logs
+    const logContainer = document.getElementById('log-container');
+    logContainer.innerHTML = '';
+    
+    // Add reset log
+    addLog('Network has been reset to initial state');
+    
+    // Recreate the network visualization
+    createLinks();
+}
+
+function addLog(message) {
+    const logContainer = document.getElementById('log-container');
+    const logEntry = document.createElement('div');
+    logEntry.className = 'log-entry';
+    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+    logContainer.appendChild(logEntry);
+    logContainer.scrollTop = logContainer.scrollHeight;
+}
+
+// Enable/disable buttons based on state
+document.getElementById('send-packet-btn').disabled = true;
+
+</script>
+</body>
+</html> 
