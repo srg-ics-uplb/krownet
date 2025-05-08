@@ -471,9 +471,9 @@
             const container = document.querySelector('.container');
             const containerRect = container.getBoundingClientRect();
             
-            const fromX = fromRect.left + fromRect.width / 2 - containerRect.left;
+            const fromX = fromRect.left + fromRect.width / 2 - containerRect.left+450;
             const fromY = fromRect.top + fromRect.height / 2 - containerRect.top;
-            const toX = toRect.left + toRect.width / 2 - containerRect.left;
+            const toX = toRect.left + toRect.width / 2 - containerRect.left+450;
             const toY = toRect.top + toRect.height / 2 - containerRect.top;
             
             const angle = Math.atan2(toY - fromY, toX - fromX) * 180 / Math.PI;
@@ -563,9 +563,9 @@
             const container = document.querySelector('.container');
             const containerRect = container.getBoundingClientRect();
             
-            const fromX = fromRect.left + fromRect.width / 2 - containerRect.left;
+            const fromX = fromRect.left + fromRect.width / 2 - containerRect.left+450;
             const fromY = fromRect.top + fromRect.height / 2 - containerRect.top;
-            const toX = toRect.left + toRect.width / 2 - containerRect.left;
+            const toX = toRect.left + toRect.width / 2 - containerRect.left+450;
             const toY = toRect.top + toRect.height / 2 - containerRect.top;
             
             const packet = document.createElement('div');
@@ -654,7 +654,7 @@
             const containerRect = container.getBoundingClientRect();
             
             const sourceRect = sourceHost.element.getBoundingClientRect();
-            const sourceX = sourceRect.left + sourceRect.width / 2 - containerRect.left;
+            const sourceX = sourceRect.left + sourceRect.width / 2 - containerRect.left+450;
             const sourceY = sourceRect.top + sourceRect.height / 2 - containerRect.top;
             
             const packet = document.createElement('div');
@@ -742,7 +742,7 @@
             const container = document.querySelector('.container');
             const containerRect = container.getBoundingClientRect();
             
-            const endX = nextRect.left + nextRect.width / 2 - containerRect.left;
+            const endX = nextRect.left + nextRect.width / 2 - containerRect.left+450;
             const endY = nextRect.top + nextRect.height / 2 - containerRect.top;
             
             // Animate to the next hop
