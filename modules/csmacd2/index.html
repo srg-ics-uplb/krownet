@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSMA/CD Visualizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #050a0f;
+    --panel: #0a1520;
+    --border: #0d3050;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --danger: #ff2244;
+    --warn: #ffcc00;
+    --text: #a0c8e0;
+    --dim: #2a4a6a;
+    --glow: 0 0 12px rgba(0,212,255,0.5);
+    --glow-green: 0 0 12px rgba(57,255,20,0.6);
+    --glow-red: 0 0 12px rgba(255,34,68,0.7);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(0,60,120,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,30,80,0.2) 0%, transparent 50%),
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,50,100,0.04) 40px, rgba(0,50,100,0.04) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,50,100,0.04) 40px, rgba(0,50,100,0.04) 41px);
+  }
+
+  header {
+    padding: 24px 40px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(10,21,32,0.8);
+    backdrop-filter: blur(8px);
+  }
+
+  .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1.4rem;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    letter-spacing: 4px;
+  }
+
+  .subtitle {
+    font-size: 0.7rem;
+    color: var(--dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+
+  /* === NETWORK BUS === */
+  .network-section {
+    position: relative;
+    margin-bottom: 28px;
+  }
+
+  .bus-container {
+    position: relative;
+    height: 200px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bus-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, transparent 0px, transparent 19px, rgba(0,50,80,0.15) 20px);
+    pointer-events: none;
+  }
+
+  /* The shared medium bus line */
+  .bus-line {
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--dim), var(--border) 20%, var(--border) 80%, var(--dim));
+    transform: translateY(-50%);
+    box-shadow: 0 0 6px rgba(13,48,80,0.8);
+  }
+
+  .bus-line.active {
+    background: linear-gradient(90deg, transparent, var(--accent) 10%, var(--accent) 90%, transparent);
+    box-shadow: var(--glow);
+    animation: busFlow 0.4s linear infinite;
+  }
+
+  .bus-line.collision {
+    background: linear-gradient(90deg, transparent, var(--danger) 10%, var(--danger) 90%, transparent);
+    box-shadow: var(--glow-red);
+    animation: collisionFlash 0.15s linear infinite;
+  }
+
+  @keyframes busFlow {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+    100% { filter: brightness(1); }
+  }
+  @keyframes collisionFlash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* === STATIONS === */
+  .station {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .station.top { flex-direction: column-reverse; top: 14%; }
+  .station.bottom { flex-direction: column; top: 86%; }
+
+  .station-stub {
+    width: 2px;
+    height: 36px;
+    background: var(--dim);
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+
+  .station-box {
+    background: var(--panel);
+    border: 1px solid var(--dim);
+    border-radius: 3px;
+    padding: 6px 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--dim);
+    transition: all 0.3s;
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .station.transmitting .station-box {
+    border-color: var(--accent3);
+    color: var(--accent3);
+    box-shadow: var(--glow-green);
+  }
+
+  .station.transmitting .station-stub {
+    background: var(--accent3);
+    box-shadow: var(--glow-green);
+  }
+
+  .station.colliding .station-box {
+    border-color: var(--danger);
+    color: var(--danger);
+    box-shadow: var(--glow-red);
+    animation: shake 0.3s infinite;
+  }
+
+  .station.colliding .station-stub {
+    background: var(--danger);
+    box-shadow: var(--glow-red);
+  }
+
+  .station.backoff .station-box {
+    border-color: var(--warn);
+    color: var(--warn);
+    box-shadow: 0 0 10px rgba(255,204,0,0.5);
+  }
+
+  .station.success .station-box {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: var(--glow);
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+
+  /* === SIGNAL PARTICLES === */
+  #signal-canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* === STATUS PANEL === */
+  .status-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .panel-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+  }
+
+  .panel-label {
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .panel-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    transition: color 0.3s;
+  }
+
+  .panel-value.danger { color: var(--danger); text-shadow: var(--glow-red); }
+  .panel-value.warn { color: var(--warn); text-shadow: 0 0 10px rgba(255,204,0,0.5); }
+  .panel-value.ok { color: var(--accent3); text-shadow: var(--glow-green); }
+
+  /* === FRAME VISUALIZER === */
+  .frame-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 4px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .frames-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .frame-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .frame-label {
+    font-size: 0.65rem;
+    color: var(--dim);
+    width: 60px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .frame-bits {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+  }
+
+  .bit {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--dim);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--dim);
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .bit.sent {
+    border-color: var(--accent3);
+    color: var(--accent3);
+    background: rgba(57,255,20,0.08);
+    box-shadow: 0 0 6px rgba(57,255,20,0.3);
+  }
+
+  .bit.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,212,255,0.15);
+    box-shadow: var(--glow);
+    animation: bitPulse 0.5s ease infinite;
+  }
+
+  .bit.collision {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: rgba(255,34,68,0.15);
+    box-shadow: var(--glow-red);
+  }
+
+  .bit.jamming {
+    border-color: var(--warn);
+    color: var(--warn);
+    background: rgba(255,204,0,0.1);
+    animation: bitPulse 0.3s ease infinite;
+  }
+
+  @keyframes bitPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* === LOG === */
+  .log-section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    height: 160px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .log-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    height: 100%;
+    padding-right: 4px;
+  }
+
+  .log-entry {
+    font-size: 0.7rem;
+    line-height: 1.4;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(13,48,80,0.5);
+    display: flex;
+    gap: 10px;
+  }
+
+  .log-time { color: var(--dim); flex-shrink: 0; }
+  .log-msg.info { color: var(--text); }
+  .log-msg.ok { color: var(--accent3); }
+  .log-msg.warn { color: var(--warn); }
+  .log-msg.err { color: var(--danger); }
+
+  /* === CONTROLS === */
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  button {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 10px 22px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    border-radius: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  button:hover {
+    background: rgba(0,212,255,0.1);
+    box-shadow: var(--glow);
+  }
+
+  button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  button.danger {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  button.danger:hover {
+    background: rgba(255,34,68,0.1);
+    box-shadow: var(--glow-red);
+  }
+
+  .speed-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--dim);
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: var(--glow);
+    cursor: pointer;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: var(--dim);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">CSMA/CD</div>
+    <div class="subtitle">Carrier Sense Multiple Access / Collision Detection</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Network Bus -->
+  <div class="network-section">
+    <div class="bus-container" id="busContainer">
+      <canvas id="signal-canvas"></canvas>
+      <div class="bus-line" id="busLine"></div>
+      <!-- Stations injected by JS -->
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#39ff14"></div> TRANSMITTING</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff2244"></div> COLLISION</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffcc00"></div> BACKOFF</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#00d4ff"></div> SUCCESS / IDLE</div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-panel">
+    <div class="panel-card">
+      <div class="panel-label">Channel State</div>
+      <div class="panel-value" id="channelState">IDLE</div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-label">Phase</div>
+      <div class="panel-value" id="phaseDisplay">—</div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-label">Collisions</div>
+      <div class="panel-value" id="collisionCount">0</div>
+    </div>
+    <div class="panel-card">
+      <div class="panel-label">Backoff Round</div>
+      <div class="panel-value" id="backoffRound">—</div>
+    </div>
+  </div>
+
+  <!-- Frame Bits -->
+  <div class="frame-section">
+    <div class="section-title">Frame Transmission — Bit by Bit</div>
+    <div class="frames-row" id="framesRow"></div>
+  </div>
+
+  <!-- Log -->
+  <div class="log-section">
+    <div class="section-title">Event Log</div>
+    <div class="log-entries" id="logEntries"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button id="btnSingle">Simulate Single TX</button>
+    <button id="btnCollide">Simulate Collision</button>
+    <button id="btnReset" class="danger">Reset</button>
+    <div class="speed-control">
+      SPEED
+      <input type="range" id="speedRange" min="1" max="5" value="3">
+      <span id="speedLabel">3x</span>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const FRAME_BITS = ['1','0','1','1','0','0','1','0','1','1','0','1'];
+const JAM_BITS   = ['1','1','1','1','1','1','1','1'];
+const STATIONS_CFG = [
+  { id: 'A', pos: 0.15, side: 'top'    },
+  { id: 'B', pos: 0.45, side: 'bottom' },
+  { id: 'C', pos: 0.72, side: 'top'    },
+  { id: 'D', pos: 0.88, side: 'bottom' },
+];
+
+let speed = 3;
+let bitInterval = null;
+let animFrame = null;
+let signals = [];   // { x, dx, color, alpha, from }
+let phase = 'idle';
+let collisions = 0;
+let backoffRound = 0;
+let tick = 0;
+
+// ─── DOM ────────────────────────────────────────────────────────────────────
+const busLine        = document.getElementById('busLine');
+const busContainer   = document.getElementById('busContainer');
+const framesRow      = document.getElementById('framesRow');
+const logEntries     = document.getElementById('logEntries');
+const channelState   = document.getElementById('channelState');
+const phaseDisplay   = document.getElementById('phaseDisplay');
+const collisionCount = document.getElementById('collisionCount');
+const backoffRound_el= document.getElementById('backoffRound');
+const btnSingle      = document.getElementById('btnSingle');
+const btnCollide     = document.getElementById('btnCollide');
+const btnReset       = document.getElementById('btnReset');
+const canvas         = document.getElementById('signal-canvas');
+const ctx            = canvas.getContext('2d');
+
+// ─── SETUP STATIONS ─────────────────────────────────────────────────────────
+const stationEls = {};
+STATIONS_CFG.forEach(cfg => {
+  const el = document.createElement('div');
+  el.className = `station ${cfg.side}`;
+  el.id = `station-${cfg.id}`;
+  el.style.left = `${cfg.pos * 100}%`;
+  el.innerHTML = `<div class="station-stub"></div><div class="station-box">STA-${cfg.id}</div>`;
+  busContainer.appendChild(el);
+  stationEls[cfg.id] = el;
+});
+
+// ─── RESIZE CANVAS ──────────────────────────────────────────────────────────
+function resizeCanvas() {
+  canvas.width  = busContainer.offsetWidth;
+  canvas.height = busContainer.offsetHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ─── LOG ────────────────────────────────────────────────────────────────────
+function log(msg, type='info') {
+  const t = (tick / 10).toFixed(1);
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">T=${t.padStart(5,'0')}</span><span class="log-msg ${type}">${msg}</span>`;
+  logEntries.prepend(entry);
+  while (logEntries.children.length > 40) logEntries.removeChild(logEntries.lastChild);
+}
+
+// ─── FRAME UI ───────────────────────────────────────────────────────────────
+function buildFrameUI(stations, labels) {
+  framesRow.innerHTML = '';
+  const rows = {};
+  stations.forEach((sid, i) => {
+    const row = document.createElement('div');
+    row.className = 'frame-row';
+    const lbl = document.createElement('div');
+    lbl.className = 'frame-label';
+    lbl.textContent = labels[i];
+    const bits = document.createElement('div');
+    bits.className = 'frame-bits';
+    bits.id = `bits-${sid}`;
+    FRAME_BITS.forEach((b, j) => {
+      const d = document.createElement('div');
+      d.className = 'bit';
+      d.id = `bit-${sid}-${j}`;
+      d.textContent = b;
+      bits.appendChild(d);
+    });
+    // Jam bits row
+    const jamRow = document.createElement('div');
+    jamRow.className = 'frame-bits';
+    jamRow.id = `jam-${sid}`;
+    jamRow.style.marginLeft = '6px';
+    jamRow.style.opacity = '0';
+    JAM_BITS.forEach((b, j) => {
+      const d = document.createElement('div');
+      d.className = 'bit jamming';
+      d.id = `jam-bit-${sid}-${j}`;
+      d.textContent = 'J';
+      jamRow.appendChild(d);
+    });
+    row.appendChild(lbl);
+    row.appendChild(bits);
+    row.appendChild(jamRow);
+    framesRow.appendChild(row);
+    rows[sid] = { bits, jam: jamRow };
+  });
+  return rows;
+}
+
+function setBit(sid, i, state) {
+  const el = document.getElementById(`bit-${sid}-${i}`);
+  if (el) { el.className = `bit ${state}`; }
+}
+
+// ─── SIGNAL ANIMATION ───────────────────────────────────────────────────────
+function spawnSignal(fromX, dir, color) {
+  signals.push({ x: fromX, dx: dir * (3 + speed), color, alpha: 1 });
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const midY = canvas.height / 2;
+
+  signals = signals.filter(s => {
+    s.x += s.dx;
+    s.alpha -= 0.008;
+    if (s.x < 0 || s.x > canvas.width || s.alpha <= 0) return false;
+    // Draw wave packet
+    const grad = ctx.createRadialGradient(s.x, midY, 0, s.x, midY, 22);
+    grad.addColorStop(0, s.color + 'cc');
+    grad.addColorStop(1, s.color + '00');
+    ctx.beginPath();
+    ctx.arc(s.x, midY, 22, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    // Ripple ring
+    ctx.beginPath();
+    ctx.arc(s.x, midY, 14 + Math.sin(Date.now()/60)*4, 0, Math.PI * 2);
+    ctx.strokeStyle = s.color + Math.floor(s.alpha * 200).toString(16).padStart(2,'0');
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    return true;
+  });
+
+  animFrame = requestAnimationFrame(animate);
+}
+
+// ─── STATE HELPERS ──────────────────────────────────────────────────────────
+function setPhase(p, cls='') {
+  phase = p;
+  phaseDisplay.textContent = p.toUpperCase();
+  phaseDisplay.className = 'panel-value ' + cls;
+}
+
+function setChannel(state, cls='') {
+  channelState.textContent = state;
+  channelState.className = 'panel-value ' + cls;
+}
+
+function setStation(id, state) {
+  const el = stationEls[id];
+  if (!el) return;
+  el.className = `station ${STATIONS_CFG.find(c=>c.id===id).side} ${state}`;
+}
+
+function resetStations() {
+  STATIONS_CFG.forEach(c => setStation(c.id, ''));
+}
+
+function clearBitInterval() {
+  if (bitInterval) { clearInterval(bitInterval); bitInterval = null; }
+}
+
+function disableButtons(d) {
+  btnSingle.disabled = d;
+  btnCollide.disabled = d;
+}
+
+// ─── SIMULATION 1: Single Transmitter ───────────────────────────────────────
+function simulateSingle() {
+  disableButtons(true);
+  collisions = 0;
+  collisionCount.textContent = '0';
+  backoffRound_el.textContent = '—';
+  signals = [];
+  tick = 0;
+
+  const sid = 'A';
+  const staCfg = STATIONS_CFG.find(c=>c.id===sid);
+  const rows = buildFrameUI([sid], ['STA-A']);
+  let bitIdx = 0;
+
+  log(`STA-A: Carrier sense → channel IDLE`, 'info');
+  setChannel('IDLE', '');
+  setPhase('carrier sense', '');
+
+  setTimeout(() => {
+    log(`STA-A: Channel clear → begin transmission`, 'ok');
+    setChannel('BUSY', 'ok');
+    setPhase('transmitting', 'ok');
+    setStation(sid, 'transmitting');
+    busLine.classList.add('active');
+
+    const baseMs = 220 / speed;
+    bitInterval = setInterval(() => {
+      tick++;
+      if (bitIdx < FRAME_BITS.length) {
+        setBit(sid, bitIdx, bitIdx === bitIdx ? 'active' : 'sent');
+        if (bitIdx > 0) setBit(sid, bitIdx-1, 'sent');
+
+        const bx = staCfg.pos * canvas.width;
+        spawnSignal(bx, 1, '#00d4ff');
+        spawnSignal(bx, -1, '#00d4ff');
+
+        log(`STA-A: Transmit bit[${bitIdx}] = ${FRAME_BITS[bitIdx]} — no collision detected`, 'info');
+        bitIdx++;
+      } else {
+        clearBitInterval();
+        setBit(sid, FRAME_BITS.length-1, 'sent');
+        setPhase('success', 'ok');
+        setChannel('IDLE', '');
+        setStation(sid, 'success');
+        busLine.classList.remove('active');
+        log(`STA-A: Frame transmitted successfully ✓`, 'ok');
+        setTimeout(() => {
+          setStation(sid, '');
+          setPhase('idle', '');
+          disableButtons(false);
+        }, 2000);
+      }
+    }, baseMs);
+  }, 900);
+}
+
+// ─── SIMULATION 2: Collision ─────────────────────────────────────────────────
+async function simulateCollision() {
+  disableButtons(true);
+  signals = [];
+  tick = 0;
+
+  const txA = 'A', txC = 'C';
+  const cfgA = STATIONS_CFG.find(c=>c.id===txA);
+  const cfgC = STATIONS_CFG.find(c=>c.id===txC);
+  const rows = buildFrameUI([txA, txC], ['STA-A', 'STA-C']);
+
+  let colCount = 0;
+  collisions = 0;
+  backoffRound = 0;
+
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+  const baseMs = 210 / speed;
+
+  async function runRound() {
+    backoffRound++;
+    backoffRound_el.textContent = backoffRound > 1 ? `#${backoffRound-1}` : '—';
+
+    // Reset frame bits
+    FRAME_BITS.forEach((_, i) => {
+      setBit(txA, i, '');
+      setBit(txC, i, '');
+    });
+    [txA, txC].forEach(s => {
+      const j = document.getElementById(`jam-${s}`);
+      if (j) j.style.opacity = '0';
+    });
+
+    log(`STA-A: Carrier sense...`, 'info');
+    log(`STA-C: Carrier sense...`, 'info');
+    setPhase('carrier sense', '');
+    setChannel('IDLE', '');
+    await delay(700);
+
+    log(`STA-A: Channel IDLE → transmitting`, 'ok');
+    log(`STA-C: Channel IDLE → transmitting`, 'ok');
+    setChannel('BUSY', 'ok');
+    setPhase('transmitting', 'ok');
+    setStation(txA, 'transmitting');
+    setStation(txC, 'transmitting');
+    busLine.classList.add('active');
+
+    // Transmit bits until collision
+    const collideAt = (backoffRound === 1) ? 4 : 3;
+    let bitIdx = 0;
+
+    await new Promise(resolve => {
+      bitInterval = setInterval(() => {
+        tick++;
+        if (bitIdx < collideAt) {
+          setBit(txA, bitIdx, 'active');
+          setBit(txC, bitIdx, 'active');
+          if (bitIdx > 0) { setBit(txA, bitIdx-1,'sent'); setBit(txC, bitIdx-1,'sent'); }
+
+          spawnSignal(cfgA.pos * canvas.width, 1, '#39ff14');
+          spawnSignal(cfgA.pos * canvas.width, -1, '#39ff14');
+          spawnSignal(cfgC.pos * canvas.width, -1, '#39ff14');
+          spawnSignal(cfgC.pos * canvas.width, 1, '#39ff14');
+
+          log(`BIT[${bitIdx}]: A=${FRAME_BITS[bitIdx]}, C=${FRAME_BITS[bitIdx]} — monitoring...`, 'info');
+          bitIdx++;
+        } else {
+          // Collision!
+          clearBitInterval();
+          colCount++;
+          collisions++;
+          collisionCount.textContent = collisions;
+          setBit(txA, bitIdx, 'collision');
+          setBit(txC, bitIdx, 'collision');
+          resolve();
+        }
+      }, baseMs);
+    });
+
+    // Collision phase
+    busLine.classList.remove('active');
+    busLine.classList.add('collision');
+    setChannel('COLLISION!', 'danger');
+    setPhase('collision detected', 'danger');
+    setStation(txA, 'colliding');
+    setStation(txC, 'colliding');
+
+    // Spawn collision bursts
+    const midX = (cfgA.pos + cfgC.pos)/2 * canvas.width;
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        spawnSignal(midX, 1, '#ff2244');
+        spawnSignal(midX, -1, '#ff2244');
+        spawnSignal(midX + (Math.random()-0.5)*60, (Math.random()>0.5?1:-1), '#ff6b35');
+      }, i * 60);
+    }
+
+    log(`⚡ COLLISION detected at bit[${collideAt}]! Signals overlap.`, 'err');
+    await delay(800);
+
+    // Jam signal
+    log(`STA-A: Sending JAM signal...`, 'warn');
+    log(`STA-C: Sending JAM signal...`, 'warn');
+    setPhase('jamming', 'warn');
+    setChannel('JAM', 'warn');
+
+    const jamA = document.getElementById(`jam-${txA}`);
+    const jamC = document.getElementById(`jam-${txC}`);
+    if (jamA) jamA.style.opacity = '1';
+    if (jamC) jamC.style.opacity = '1';
+
+    JAM_BITS.forEach((_, i) => {
+      setTimeout(() => {
+        spawnSignal(cfgA.pos * canvas.width, 1, '#ffcc00');
+        spawnSignal(cfgC.pos * canvas.width, -1, '#ffcc00');
+        log(`JAM bit[${i}] broadcast`, 'warn');
+      }, i * baseMs * 0.8);
+    });
+
+    await delay(JAM_BITS.length * baseMs * 0.8 + 400);
+
+    busLine.classList.remove('collision');
+    setStation(txA, 'backoff');
+    setStation(txC, 'backoff');
+    setPhase('backoff', 'warn');
+    setChannel('IDLE', '');
+
+    // Binary exponential backoff
+    const k = Math.min(colCount, 10);
+    const slotA = Math.floor(Math.random() * Math.pow(2, k));
+    const slotC = Math.floor(Math.random() * Math.pow(2, k));
+
+    log(`STA-A: Backoff k=${k}, slot=${slotA} (waiting ${slotA * 51.2}μs)`, 'warn');
+    log(`STA-C: Backoff k=${k}, slot=${slotC} (waiting ${slotC * 51.2}μs)`, 'warn');
+    backoffRound_el.textContent = `k=${k}`;
+
+    await delay(1200);
+
+    if (colCount < 2) {
+      log(`Backoff complete → retrying transmission...`, 'info');
+      await runRound();
+    } else {
+      // Success on retry
+      log(`STA-A: Channel clear → retransmitting`, 'ok');
+      log(`STA-C: Channel clear → retransmitting (yields)`, 'info');
+
+      FRAME_BITS.forEach((_, i) => setBit(txA, i, ''));
+      setStation(txC, '');
+      setStation(txA, 'transmitting');
+      busLine.classList.add('active');
+      setChannel('BUSY', 'ok');
+      setPhase('retransmitting', 'ok');
+
+      let bi = 0;
+      await new Promise(resolve => {
+        bitInterval = setInterval(() => {
+          tick++;
+          if (bi < FRAME_BITS.length) {
+            setBit(txA, bi, 'active');
+            if (bi > 0) setBit(txA, bi-1, 'sent');
+            spawnSignal(cfgA.pos * canvas.width, 1, '#00d4ff');
+            spawnSignal(cfgA.pos * canvas.width, -1, '#00d4ff');
+            log(`STA-A: Retransmit bit[${bi}] = ${FRAME_BITS[bi]} ✓`, 'info');
+            bi++;
+          } else {
+            clearBitInterval();
+            setBit(txA, FRAME_BITS.length-1, 'sent');
+            resolve();
+          }
+        }, baseMs);
+      });
+
+      busLine.classList.remove('active');
+      setPhase('success', 'ok');
+      setChannel('IDLE', '');
+      setStation(txA, 'success');
+      log(`STA-A: Retransmission successful after ${colCount} collision(s) ✓`, 'ok');
+
+      setTimeout(() => {
+        setStation(txA, '');
+        setPhase('idle', '');
+        disableButtons(false);
+      }, 2500);
+    }
+  }
+
+  await runRound();
+}
+
+// ─── RESET ──────────────────────────────────────────────────────────────────
+function resetAll() {
+  clearBitInterval();
+  signals = [];
+  phase = 'idle';
+  tick = 0;
+  framesRow.innerHTML = '';
+  logEntries.innerHTML = '';
+  busLine.className = 'bus-line';
+  resetStations();
+  setChannel('IDLE', '');
+  setPhase('—', '');
+  collisionCount.textContent = '0';
+  backoffRound_el.textContent = '—';
+  disableButtons(false);
+  log('System reset. Ready.', 'info');
+}
+
+// ─── EVENTS ─────────────────────────────────────────────────────────────────
+btnSingle.addEventListener('click', simulateSingle);
+btnCollide.addEventListener('click', simulateCollision);
+btnReset.addEventListener('click', resetAll);
+
+const speedRange = document.getElementById('speedRange');
+const speedLabel = document.getElementById('speedLabel');
+speedRange.addEventListener('input', () => {
+  speed = parseInt(speedRange.value);
+  speedLabel.textContent = speed + 'x';
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+animate();
+log('System ready. Select a simulation mode.', 'info');
+</script>
+</body>
+</html>
