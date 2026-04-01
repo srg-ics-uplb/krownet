@@ -18,6 +18,7 @@ function Graph(canvasId = 'myCanvas') {
     this.ctx.beginPath();
     
     this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = 2;
     this.ctx.moveTo(x1, y1);
     this.ctx.lineTo(x2, y2);
     this.ctx.stroke();
@@ -38,7 +39,7 @@ function Graph(canvasId = 'myCanvas') {
 
 function SignalGraph(colors = []) {
   // Attributes
-  this.signals = {};
+  this.signals = [];
   this.colorPalette = colors;
 
   this.top = 40;
@@ -51,54 +52,42 @@ function SignalGraph(colors = []) {
 
   // Methods
   this.initialize = function () {
-    this.signals = {};
+    this.signals = [];
 
-    // Draw the axis
     this.graph = new Graph();
+    this.drawAxis();
+  }
+
+  this.drawAxis = function() {
+    // Draw the axis
     this.graph.clear();
 
-    this.graph.drawLine(
-      this.xBase, this.top,
-      this.xBase, this.top + 2 * this.yScale * 3,
-      Color.black
-    );
-    this.graph.drawLine(
-      this.xBase, this.yBase,
-      this.xBase + this.xAxis, this.yBase,
-      Color.black
-    );
+    this.graph.drawLine(this.xBase, this.top, this.xBase, this.top + 2 * this.yScale * 3, Color.black);
+    this.graph.drawLine(this.xBase, this.yBase, this.xBase + this.xAxis, this.yBase, Color.black);
 
     // @TODO: Do not use magic numbers!!!
     for (let k = 0; k <= 6; k++) {
       // x-axis labels
-      this.graph.drawLine(
-        this.xBase, this.top + (k * this.yScale),
-        this.xBase - 5, this.top + (k * this.yScale),
-        Color.blue
-      );
-      this.graph.drawString(3 - k, this.xBase - 10, 3 + this.top + (k * this.yScale), 'right');
+      this.graph.drawLine(this.xBase, this.top + k * this.yScale, this.xBase - 5, this.top + k * this.yScale, Color.blue);
+      this.graph.drawString(3 - k, this.xBase - 10, 3 + this.top + k * this.yScale, "right");
     }
 
     for (let k = 0; k <= 360; k += 90) {
-      this.graph.drawLine(
-        this.xBase + k, this.yBase - 4,
-        this.xBase + k, this.yBase + 4,
-        Color.blue
-      );
+      this.graph.drawLine(this.xBase + k, this.yBase - 4, this.xBase + k, this.yBase + 4, Color.blue);
       this.graph.drawString(k, this.xBase + k - 4, this.yBase + 15);
     }
   }
 
-  this.newSignal = function (data) {
-    this.signals = { ...this.signals, [uuid()]: data };
+  this.newSignal = function (data, id) {
+    const color = this.colorPalette[this.signals.length % this.colorPalette.length];
+    this.signals.push({ ...data, id, color });
 
-    this.plotSignal(data, this.colorPalette[Object.keys(this.signals).length % this.colorPalette.length]);
-
+    this.plotSignal({ ...data, color });
     return data;
   }
 
-  this.plotSignal = function(data, color) {
-    let { amplitude, frequency, phase, fcomponents } = data;
+  this.plotSignal = function(data) {
+    let { amplitude, frequency, phase, fcomponents, color } = data;
 
     let oldX = this.xBase;
     let oldY = -1;
@@ -128,6 +117,20 @@ function SignalGraph(colors = []) {
     }
   }
 
+  this.removeSignal = function(id) {
+    this.signals = this.signals.filter(signal => signal.id !== id);
+  }
+
+  this.repaint = function() {
+    this.drawAxis();
+    this.signals.forEach(signal => this.plotSignal(signal));
+  }
+
+  this.highlightSignal = function(id, color = '#ffff00') {
+    this.drawAxis();
+    this.signals.forEach(signal => signal.id === id ? this.plotSignal({ ...signal, color }) : this.plotSignal(signal));
+  }
+
   this.history = function() {
     return this.signals;
   }
@@ -146,36 +149,23 @@ function uuid() {
     .substring(1);
 }
 
-function renderToTable(data, signals) {
+function renderToTable(signals = []) {
   const table = document.querySelector('#signal_table');
 
-  if (!signals) {
-    if (!data) {
-      table.innerHTML = '';
-    } else {
-      const { amplitude, frequency, phase, fcomponents } = data;
-
-      table.innerHTML = `
-        ${table.innerHTML}
-        <tr>
-          <td>${amplitude}</td>
-          <td>${frequency}</td>
-          <td>${phase}</td>
-          <td>${fcomponents}</td>
-        </tr>
-      `;
-    }
-  } else {
-    table.innerHTML = Object.keys(signals).reduce((html, uuid) => `
-      ${html}
-      <tr data-id="${uuid}">
-        <td>${signals[uuid].amplitude}</td>
-        <td>${signals[uuid].frequency}</td>
-        <td>${signals[uuid].phase}</td>
-        <td>${signals[uuid].fcomponents}</td>
-      </tr>
-    `, "");
-  }
+  table.innerHTML = signals.reduce((html, signal) => `
+    ${html}
+    <tr data-id="${signal.id}">
+      <td>${signal.amplitude}</td>
+      <td>${signal.frequency}</td>
+      <td>${signal.phase}</td>
+      <td>${signal.fcomponents}</td>
+      <td class="delete_signal">
+        <button class="mdl-button mdl-js-button mdl-button--icon" onClick="handleSignalDelete('${signal.id}')">
+          <i class="material-icons">delete</i>
+        </button>
+      </td>
+    </tr>
+  `, "");
 }
 
 /**
@@ -201,8 +191,8 @@ function handleSignalFormSubmit(event) {
     .from(event.target.querySelectorAll('.data-input'))
     .reduce((data, input) => ({ ...data, [input.id]: +input.value }), {});
 
-  signals.newSignal(data);
-  renderToTable(data);
+  signals.newSignal(data, uuid());
+  renderToTable(signals.history());
 }
 
 function handleClear(event) {
@@ -212,9 +202,26 @@ function handleClear(event) {
   renderToTable();
 }
 
+function handleSignalHighlight(event) {
+  signals.highlightSignal(event.target.parentElement.dataset.id);
+}
+
+function handleSignalOut() {
+  signals.repaint();
+}
+
+function handleSignalDelete(id) {
+  signals.removeSignal(id);
+  signals.repaint();
+  renderToTable(signals.history());
+}
+
 // Event Listeners
 const signalsForm = document.querySelector('form#signal_graph');
 const clearButton = document.querySelector('#clear_plots');
+const signalTable = document.querySelector('#signal_table');
 
 signalsForm.addEventListener('submit', handleSignalFormSubmit);
 clearButton.addEventListener('click', handleClear);
+signalTable.addEventListener('mouseover', handleSignalHighlight);
+signalTable.addEventListener('mouseout', handleSignalOut);
